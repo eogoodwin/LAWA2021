@@ -1,44 +1,55 @@
 rm(list=ls())
-source('H:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R')
+library(parallel)
+library(doParallel)
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableMacro(maxHistory = 20)
 
-dir.create(paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 
 
 
 
 
-scriptsToRun = c("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadAC.R", #1
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadBOP.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadECAN.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadES.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadGDC.R",              #5
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadGWRC.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadHBRC.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadHRC.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadMDC.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadNCC.R",        #10
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadNIWA.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadNRC.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadORC.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadTDC.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadTRC.R",         #15
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadWCRC.R",
-  "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/loadWRC.R")
-agencies = c('ac','boprc','ecan','es','gdc','gwrc','hbrc','hrc','mdc','ncc','nrc','orc','tdc','trc','wcrc','wrc')
-workers <- makeCluster(7)
+scriptsToRun = c(
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadAC.R", #1
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNIWA.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadBOP.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadECAN.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadES.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadGDC.R",              #5
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadGWRC.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHBRC.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHRC.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadMDC.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNCC.R",        #10
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNRC.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadORC.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadTDC.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadTRC.R",         #15
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWCRC.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWRC.R")
+agencies = c('ac','niwa','boprc','ecan','es',
+             'gdc','gwrc','hbrc','hrc','mdc',
+             'ncc','nrc','orc','tdc','trc',
+             'wcrc','wrc')
+workers <- makeCluster(6)
 registerDoParallel(workers)
 clusterCall(workers,function(){
-  source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
+startTime=Sys.time()
 foreach(i = 1:length(scriptsToRun),.errorhandling = "stop")%dopar%{
+  if(agencies[i]=='ncc'){return(NULL)}
   if(agencies[i]%in%tolower(siteTable$Agency)) try(source(scriptsToRun[i]))
+  rm(con)
+  gc()
   return(NULL)
 }
 stopCluster(workers)
 rm(workers)
+Sys.time()-startTime
 cat("Done load\n")
-
+#17 minutes
 
 
 for(agency in agencies){
@@ -48,8 +59,9 @@ for(agency in agencies){
 
 
 #XML 2 CSV for MACROS ####
-lawaset=c("TaxaRichness","MCI","PercentageEPTTaxa")
+lawaset=c("TaxaRichness","MCI","PercentageEPTTaxa","QMCI","ASPM")
 agencies=c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")
+startTime=Sys.time()
 for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
 # foreach(agency = 1:length(agencies))
   forcsv=xml2csvMacro(agency,maxHistory = 60,quiet=T)
@@ -59,9 +71,12 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
     forcsv=forcsv[-which(forcsv$Measurement%in%c('SQMCI')),]
     cat(agency,'\t',paste0(unique(forcsv$Measurement),collapse=', '),'\n')
   }
+  forcsv$measName = forcsv$Measurement
   forcsv$Measurement[grepl(pattern = 'Taxa',x = forcsv$Measurement,ignore.case = T)&
                      !grepl('EPT',forcsv$Measurement,ignore.case = F)] <- "TaxaRichness"
-  forcsv$Measurement[grepl(pattern = 'MCI|ate( community)* ind',x = forcsv$Measurement,ignore.case = T)] <- "MCI"
+  forcsv$Measurement[grepl(pattern='QMCI',x=forcsv$Measurement,ignore.case=T)] <- 'QMCI'
+  forcsv$Measurement[grepl(pattern='ASPM',x=forcsv$Measurement,ignore.case=T)] <- 'ASPM'
+  forcsv$Measurement[grepl(pattern = '^MCI|ate( community)* ind',x = forcsv$Measurement,ignore.case = T)] <- "MCI"
   forcsv$Measurement[grepl(pattern = 'EPT',x = forcsv$Measurement,ignore.case = T)] <- "PercentageEPTTaxa"
   forcsv$Measurement[grepl(pattern = 'Rich',x = forcsv$Measurement,ignore.case = T)] <- "TaxaRichness"
   excess=unique(forcsv$Measurement)[!unique(forcsv$Measurement)%in%lawaset]
@@ -71,10 +86,11 @@ browser()
   }
   rm(excess)
   write.csv(forcsv,
-            file=paste0( 'H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/',agency,'.csv'),
+            file=paste0( 'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/',agency,'.csv'),
             row.names=F)
   rm(forcsv)
 }
+Sys.time()-startTime 
 
 
 
@@ -87,7 +103,7 @@ startTime=Sys.time()
 if(exists('macroData')){rm(macroData)}
 siteTable=loadLatestSiteTableMacro()
 rownames(siteTable)=NULL
-lawaset=c("TaxaRichness","MCI","PercentageEPTTaxa")
+lawaset=c("TaxaRichness","MCI","PercentageEPTTaxa","QMCI","ASPM")
 suppressWarnings(rm(macrodata,"ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc"))
 agencies= c("boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")
 library(parallel)
@@ -111,7 +127,7 @@ foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'stop')%dop
     missingCombos=targetCombos[!targetCombos%in%currentSiteMeasCombos]
     
     if(length(missingCombos)>0){
-      agencyFiles = rev(dir(path = "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+      agencyFiles = rev(dir(path = "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                             pattern = paste0('^',agencies[agency],'.csv'),
                             full.names = T,recursive = T,ignore.case = T))[-1]
       for(af in seq_along(agencyFiles)){
@@ -136,37 +152,37 @@ foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'stop')%dop
     }
     rm(missingCombos,targetCombos,currentSiteMeasCombos,targetSites)
     
-        mfl$Agency=agencies[agency]
-        if(agencies[agency]=='ac'){
-          #Auckland
-          mfl$CouncilSiteID=trimws(mfl$CouncilSiteID)
-          sort(unique(tolower(mfl$CouncilSiteID))[unique(tolower(mfl$CouncilSiteID))%in%tolower(siteTable$CouncilSiteID)])
-          mfl$CouncilSiteID[tolower(mfl$CouncilSiteID)=="avondale @ thuja"] <- "Avondale @ Thuja Pl"
-          mfl$Date = format(lubridate::ymd(mfl$Date),'%d-%b-%Y')
-           }
-        if(agencies[agency]=='es'){
-          toCut=which(mfl$CouncilSiteID=="mataura river 200m d/s mataura bridge"&mfl$Date=="21-Feb-2017")
-          if(length(toCut)>0){
-            mfl=mfl[-toCut,]
-          }
-          rm(toCut)
-        }
-        if(agencies[agency]=='tdc'){
-          funnyTDCsites=!tolower(mfl$CouncilSiteID)%in%tolower(siteTable$CouncilSiteID)
-          cat(length(funnyTDCsites),'\n')
-          if(length(funnyTDCsites)>0){
-            mfl$CouncilSiteID[funnyTDCsites] <-
-              siteTable$CouncilSiteID[match(tolower(mfl$CouncilSiteID[funnyTDCsites]),tolower(siteTable$SiteID))]
-          }
-          rm(funnyTDCsites)
-        }
+    mfl$Agency=agencies[agency]
+    if(agencies[agency]=='ac'){
+      #Auckland
+      mfl$CouncilSiteID=trimws(mfl$CouncilSiteID)
+      sort(unique(tolower(mfl$CouncilSiteID))[unique(tolower(mfl$CouncilSiteID))%in%tolower(siteTable$CouncilSiteID)])
+      mfl$CouncilSiteID[tolower(mfl$CouncilSiteID)=="avondale @ thuja"] <- "Avondale @ Thuja Pl"
+      mfl$Date = format(lubridate::ymd(mfl$Date),'%d-%b-%Y')
+    }
+    if(agencies[agency]=='es'){
+      toCut=which(mfl$CouncilSiteID=="mataura river 200m d/s mataura bridge"&mfl$Date=="21-Feb-2017")
+      if(length(toCut)>0){
+        mfl=mfl[-toCut,]
+      }
+      rm(toCut)
+    }
+    if(agencies[agency]=='tdc'){
+      funnyTDCsites=!tolower(mfl$CouncilSiteID)%in%tolower(siteTable$CouncilSiteID)
+      cat(length(funnyTDCsites),'\n')
+      if(length(funnyTDCsites)>0){
+        mfl$CouncilSiteID[funnyTDCsites] <-
+          siteTable$CouncilSiteID[match(tolower(mfl$CouncilSiteID[funnyTDCsites]),tolower(siteTable$SiteID))]
+      }
+      rm(funnyTDCsites)
+    }
     
-   }
+  }
   return(mfl)
 }->macroData 
 stopCluster(workers)
 rm(workers)
-Sys.time()-startTime #1.6s
+Sys.time()-startTime #2.03
 #23 Jun 31646
 #25Jun 34775
 #3July 35560
@@ -180,6 +196,9 @@ Sys.time()-startTime #1.6s
 #28/8/20 42674
 #1/9/20 45083
 #24/9/20 43531
+#2/7/2021 38338
+#7/7/2021 51643
+#8/7/21   53375
 
 
 macroData$LawaSiteID = siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID),tolower(siteTable$CouncilSiteID))]
@@ -195,8 +214,9 @@ macroData=rbind(macroData[,names(acmac)],acmac) #77790
 
 niwamac = loadLatestCSVmacro(agency='niwa')
 niwamac$LawaSiteID=tolower(niwamac$LawaSiteID)
+niwamac$measName=niwamac$Measurement
 # niwamac$Measurement[niwamac$Measurement=="ntaxa"] <- "TaxaRichness"
-macroData=rbind(macroData,niwamac)
+macroData=rbind(macroData,niwamac%>%select(names(macroData)))
 #80385
 #83007
 #83256
@@ -205,7 +225,10 @@ macroData=rbind(macroData,niwamac)
 #50018 28Aug
 #52427 1/9/20
 #50875 24/9/20
-
+#43804 2/7/21
+#59623 7/7/21
+#58838 8/7/21
+ 
 rm(acmac,niwamac)
 
 #This one with rounding is a good way to assign samples to a sampling season.  
@@ -243,10 +266,10 @@ macroData$LawaSiteID[macroData$LawaSiteID%in%dupSites&macroData$Agency=='niwa'] 
 # ebop223=macroData%>%filter(grepl("ebop-00223",LawaSiteID,T))
 # plot(dmy(ebop223$Date),ebop223$Value,pch=as.numeric(factor(ebop223$Measurement)),col=as.numeric(factor(ebop223$Agency)))
 
-write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/MacrosCombined.csv'),row.names = F)
-# macroData=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/',pattern='MacrosCombined.csv',recursive = T,full.names = T),1),stringsAsFactors = F)
+write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/MacrosCombined.csv'),row.names = F)
+# macroData=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',pattern='MacrosCombined.csv',recursive = T,full.names = T),1),stringsAsFactors = F)
 
-#52427
+#43804
 
 
 # #audit presence of CouncilSiteIDs in sitetable
@@ -276,21 +299,9 @@ macroData$Region=tolower(macroData$Region)
 agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
 table(factor(macroData$Agency,levels=agencies))
 table(macroData$Region)
-#        ac  boprc  ecan   es  gdc gwrc hbrc  hrc  mdc  ncc  niwa nrc  orc tdc   trc wcrc wrc
-#23Jun              8553 2742 1042 1568 2385 2307       976       905 1057      7616 2463 
-#25 Jun             8553 2742 1042 1568 2385 2307       976       905 1057      7616 2463 3129
-#9July              8949 2994 1042 1568 2537 2307       976       905 1057      7616 2463 3129
-#22July 1878 3697   8949 2994 1042 1568 2537 2307    0  976       905 1057   0  7616 2463 3129         
-#24July 1878  4039  8949 2997 1042 1568 2537 2307   186 976  3439 905 1057   0  7622 2463 3378 
-#31July 1878  4039  8949 2997 1042  568 2531  646   186 1028 3439 905 1057   0  7622 2463 3378 
-#07Aug  1878 4018   8949 2997 1034 1568 2531 2646  186  1028 5464 1734 1057   0  7649 2463 3393
-#14Aug  1878  4018  8949 2997  906 1568 2559 2646 1099  1105 5464 1734 1057 0    7670 2463 3393  
-#21Aug  1878  4018  8949 2997  858 1568 2559 2646 1099  1105 5464 1734 1096   0  7682 2463 3393
-#28Aug  1878  4018  8949 2997 1083 1568 2559 2646 1099  1105 5464 1734 1096 0    7712 2655 3393 
-#1Sep   1878  4018  8949 2997 1083 1568 2559 2646 1099  1105 5464 1734 1096 681  7712 2655 3393 
-#14Sep  1878  4197  8949 2997 1083 1568 2559 2646 1099  1105 5464 1734 1102 663  7745 2655 3393 
-#29Sep  1878  4197  89492997  1083 1568 2559 2646 1099  1105 5464 1734 1102 663  7745 2655 3393 
-write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),
+# ac boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc  niwa   nrc   orc   tdc   trc  wcrc   wrc 
+# 0  3762 10269  2997  1083  1568  2586     0  1099  1105  5464  1701  1102   663  7781  2586     0
+write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),
                        '/MacrosWithMetadata.csv'),row.names = F)
 
 

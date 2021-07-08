@@ -1,9 +1,10 @@
 rm(list=ls())
+gc()
 library(tidyverse)
-source("h:/ericg/16666LAWA/LAWA2020/Scripts/LWPTrends_Dec18/LWPTrends_v1811.R")
-source("h:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R")
-source("h:/ericg/16666LAWA/LAWA2020/WaterQuality/scripts/SWQ_state_functions.R")
-dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d")),recursive = T,showWarnings = F)
+source("h:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R")
+source("h:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R")
+# source("h:/ericg/16666LAWA/LAWA2021/WaterQuality/scripts/SWQ_state_functions.R")
+dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d")),recursive = T,showWarnings = F)
 
 
 #NOTE = should probably tidy up the seasonality aspect of trend.
@@ -21,7 +22,7 @@ startYear15 <- EndYear - 15+1
 siteTable=loadLatestSiteTableMacro()
 #Load the latest made
 if(!exists('macroData')){
-  macroData=read.csv(tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data",
+  macroData=read.csv(tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data",
                               pattern = "MacrosWithMetadata.csv",recursive = T,full.names = T),1),stringsAsFactors = F)
 
   macroData$myDate <- as.Date(lubridate::dmy(as.character(macroData$Date)),"%d-%b-%Y")
@@ -51,7 +52,7 @@ cat(length(usites),'\n')
 usite=1
 library(parallel)
 library(doParallel)
-workers <- makeCluster(7)
+workers <- makeCluster(3)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   library(magrittr)
@@ -133,7 +134,7 @@ trendTable15$ConfCat <- cut(trendTable15$MKProbability, breaks=  c(-0.1, 0.1,0.3
 trendTable15$ConfCat=factor(trendTable15$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
 trendTable15$TrendScore=as.numeric(trendTable15$ConfCat)-3
 trendTable15$TrendScore[is.na(trendTable15$TrendScore)]<-(NA)
-save(trendTable15,file=paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend15Year.rData"))
+save(trendTable15,file=paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend15Year.rData"))
 rm(trendTable15)
 
 
@@ -229,7 +230,7 @@ trendTable10$ConfCat <- cut(trendTable10$MKProbability, breaks=  c(-0.1, 0.1,0.3
 trendTable10$ConfCat=factor(trendTable10$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
 trendTable10$TrendScore=as.numeric(trendTable10$ConfCat)-3
 trendTable10$TrendScore[is.na(trendTable10$TrendScore)]<-(NA)
-save(trendTable10,file=paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10Year.rData"))
+save(trendTable10,file=paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10Year.rData"))
 rm(trendTable10)
 
 
@@ -325,15 +326,15 @@ rm(trendTable10)
 # trendTablemax$TrendScore=as.numeric(trendTablemax$ConfCat)-3
 # trendTablemax$TrendScore[is.na(trendTablemax$TrendScore)]<-(NA)
 # trendTablemax$period=as.numeric(trendTablemax$period)
-# save(trendTablemax,file=paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/TrendmaxYear.rData"))
+# save(trendTablemax,file=paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/TrendmaxYear.rData"))
 # rm(trendTablemax)
 
 
 
 
-load(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",pattern="Trend15Year.rData",recursive = T,full.names = T),1),verbose=T)
-load(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",pattern="Trend10Year.rData",recursive = T,full.names = T),1),verbose=T)
-# load(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",pattern="TrendmaxYear.rData",recursive = T,full.names = T),1),verbose=T)
+load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="Trend15Year.rData",recursive = T,full.names = T),1),verbose=T)
+load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="Trend10Year.rData",recursive = T,full.names = T),1),verbose=T)
+# load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="TrendmaxYear.rData",recursive = T,full.names = T),1),verbose=T)
 # trendTablemax$period=as.numeric(trendTablemax$period)
 
 trendTable15 <- trendTable15%>%drop_na(LawaSiteID)
@@ -348,7 +349,7 @@ combTrend$CouncilSiteID = siteTable$CouncilSiteID[match(tolower(combTrend$LawaSi
 
 #Write outputs ####
 write.csv(combTrend,
-          paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
+          paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
                                     "/MacroMCI_Trend",format(Sys.time(),"%d%b%Y"),".csv"),row.names = F)
 rm(combTrend)
 
@@ -359,22 +360,22 @@ rm(combTrend)
 #             transmute(LAWAID=LawaSiteID,
 #                       Parameter=Measurement,
 #                       Trend=TrendScore),
-#           paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
+#           paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
 #                  "/ITEMacroTrendmax",format(Sys.time(),"%d%b%Y"),".csv"),row.names = F)
 write.csv(trendTable10%>%
             transmute(LAWAID=LawaSiteID,
                       Parameter=Measurement,
                       Trend=TrendScore),
-          paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
+          paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
                  "/ITEMacroTrend10",format(Sys.time(),"%d%b%Y"),".csv"),row.names = F)
 write.csv(trendTable15%>%
             transmute(LAWAID=LawaSiteID,
                       Parameter=Measurement,
                       Trend=TrendScore),
-          paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
+          paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
                  "/ITEMacroTrend15",format(Sys.time(),"%d%b%Y"),".csv"),row.names = F)
 
-# combTrend=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis",pattern="MacroMCI_Trend",recursive = T,full.names = T),1),stringsAsFactors = F)
+# combTrend=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis",pattern="MacroMCI_Trend",recursive = T,full.names = T),1),stringsAsFactors = F)
 
 savePlott=F
 usites=unique(trendTable10$LawaSiteID)
@@ -386,7 +387,7 @@ for(uparam in seq_along(uMeasures)){
   cat(subTrend$MKProbability[worstDeg],'\t')
   cat(subTrend$MKProbability[bestImp],'\n')
   if(savePlott){
-    tiff(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/BestWorstTenYear",uMeasures[uparam],".tif"),
+    tiff(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/BestWorstTenYear",uMeasures[uparam],".tif"),
          width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
   }else{
     windows()
@@ -417,7 +418,7 @@ mbp <- apply(tbp,MARGIN = 2,FUN=cumsum)
 mbp <- rbind(0,mbp)
 mbp = (mbp[-1,]+mbp[-6,])/2
 if(savePlott){
- tiff(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/TenYearTrends.tif"),
+ tiff(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/TenYearTrends.tif"),
       width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
 }
 par(mfrow=c(1,1),mar=c(5,10,4,2))

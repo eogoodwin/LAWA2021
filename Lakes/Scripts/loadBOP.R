@@ -6,9 +6,9 @@ require(RCurl)
 
 
 agency='boprc'
-setwd("H:/ericg/16666LAWA/LAWA2020/Lakes")
+setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/MetaData/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/MetaData/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 # sites <- subset(df,df$Type=="Site")[,1]
 
@@ -26,7 +26,7 @@ for(i in 1:length(sites)){
     url <- paste0("http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?service=SOS&version=2.0.0&request=GetObservation&",
                   "observedProperty=",Measurements[j],
                   "&featureOfInterest=",sites[i],
-                  "&temporalfilter=om:phenomenonTime,P15Y/2020-01-01")
+                  "&temporalfilter=om:phenomenonTime,P15Y/2021-01-01")
     url <- URLencode(url)
     xmlfile <- ldLWQ(url,agency=agency)
     if(!is.null(xmlfile) && 
@@ -71,7 +71,7 @@ for(i in 1:length(sites)){
 #XML date format ymd e.g. 2015-11-17
 # 
 # #Delivered separately by Lisa Naysmith, email 2/8/twentynineteen
-# okaro=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/BOPRCLake Okaro 2004_2018.xlsx",sheet=1,na = "<NA>")
+# okaro=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/BOPRCLake Okaro 2004_2018.xlsx",sheet=1,na = "<NA>")
 # okaro=okaro%>%transmute(Site="FI680541_INT",
 #                         Measurement=parameter,
 #                         time=sdate,
@@ -215,9 +215,9 @@ con$addTag("Agency", agency)
     con$closeTag() # Measurement
   }
 
-# saveXML(con$value(), paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"LWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"LWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"),
+# saveXML(con$value(), paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"),
           overwrite=T)
-if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))
+if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))

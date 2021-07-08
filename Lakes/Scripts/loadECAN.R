@@ -2,12 +2,12 @@
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(XML)     ### XML library to write hilltop XML
 require(RCurl)
-source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
 agency='ecan'
 tab="\t"
 
-df <- read.csv("H:/ericg/16666LAWA/LAWA2020/Lakes/Metadata/ecanLWQ_config.csv",sep=",",stringsAsFactors=FALSE)
+df <- read.csv("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/ecanLWQ_config.csv",sep=",",stringsAsFactors=FALSE)
 # configsites <- subset(df,df$Type=="Site")[,1]
 # configsites <- as.vector(configsites)
 
@@ -29,7 +29,7 @@ for(i in 1:length(sites)){
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
                  "&From=2004-01-01",
-                 "&To=2020-01-01")
+                 "&To=2021-01-01")
     url <- URLencode(url)
 
     xmlfile <- ldLWQ(url,agency)
@@ -142,9 +142,9 @@ for(i in 1:length(sites)){
   }
 }
 }
-#saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"LWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"LWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
-if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))
+#saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
+if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))
 

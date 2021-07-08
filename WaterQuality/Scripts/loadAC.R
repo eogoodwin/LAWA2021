@@ -2,11 +2,11 @@
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(XML)     ### XML library to write hilltop XML
 # require(RCurl)
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 
 
 agency='ac'
-Measurements <- read.table("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
+Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
 Measurements=c(Measurements,'WQ Sample')
 
@@ -21,7 +21,7 @@ sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 #&request=GetObservation
 #&observedProperty=NH3+NH4 as N (mg/l)
 #&featureOfInterest=6604
-#&temporalfilter=om:phenomenonTime,P25Y/2020-06-30
+#&temporalfilter=om:phenomenonTime,P25Y/2021-06-30
 
 # http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3
 # &Procedure=Sample.Results.LAWA
@@ -29,15 +29,15 @@ sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 # &request=GetObservation
 # &observedProperty=NH3%2BNH4%20as%20N%20(mg/l)
 # &featureOfInterest=6604
-# &temporalfilter=om:phenomenonTime,P25Y/2020-06-30
+# &temporalfilter=om:phenomenonTime,P25Y/2021-06-30
 
 #http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&Procedure=Sample.Results.LAWA&Service=SOS&version=2.0.0&request=GetObservation&
 #observedProperty=NH3%2BNH4%20as%20N%20(mg/l)&
 #featureOfInterest=6804&
-#temporalfilter=om:phenomenonTime,P25Y/2020-06-30"
+#temporalfilter=om:phenomenonTime,P25Y/2021-06-30"
 
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 
 if(exists('Data'))rm(Data)
 
@@ -48,7 +48,7 @@ for(i in 1:length(sites)){
                   "&Procedure=Sample.Results.LAWA&service=SOS&version=2.0.0&request=GetObservation",
                   "&observedProperty=",Measurements[j],
                   "&featureOfInterest=",sites[i],
-                  "&temporalfilter=om:phenomenonTime,P25Y/2020-01-01")
+                  "&temporalfilter=om:phenomenonTime,P25Y/2021-01-01")
     url <- URLencode(url)
     url <- gsub(pattern = '\\+',replacement = '%2B',x = url)
     xmlfile <- ldWQ(url,agency,QC=T)
@@ -120,21 +120,22 @@ Data$Units=as.character(Data$Units)
 
 
 
-if(0){unique(Data$qualifier)
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,255))
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,511))
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,1023))
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,2047))
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,4095))
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,8191))
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,16383))
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,32767))
-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,32767))-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,255))
-
-sapply(c(10, 16394, 43, 151, 30, 8222, 42, 16426, 16427),FUN=function(x)paste(sapply(strsplit(paste(rev(intToBits(x))),""),`[[`,2),collapse=""))
-unique(sapply(sapply(c(10, 16394, 43, 151, 30, 8222, 42, 16426, 16427),
-                     FUN=function(x)bitwAnd(x,sum(2^(13:14)))),
-              FUN=function(x)paste(sapply(strsplit(paste(rev(intToBits(x))),""),`[[`,2),collapse="")))
+if(0){
+  unique(Data$qualifier)
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,255))
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,511))
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,1023))
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,2047))
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,4095))
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,8191))
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,16383))
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,32767))
+  sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,32767))-sapply(as.numeric(unique(Data$qualifier)),FUN=function(x)bitwAnd(x,255))
+  
+  sapply(c(10, 16394, 43, 151, 30, 8222, 42, 16426, 16427),FUN=function(x)paste(sapply(strsplit(paste(rev(intToBits(x))),""),`[[`,2),collapse=""))
+  unique(sapply(sapply(c(10, 16394, 43, 151, 30, 8222, 42, 16426, 16427),
+                       FUN=function(x)bitwAnd(x,sum(2^(13:14)))),
+                FUN=function(x)paste(sapply(strsplit(paste(rev(intToBits(x))),""),`[[`,2),collapse="")))
 }
 
 Data = Data%>%filter(!bitwAnd(as.numeric(qualifier),255)%in%c(42,151))
@@ -262,7 +263,7 @@ while(i<=max){
   con$closeTag() # Measurement    
 }
 
-# saveXML(con$value(), file = paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/MetaData/",format(Sys.Date(),'%Y-%m-%d'),"/",agency,"SWQ.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"SWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+# saveXML(con$value(), file = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/MetaData/",format(Sys.Date(),'%Y-%m-%d'),"/",agency,"SWQ.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))

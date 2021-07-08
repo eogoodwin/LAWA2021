@@ -1,13 +1,18 @@
+#July 2021
+#This file relies on a list of SSM sites provided by Effect, but then iterates across that list, trying to pull the actual data from the council servers direct.
+
 rm(list=ls())
 library(tidyverse)
-source('H:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R')
-dir.create(paste0("H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F,recursive = T)
-dir.create(paste0("H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F,recursive = T)
+library(sysfonts)
+library(googleVis)
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
+dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F,recursive = T)
+dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F,recursive = T)
 
 lmsl=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx")
 
 checkXMLFile <- function(regionName,siteName,propertyName){
-  fname=paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
+  fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
   xmlfile<-read_xml(fname)
   if('ows'%in%names(xml_ns(xmlfile)) && length(xml_find_all(xmlfile,'ows:Exception'))>0){
     #Dont wanna keep exception files
@@ -51,7 +56,7 @@ checkXMLFile <- function(regionName,siteName,propertyName){
   }
 }
 readXMLFile <- function(regionName,siteName,propertyName,property){
-  fname=paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
+  fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
   require(xml2)
   xmlfile<-read_xml(fname)
   #Check for exceptions
@@ -230,9 +235,9 @@ if(0){
 }
 
 
-# ssm = read.csv('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/MetaData/SwimSiteMonitoringResults-2020-08-01.csv',stringsAsFactors = F)
-# ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/MetaData/SwimSiteMonitoringResults-2020-10-06.xlsx',sheet=1)
-# ssm = readxl::read_xlsx('c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2020/CanISwimhere/Daily swim results/SwimSiteMonitoringResults-2020-11-03.xlsx',sheet=1)
+# ssm = read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-08-01.csv',stringsAsFactors = F)
+# ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-10-06.xlsx',sheet=1)
+# ssm = readxl::read_xlsx('c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/CanISwimhere/Daily swim results/SwimSiteMonitoringResults-2021-11-03.xlsx',sheet=1)
 ssm = readxl::read_xlsx('c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2020/CanISwimhere/Daily swim results/SwimSiteMonitoringResults-2020-11-09.xlsx',sheet=1)
 
 ssm$callID =  NA
@@ -287,9 +292,9 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   if(regionName=="Bay"){
     agURLs = paste0(agURLs,'&version=2.0.0')
   }
-  # if(regionName=="Manawatu-Wanganui"){
-  #   agURLs = gsub(pattern = 'hilltopserver',replacement = 'tsdata',x = agURLs)
-  # }
+  if(regionName=="Manawatu.Whanganui"){
+    agURLs = gsub(pattern = 'hilltopserver',replacement = 'maps',x = agURLs)
+  }
   # if(regionName=='Canterbury'){
   #   agURLs = 'http://wateruse.ecan.govt.nz/WQRecLawa.hts?Service=Hilltop'
   # }
@@ -300,7 +305,7 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   #   agURLs = paste0(agURLs,'&service=SOS')
   # }
   if(regionName=="Waikato"){
-    agURLs = gsub(pattern="datasource=0$",replacement = "datasource=0&service=SOS&version=2.0.0&agency=LAWA&procedure=CBACTO.SampleResults.P",agURLs)
+    agURLs = gsub(pattern="datasource=0$",replacement = "datasource=0&service=SOS&version=2.0.0&procedure=CBACTO.Sample.Results.P",agURLs)
   }
   # if(regionName=="Hawke's"){
   #   agURLs = gsub(pattern="EMAR.hts",replacement = "Recreational_WQ.hts",agURLs)%>%unique
@@ -326,7 +331,7 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   agProps=rbind(agProps,c('WQ sample','WQ sample'))
   rm(observedProperty,propertyType)
   
-  if(lubridate::year(Sys.time())<2020){
+  if(lubridate::year(Sys.time())<2021){
     # #Find agency Sites from the WFS reportage and add SSM-sourced sites if necessary
     # agSites = WFSsiteTable%>%
     #   dplyr::filter(Region==WFSregion)%>%dplyr::select(CouncilSiteID)%>%
@@ -364,12 +369,12 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   #Load each site/property combo, by trying each known URL for that council.  Already-existing files will not be reloaded
   cat('\n',regionName,'\n')
   cat(length(agSites)*dim(agProps)[1]*length(agURLs),'\n')
-  for(as in seq_along(agSites)){
-    siteName=make.names(agSites[as])
+  for(agSite in seq_along(agSites)){
+    siteName=make.names(agSites[agSite])
     for(ap in seq_along(agProps$observedProperty)){
       propertyName=make.names(tolower(agProps$observedProperty[ap]))
       
-      fname = paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
+      fname = paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
       if(file.exists(fname)&&file.info(fname)$size>2000){
         next
       }else{
@@ -377,16 +382,17 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
           if(propertyName=="WQ.sample"|SSMregion=='Taranaki region'){
             urlToTry = paste0(gsub('SOS','Hilltop',agURLs[ur]),
                               '&request=GetData',
-                              '&Site=',agSites[as],
+                              '&Site=',agSites[agSite],
                               '&Measurement=',agProps$observedProperty[ap],
-                              '&From=1/6/2010&To=1/7/2020')
+                              '&From=1/6/2010&To=1/7/2021')
           }else{
             urlToTry = paste0(agURLs[ur],
                               '&request=GetObservation',
-                              '&featureOfInterest=',agSites[as],
+                              '&featureOfInterest=',agSites[agSite],
                               '&observedProperty=',agProps$observedProperty[ap],
-                              '&temporalfilter=om:phenomenonTime,P10Y/2020-06-01')
+                              '&temporalfilter=om:phenomenonTime,P10Y/2021-06-01')
           }
+         
           if(length(agFormats)==1){
             urlToTry = paste0(urlToTry,'&',agFormats[1])
           }
@@ -427,18 +433,18 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
     }
     rm(ap)
   }
-  rm(as)
+  rm(agSite)
   rm(regionName)
   return(NULL)
 }
 stopCluster(workers)
-Sys.time()-startTime  #13.7 minutes   57seconds  6 minutes
+Sys.time()-startTime  #30mins 2/7/2021
 rm(startTime)
 rm(workers)
 rm(SSMregion)
 if(0){
 #Investigate the yield of metadata files ####
-loadedFiles = dir('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/')
+loadedFiles = dir('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/')
 grep(pattern = 'WQ\\.sample',x = loadedFiles,ignore.case = F,value = T)->WQSf
 sapply(make.names(word(unique(ssm$Region),1,1)),FUN=function(s)sum(grepl(pattern = paste0('^',s),x = loadedFiles,ignore.case = T)))->Dfcount
 sapply(make.names(word(unique(ssm$Region),1,1)),FUN=function(s)sum(grepl(pattern = paste0('^',s),x = WQSf,ignore.case = T)))->WQfcount
@@ -504,14 +510,14 @@ startTime=Sys.time()
     sapply(.,URLdecode)%>%trimws%>%unique
   
   #Step through sites and properties, loading XML files to memory for subsequent combination
-  for(as in seq_along(agSites)){
+  for(agSite in seq_along(agSites)){
     cat('.')
-    siteName=make.names(agSites[as])
+    siteName=make.names(agSites[agSite])
     for(ap in seq_along(agProps$observedProperty)){
       property=agProps$propertyType[ap]
       propertyName=make.names(agProps$observedProperty[ap])
-      if(file.exists(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))&
-         file.info(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))$size>2000){
+      if(file.exists(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))&
+         file.info(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))$size>2000){
         readXMLFile(regionName,siteName,propertyName,property) #returns 1 or 2, and builds 'dataToCombine'
       }
     }
@@ -522,7 +528,7 @@ startTime=Sys.time()
   mdlist <- lapply(grep(regionName,metaToCombine,ignore.case = T,value=T),get)
   suppressMessages({recMetaData<<-Reduce(function(x,y) dplyr::full_join(x,y),mdlist)})
   if(!is.null(recMetaData)){
-    save(recMetaData,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+    save(recMetaData,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                                "/",SSMregion,"metaData.Rdata"))
   }
   rm(list=metaToCombine)
@@ -532,7 +538,7 @@ startTime=Sys.time()
   dlist <- lapply(grep(regionName,dataToCombine,ignore.case=T,value=T),get)
   suppressMessages({recData<<-Reduce(function(x,y) dplyr::full_join(x,y),dlist)})
   if(!is.null(recData)){
-    save(recData,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+    save(recData,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                                "/",SSMregion,"Data.Rdata"))
   }
   rm(list=dataToCombine)
@@ -544,7 +550,7 @@ rm(workers)
 Sys.time()-startTime  #3.35 mins 6/10/2020
                       #1.02 mins 16/10/20
                       #1.03 3/11/2020
-                      #1.03
+                      #38 s 2/7/2021
 rm(startTime)
 
 
@@ -555,12 +561,12 @@ rm(startTime)
 #First load each regions same-named data, and rename to a region-specific
 for(SSMregion in unique(ssm$Region)){
   suppressWarnings(rm(recMetaData,recData,mdFile,dFile))
-  mdFile=tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",
+  mdFile=tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
                   pattern=paste0(SSMregion,"metaData.Rdata"),recursive = T,full.names = T),1)
   if(length(mdFile)==1)load(mdFile,verbose=T)
   
   
-  dFile=tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",
+  dFile=tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
                  pattern=paste0(SSMregion,"Data.Rdata"),recursive = T,full.names = T),1)
   if(length(dFile)==1)load(dFile,verbose=T)
   
@@ -586,7 +592,7 @@ for(SSMregion in unique(ssm$Region)){
 #Filter BoP data by the file that MaxMcKay sent through
 BayD <- BayD%>%filter(propertyName!='E.coli_LabResult')   #15/10/2020 in respone to observation of repeats introduced by presence
                                                         #of one labresult propertytype from umbraco
-BayMD = readxl::read_xlsx("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/BOPRC Recreational Repeats List - LAWA.xlsx",sheet=1)%>%
+BayMD = readxl::read_xlsx("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/BOPRC Recreational Repeats List - LAWA.xlsx",sheet=1)%>%
   filter(Parameter%in%c("E coli","Enterococci"))%>%mutate(Parameter=ifelse(Parameter=="E coli","E-coli",Parameter))
 lubridate::tz(BayMD$Time)<-'Pacific/Auckland' #to specify what time zone the time was in
 BayMD$dateCollected = BayMD$Time - lubridate::hours(12)
@@ -636,7 +642,7 @@ MDlist[sapply(MDlist,is.null)] <- NULL
 sapply(MDlist,names)
 recMetaData=Reduce(function(x,y) dplyr::full_join(x,y%>%distinct),MDlist)
 print(dim(recMetaData))
-save(recMetaData,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+save(recMetaData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                            "/RecMetaData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
 rm(list=ls(pattern='MD$'))
 rm(MDlist)
@@ -646,7 +652,7 @@ Dlist[sapply(Dlist,is.null)] <- NULL
 sapply(Dlist,names)
 recData=Reduce(function(x,y) dplyr::full_join(x,y%>%distinct),Dlist)
 print(dim(recData))
-save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                                "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
 rm(list=ls(pattern='D$'))
 rm(Dlist)
@@ -658,24 +664,24 @@ rm(Dlist)
 #Simply reload existing dataset ####
 
 if(0){
- load(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data",pattern="RecData2020",recursive = T,full.names = T,ignore.case=T),1),verbose=T)  
+ load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data",pattern="RecData2021",recursive = T,full.names = T,ignore.case=T),1),verbose=T)  
   recData <- recData%>%filter(property!="WQ sample")
- load(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data",pattern="RecMetaData2020",recursive = T,full.names = T,ignore.case=T),1),verbose=T)  
+ load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data",pattern="RecMetaData2021",recursive = T,full.names = T,ignore.case=T),1),verbose=T)  
  }
 
 
 if(0){
-#8/10/2020 survey where councils have hteir resample metadata ####
-#The oens that said it was in metadata
-for(SSMregion in c("Gisborne region","Hawke's Bay region","Marlborough region","Northland region","Taranaki region","Wellington region")){
-  load(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",pattern=paste0(SSMregion,"metaData.Rdata"),recursive=T,full.names = T),1),verbose=T)
-  if(!is.null(recMetaData)){
-    eval(parse(text=paste0(make.names(word(SSMregion,1,1)),"MD=recMetaData")))
-  }
-  rm(recMetaData)
-} 
-
-'2019 info
+  #8/10/2020 survey where councils have hteir resample metadata ####
+  #The oens that said it was in metadata
+  for(SSMregion in c("Gisborne region","Hawke's Bay region","Marlborough region","Northland region","Taranaki region","Wellington region")){
+    load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",pattern=paste0(SSMregion,"metaData.Rdata"),recursive=T,full.names = T),1),verbose=T)
+    if(!is.null(recMetaData)){
+      eval(parse(text=paste0(make.names(word(SSMregion,1,1)),"MD=recMetaData")))
+    }
+    rm(recMetaData)
+  } 
+  
+  '2019 info
 Auckland
 BayOfPlenty
 Canterbury           exclusive URL   add ashley enterococci
@@ -692,32 +698,34 @@ WestCoast            all data at the supplied URL is routine (because retests ar
 Tasman               replacement file
 Waikato              replacement file
 Otago                replacement file'
-
-apply(GisborneMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which  #SampleEventType, Comments
-apply(Hawke.sMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which   #Puddle Comment
-apply(MarlboroughMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which #Project, Other Comments
-apply(NorthlandMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which  #Run type, comment
-apply(Taranaki,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which
-apply(WellingtonMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which  #Sample Type, comment/
-
-
-
-#Which metadata columns contain "retest" or "routine" or "resample"
-apply(recMetaData,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which
-# Project        Analysts Comments       Sample Type    Sample Comment       Cloud Cover   SampleEventType          Comments 
-# Puddle Comment    Other Comments          Run Type           Comment          Resample       Sample type 
-
-unique(recMetaData$Resample)
-grep('re-sampl|resampl|follow[^ing]',recMetaData$`Sample Comment`,ignore.case = T,value = T)%>%unique
-
-#End investigation
+  
+  apply(GisborneMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which  #SampleEventType, Comments
+  apply(Hawke.sMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which   #Puddle Comment
+  apply(MarlboroughMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which #Project, Other Comments
+  apply(NorthlandMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which  #Run type, comment
+  apply(Taranaki,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which
+  apply(WellingtonMD,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which  #Sample Type, comment/
+  
+  
+  
+  #Which metadata columns contain "retest" or "routine" or "resample"
+  apply(recMetaData,2,function(x)any(grepl('re-sampl|resampl|follow[^ing]',x,ignore.case=T)))%>%which
+  # Project        Analysts Comments       Sample Type    Sample Comment       Cloud Cover   SampleEventType          Comments 
+  # Puddle Comment    Other Comments          Run Type           Comment          Resample       Sample type 
+  
+  unique(recMetaData$Resample)
+  grep('re-sampl|resampl|follow[^ing]',recMetaData$`Sample Comment`,ignore.case = T,value = T)%>%unique
+  
+  #End investigation
 }
 
 
 routineResample = recMetaData%>%select(regionName,siteName,dateCollected,
-                                       Project,`Project ID`,`Analysts Comments`,`Sample Type`,`Sample Comment`,
-                                       SampleEventType,Comments,`Other Comments`,`Run Type`,
-                                       Comment,`Sample type`)#%>%unique
+                                       # Project, `Project ID`, `Analysts Comments`,
+                                       `Sample Type`
+                                       # `Sample Comment`, SampleEventType, Comments,`Other Comments`,`Run Type`,Comment,
+                                       # `Sample type`
+                                       )#%>%unique
 routineResample$region = recData$region[match(routineResample$regionName,make.names(word(recData$region,1,1)))]
 
 routineResample$resample = apply(routineResample[,-c(1,2,3)],1,
@@ -743,9 +751,9 @@ routineResample <- routineResample%>%distinct
 
 unique(recData$region)[unique(make.names(word(recData$region,1,1)))%in%unique(routineResample$regionName[routineResample$resample])]
 #8 councils have followup clues.  This leaves the following councils unIDed.
-unique(recData$region)[!unique(make.names(word(recData$region,1,1)))%in%unique(routineResample$regionName[routineResample$resample])]->knownMissingRegions
+unique(recData$region)[!unique(make.names(word(recData$region,1,1))) %in% unique(routineResample$regionName[routineResample$resample])] -> knownMissingRegions
 "Bay of Plenty region   Manawatū-Whanganui region     Nelson region    Southland region    Tasman region     Waikato region      West Coast region" 
-#BoP Lisa Naysmith emailed 8/10/2020              Max McKay responded with an xl file now in h:/ericg/16666Lawa/lawa2020/CISH/Data/BOPRC 
+#BoP Lisa Naysmith emailed 8/10/2020              Max McKay responded with an xl file now in h:/ericg/16666Lawa/LAWA2021/CISH/Data/BOPRC 
 #Manawatu whanganui                               Amber Garnett "Followups are already removed from our dataset"
 #Nelson have confirmed they have no idea what a routine vs a resample
 #Southland
@@ -762,8 +770,8 @@ recData$resample[recData$region%in%knownMissingRegions] <- FALSE
 rm(routineResample)
 table(recData$region,recData$resample,useNA = 'if')
 #                           FALSE  TRUE  <NA>
-#   Bay of Plenty region     7898     0     0
-# Canterbury region          9621   268   3164
+#   Bay of Plenty region     8473     0     0
+# Canterbury region          2138   268   3164
 # Gisborne region            3204    36   362
 # Hawke's Bay region         3576   234   1379
 # Manawatū-Whanganui region  9038     0   0
@@ -787,6 +795,7 @@ sum(recData$resample,na.rm=T)  #13/10/2020  799
                                #29/10/2020 1123
                                #03/11/2020 1123
                                #19/11/2020 1123
+                               #02/07/2021  221
 recData$clue[is.na(recData$resample)] <- ""
 recData$clue[!recData$resample] <- ""
 
@@ -798,22 +807,19 @@ recData$SiteID = ssm$SiteName[match(recData$siteName,make.names(ssm$callID))]
 
 table(recData$region,recData$resample)
 
-#                            FALSE TRUE         20/10/20   28/10/20     29/10/20   3/11       9/11
-# Bay of Plenty region       7898    0        10038        7898 0       7898    0  7898 0     7898
-# Canterbury region          9621  268        9621  268    9621 268     9621  268  9621 268   9621 268
-# Gisborne region            4482   46        3204  36     3204 36      3204   36  3204 36    3204 36
-# Hawke's Bay region         3682  234        3682  234    3576 234     3576  234  3576 234   3576 234
-# Manawatū-Whanganui region  8272    0        8272  0      8272 0       8272    0  9038 0     9038
-# Marlborough region         1710  194        1710  194    1710 194     1710  194  1710 194   1710 194
-# Nelson region               209    0        209   0      209 0        209     0  1832 0     1832
-# Northland region           4081  167        4081  167    4081 167     4081  167  4081 167   4081 167
-# Otago region               1922   12        1468  10     1468 10      1468   10  1468 10    1468 10
-# Southland region           2068    0        2068  0      2068 0       2068    0  2478 0     2597 0     2478 after excluding WQSample
-# Taranaki region            5532    0        5532  0      5532 0       5342  189  5342 189   5229 189
-# Tasman region              1097    0        1097         1097 0       1097    0  1097 0     1097 0
-# Waikato region             2902    0        2901         2076 0       2076    0  2076 0     2074 0
-# Wellington region          9179    4        9179  4      9179 4       9158   25  9103 25    9103 25
-# West Coast region          1444    0        1444  0      1444 0       1444    0  1444 0     1444 0
+#                         FALSE  TRUE
+# Bay of Plenty region    8473     0
+# Canterbury region       23186    0
+# Gisborne region         9039     0
+# Hawke's Bay region      9867     0
+#   Marlborough region    5377     0
+#   Nelson region         2087     0
+#   Otago region          6210     0
+#   Southland region      4974     0
+#   Taranaki              5112   221
+#   Tasman region         1082     0
+#   Wellington region    24704     0
+#   West Coast region     1514     0
 
 
 # Diatnostics on merge
@@ -874,7 +880,7 @@ table(recData$bathingSeason)
 uReg=unique(recData$region)
 for(reg in seq_along(uReg)){
   toExport=recData%>%filter(region==uReg[reg],dateCollected>(Sys.time()-lubridate::years(5)))
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recData_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  "_unfiltered.csv"),row.names = F)
@@ -913,7 +919,7 @@ downloadData$Longitude = lmsl$Longitude[match(tolower(downloadData$LawaSiteID),t
 
 write.csv(downloadData%>%select(region:siteType,Latitude,Longitude,property:SwimIcon)%>%
             arrange(region,siteName,dateCollected),
-          file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",
+          file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
                                   format(Sys.Date(),'%Y-%m-%d'),
                                   "/CISHdownloadWeekly",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F) #"weekly" because that's the name of the sheet it'll go into
 
@@ -928,6 +934,7 @@ recData <- recData%>%filter(!resample|is.na(resample))%>%select(-resample,-clue)
 #78288 to 77165 29/10/20
 #78208 to 77085 3/11/20
 #78151 to 77028 9/11/20
+#101846 to 101625 2/7/2021
 
 graphData <- recData%>%
    filter(YW>201525)%>%
@@ -949,6 +956,7 @@ graphData <- recData%>%
 #50277 29/10/20
 #50254 3/11/20
 #50316 9/11/20
+#47460 2/7/21
 graphData$bathingSeason <- factor(graphData$bathingSeason)
 
 
@@ -957,7 +965,8 @@ graphData$bathingSeason <- factor(graphData$bathingSeason)
 CISHsiteSummary <- graphData%>%
   select(-dateCollected)%>%
   group_by(LawaSiteID,property)%>%            #For each site
-  dplyr::summarise(region=unique(region),
+  dplyr::summarise(.groups = 'keep',
+                   region=unique(region),
                    nBS=length(unique(bathingSeason)),
                    nPbs=paste(as.numeric(table(bathingSeason)),collapse=','),
                    uBS=paste(sort(unique(bathingSeason)),collapse=','),
@@ -973,6 +982,7 @@ CISHsiteSummary <- graphData%>%
 #708 29-10-20
 #707 3*11*20
 #708  9/11/20
+#535 2/7/21
 
 #https://www.mfe.govt.nz/sites/default/files/microbiological-quality-jun03.pdf    actually a new one shows a change from 550 to 540
 #For enterococci, marine:                      E.coli, freshwater
@@ -1004,8 +1014,8 @@ CISHsiteSummary <- graphData%>%
 #### 17/Nov2020 NOF Definitions ####
 library(parallel)
 library(doParallel)
-source("h:/ericg/16666LAWA/LAWA2020/WaterQuality/scripts/SWQ_NOF_Functions.R")
-NOFbandDefinitions <- read.csv("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/NOFbandDefinitions3.csv", header = TRUE, stringsAsFactors=FALSE)
+source("h:/ericg/16666LAWA/LAWA2021/WaterQuality/scripts/SWQ_NOF_Functions.R")
+NOFbandDefinitions <- read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NOFbandDefinitions3.csv", header = TRUE, stringsAsFactors=FALSE)
 NOFbandDefinitions <- NOFbandDefinitions[,1:11]
 uLAWAids = unique(graphData$LawaSiteID)
 
@@ -1027,7 +1037,7 @@ clusterCall(workers,function(){
   # library(doBy)
   library(plyr)
   library(dplyr)
-  source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
 startTime=Sys.time()
 
@@ -1089,6 +1099,8 @@ stopCluster(workers)
 rm(workers)
 cat(Sys.time()-startTime)  
 
+# 1.4s 2/7/21
+
 # NOFSummaryTable$EcoliMed_Band <- sapply(NOFSummaryTable$EcoliMed,NOF_FindBand,bandColumn=NOFbandDefinitions$E..coli)
 
 #These contain the best case out of these scorings, the worst of which contributes.
@@ -1105,7 +1117,7 @@ rm("cnEc_Band","cnEc95_Band","cnEcRecHealth540_Band","cnEcRecHealth260_Band")
 
 NOFSummaryTable$siteType = graphData$siteType[match(NOFSummaryTable$LawaSiteID,graphData$LawaSiteID)]
 
-with(NOFSummaryTable%>%filter(Year=="2016to2020"),table(siteType,EcoliSummaryband,useNA='if')%>%addmargins())
+with(NOFSummaryTable%>%filter(Year=="2017to2021"),table(siteType,EcoliSummaryband,useNA='if')%>%addmargins())
 #### \17/Nov/2020
 
 
@@ -1125,6 +1137,7 @@ table(CISHsiteSummary$MACmarineEnt)
 # 53 156 92 37      3/11
 # 53 156 92 37
 # 53 156 92 37    9/11
+# 43 114 82 33     2/7/21
 table(CISHsiteSummary$NOFfwEcoli)
 # A   B   C   D 
 # 24  27  33 176    8/10/20
@@ -1136,6 +1149,7 @@ table(CISHsiteSummary$NOFfwEcoli)
 # 48 35 66 220    3/11/20
 # 48 35 63 223
 # 48 35 63 223   9/11
+# 36 32 53 142     2/7/21
 
 #NOF table 22
 #Excellent                          <=130
@@ -1170,12 +1184,13 @@ table(CISHsiteSummary$LawaBand)
 # 101 191 158 257    3/11/20
 # 101 191 155 260    4/11/20
 # 101 191 155 260    9/11/20
+# 79  146 135 175    2/7/21
 
 
 #Calculate data abundance
 #number per bathing season
 #This is the old previous rules, about needing ten per season, and every season represented
-if(lubridate::year(Sys.time())<2020){
+if(lubridate::year(Sys.time())<2021){
 #Email, Abi L 15/10/2019
 #2)	Greater Wellington and minimum sample size
 #   So as a starter for 10, can we propose alternative rule if the above isn?t met, that:
@@ -1213,7 +1228,7 @@ if(lubridate::year(Sys.time())<2020){
   notEnough50 = which(CISHsiteSummary$totSampleCount<50)
   # notEnoughBS = which(CISHsiteSummary$nBS<5)
   tooFew = unique(c(notRecentlyMonitored,notEnough50)) #  INDICES, NOT LOGICALS
-  rm(nInLatestBS,nInPreviousBS,notRecentlyMonitored,notEnough50,notEnoughBS)
+  rm(nInLatestBS,nInPreviousBS,notRecentlyMonitored,notEnough50)
   table(CISHsiteSummary$LawaBand[-tooFew])
   table(CISHsiteSummary$LawaBand[tooFew])
   CISHsiteSummary$MACmarineEnt[tooFew]=NA
@@ -1228,6 +1243,7 @@ table(CISHsiteSummary$LawaBand,useNA='if')
 #   64  181  135  201  126   3/11/20
 #   64  181  132  204  126   4/11/20
 #   64  181  132  204  126   9/11/20
+#   57  139  117  141  81    2/7/21
 
 CISHsiteSummary$siteName = recData$siteName[match(CISHsiteSummary$LawaSiteID,recData$LawaSiteID)]
 CISHsiteSummary$siteType = recData$siteType[match(CISHsiteSummary$LawaSiteID,recData$LawaSiteID)]
@@ -1259,6 +1275,7 @@ singleProp <- CISHsiteSummary%>%
   ungroup%>%
   filter(nProp==1)%>%select(-nProp)
 #535 3/11
+#371 2/7/21
 multiProp <- CISHsiteSummary%>%
   group_by(LawaSiteID)%>%
   dplyr::mutate(nProp=length(unique(property)),
@@ -1272,27 +1289,28 @@ multiProp <- CISHsiteSummary%>%
                 nNA=sum(is.na(LawaBand))) #113 3/11
 moresingles = multiProp%>%filter(nProp==1)%>%select(-nProp,-nNA)%>%distinct
 #59 3/11
+#110 2/7/21
 
-singleProp=full_join(singleProp,moresingles)  #594
+singleProp=full_join(singleProp,moresingles)  #425
 rm(moresingles)
 
 multiProp <- multiProp%>%filter(nProp!=1)%>%
   group_by(LawaSiteID)%>%
   dplyr::mutate(combGr=paste0(unique(LawaBand),collapse=''),
                 ncg=nchar(combGr))%>%
-  ungroup #54 3/11
+  ungroup #56 2/7/21
 
 moresingles=multiProp%>%filter(ncg==1|combGr=="NA")%>%select(-combGr,-nProp,-nNA,-ncg)%>%distinct
-#28 4/11
+#26 2/7
 
 #These are now same grade in ecoli and enterococci, but we do need to keep only the appropriate numeric values
 moresingles <- moresingles%>%filter((property=="E-coli"&siteType=='Site')|(property=="Enterococci"&siteType=='Beach'))
-#14 4/11
+#13 2/7
 
-singleProp=full_join(singleProp,moresingles) #608
+singleProp=full_join(singleProp,moresingles) #438
 rm(moresingles)
 
-multiProp <- multiProp%>%  dplyr::filter(ncg>1&combGr!='NA') #26
+multiProp <- multiProp%>%  dplyr::filter(ncg>1&combGr!='NA') #30
 
 multiProp%>%select(LawaSiteID,region,siteType,combGr)%>%distinct
 
@@ -1308,11 +1326,11 @@ moresingles = multiProp%>%filter(LawaSiteID%in%moresingles$LawaSiteID)%>%
   filter((siteType=='Beach'&property=="Enterococci")|
            (siteType=='Site'&property=="E-coli"))%>%
   select(-(nProp:ncg))
-#2
+#4 2/7/21
 
 multiProp <- multiProp%>%filter(!LawaSiteID%in%moresingles$LawaSiteID) #22 (==11 sites)
 
-singleProp=full_join(singleProp,moresingles) #610
+singleProp=full_join(singleProp,moresingles) #442
 rm(moresingles)
 
 storeForCouncilInfo=multiProp
@@ -1324,14 +1342,14 @@ moresingles <- multiProp%>%filter(property=='Enterococci')%>%
   mutate(LawaBand = sapply(combGr,FUN=function(s){max(unlist(strsplit(s,split = '')))}))%>%
   select(-(nProp:ncg)) #11
 
-singleProp = full_join(singleProp,moresingles)%>% #621
+singleProp = full_join(singleProp,moresingles)%>% #453
   arrange(region)
 rm(moresingles,multiProp)
 
 
 
 
-CISHsiteSummary = singleProp          #707 rows to 621
+CISHsiteSummary = singleProp          #535 rows to 453
 
 # rm(singleProp)
 
@@ -1352,7 +1370,7 @@ downloadSummary$siteType[downloadSummary$siteType=="Beach"] <- "Coastal"
 LAWAPalette=c("#95d3db","#74c0c1","#20a7ad","#007197",
               "#e85129","#ff8400","#ffa827","#85bb5b","#bdbcbc")
 
-AbisPivotData = readxl::read_xlsx('H:/ericg/16666LAWA/Lawa2020/CanISwimHere/Data//LAWA Recreational water quality monitoring dataset_Nov2020_pivot draft.xlsx',sheet= "Weekly monitoring dataset")
+AbisPivotData = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data//LAWA Recreational water quality monitoring dataset_Nov2020_pivot draft.xlsx',sheet= "Weekly monitoring dataset")
 
 AbisPivotData <- AbisPivotData %>% filter(property!='Cyanobacteria')%>%droplevels()
 
@@ -1375,7 +1393,7 @@ if(!'source'%in%font_families()){
 }
 
 
-tiff('H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/Summary.tif',
+tiff('H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/Summary.tif',
      width=15,height=12,res=300,compression='lzw',type='cairo',units='in')
 showtext::showtext_begin()
 layout(matrix(c(1,1,1,1,1,1,1,1,1,
@@ -1414,7 +1432,7 @@ text(2,5+3,"Caution advised",cex=8,pos = 4)
 text(2,3+3,"Unsuitable for swimming",cex=8,pos = 4)
 text(1,1+3,paste0("Summary from ",sum(LakeGrades$Freq)," samples."),cex=6,pos=4)
 text(5,2,expression(""^'*'*"Faecal indicator bacterial test results (excludes predicted data) supplied to LAWA. Data were collected over"),cex=8)
-text(5,1,"the recreational bathing season (last week Oct – end of Mar) during 2015 – 2020  from regularly monitored swim sites.",cex=8)
+text(5,1,"the recreational bathing season (last week Oct – end of Mar) during 2015 – 2021  from regularly monitored swim sites.",cex=8)
 plot(0,0+3,bty='n',type='n',xlab='',ylab='',xaxt='n',yaxt='n',xlim=c(0,10),ylim=c(0,10))
 text(1,7+3,paste0(round(CoastalGrades$Freq[1]/sum(CoastalGrades$Freq)*100,0),'%'),col='#85bb5b',cex=12)
 text(1,5+3,paste0(round(CoastalGrades$Freq[2]/sum(CoastalGrades$Freq)*100,0),'%'),col='#ffa827',cex=12)
@@ -1423,9 +1441,8 @@ text(2,7+3,"Suitable for swimming",cex=8,pos = 4)
 text(2,5+3,"Caution advised",cex=8,pos = 4)
 text(2,3+3,"Unsuitable for swimming",cex=8,pos = 4)
 text(1,1+3,paste0("Summary from ",sum(CoastalGrades$Freq)," samples."),cex=6,pos=4)
-showtext_end()
+showtext::showtext_end()
 if(names(dev.cur())=='tiff')dev.off()
-
 
 riverpie = gvisPieChart(data=RiverGrades,
                           options=list(
@@ -1483,37 +1500,36 @@ rlcpie=gvisMerge(rlpie,coastalpie,horizontal=F,chartid='CISHgrades')
 plot(rlcpie)
 
 
-print(rlcpie,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+print(rlcpie,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                            format(Sys.Date(),'%Y-%m-%d'),
                            "/SwimSpot.html"))
 
 
 
 write.csv(downloadSummary,
-          file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",
+          file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
                         format(Sys.Date(),'%Y-%m-%d'),
                         "/CISHdownloadSummary",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F) 
 
 
-write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                         "/CISHsiteSummary",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
-# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
-file.copy(from=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+file.copy(from=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/CISHsiteSummary",format(Sys.time(),'%Y-%b-%d'),".csv"),
-          to = "c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2020/CanISwimhere/EffectDelivery/",overwrite=T)
-
+          to = "c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/Can I Swim here/Analysis/",overwrite=T)
 
 
 #Write individual regional files: data from recData and scores from CISHsiteSummary 
 uReg=unique(recData$region)
 for(reg in seq_along(uReg)){
   toExport=recData%>%filter(region==uReg[reg],dateCollected>(Sys.time()-lubridate::years(5)))
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recData_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  ".csv"),row.names = F)
   toExport=CISHsiteSummary%>%filter(region==uReg[reg])%>%as.data.frame
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recScore_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  ".csv"),row.names = F)
@@ -1541,17 +1557,17 @@ recDataITE <- CISHsiteSummary%>%
 recDataITE$Module[recDataITE$Module=="Site"] <- "River"
 recDataITE$Module[recDataITE$Module=="LakeSite"] <- "Lake"
 recDataITE$Module[recDataITE$Module=="Beach"] <- "Coastal"
-write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                             "/ITERecData",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)  
 
-file.copy(from=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+file.copy(from=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITERecData",format(Sys.time(),'%Y-%b-%d'),".csv"),
-  to = "c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2020/CanISwimhere/EffectDelivery/",overwrite=T)
+  to = "c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/Can I Swim here/Analysis/",overwrite=T)
 
 
 #Audit differences
 
-CISHsums = dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",pattern="^CISHsite",recursive=T,full.names=T,ignore.case=T)
+CISHsums = dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",pattern="^CISHsite",recursive=T,full.names=T,ignore.case=T)
 
 aCISH = read.csv(CISHsums[7],stringsAsFactors = F)
 
@@ -1602,7 +1618,7 @@ bandCheck%>%filter(region=="Hawke's Bay region")
 
 # Here is hopefully a quick job for Monday, if you can please.
 # 
-# Would it be possible to regenerate the below figure, but only use samples from the last swim season? (last week of Oct 2019 through to the end of Mar 2020).
+# Would it be possible to regenerate the below figure, but only use samples from the last swim season? (last week of Oct 2019 through to the end of Mar 2021).
 # 
 # Needs to go be ready to go out with the LAWA media release on first thing Tuesday 8th Dec.  It’s short notice, so if this isn’t doable, please let us know, and we will revise what we send out.
 # 
@@ -1614,7 +1630,7 @@ bandCheck%>%filter(region=="Hawke's Bay region")
 # Abi
 
 
-AbisPivotData = readxl::read_xlsx('H:/ericg/16666LAWA/Lawa2020/CanISwimHere/Data//LAWA Recreational water quality monitoring dataset_Nov2020_pivot draft.xlsx',sheet= "Weekly monitoring dataset")
+AbisPivotData = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data//LAWA Recreational water quality monitoring dataset_Nov2021_pivot draft.xlsx',sheet= "Weekly monitoring dataset")
 
 AbisPivotData <- AbisPivotData %>% filter(property!='Cyanobacteria')%>%droplevels()
 AbisPivotData <- AbisPivotData %>% filter(dateCollected>lubridate::dmy('22-10-2019')&dateCollected<=lubridate::dmy('31-3-2020'))
@@ -1638,7 +1654,7 @@ if(!'source'%in%font_families()){
 }
 
 
-tiff('H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/OneYearSummary.tif',
+tiff('H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/OneYearSummary.tif',
      width=15,height=12,res=300,compression='lzw',type='cairo',units='in')
 showtext::showtext_begin()
 layout(matrix(c(1,1,1,1,1,1,1,1,1,
@@ -1649,7 +1665,7 @@ par(family='source',mar=c(0,0,0,0),bg='white')
 par(xpd=NA)
 plot(0,0,bty='n',type='n',xlab='',ylab='',xaxt='n',yaxt='n',xlim=c(0,10),ylim=c(0,10))
 text(5,6,"New Zealand swim spot water quality summary",cex=20)
-text(5,3,expression('Recreational water quality 2019 - 2020'^'*'),cex=15)
+text(5,3,expression('Recreational water quality 2019 - 2021'^'*'),cex=15)
 pie(RiverGrades$Freq,labels=NA,col=c('#85bb5b','#ffa827','#e85129'),border='white',radius=0.9)
 title(main = 'River',line=-4,cex.main=12)
 points(0,0,pch=16,cex=50,col='white')
@@ -1677,7 +1693,7 @@ text(2,5+3,"Caution advised",cex=8,pos = 4)
 text(2,3+3,"Unsuitable for swimming",cex=8,pos = 4)
 text(1,1+3,paste0("Summary from ",sum(LakeGrades$Freq)," samples."),cex=6,pos=4)
 text(5,2,expression(""^'*'*"Faecal indicator bacterial test results (excludes predicted data) supplied to LAWA. Data were collected over"),cex=8)
-text(5,1,"the recreational bathing season (last week Oct – end of Mar) during 2019 – 2020  from regularly monitored swim sites.",cex=8)
+text(5,1,"the recreational bathing season (last week Oct – end of Mar) during 2019 – 2021  from regularly monitored swim sites.",cex=8)
 plot(0,0+3,bty='n',type='n',xlab='',ylab='',xaxt='n',yaxt='n',xlim=c(0,10),ylim=c(0,10))
 text(1,7+3,paste0(round(CoastalGrades$Freq[1]/sum(CoastalGrades$Freq)*100,0),'%'),col='#85bb5b',cex=12)
 text(1,5+3,paste0(round(CoastalGrades$Freq[2]/sum(CoastalGrades$Freq)*100,0),'%'),col='#ffa827',cex=12)

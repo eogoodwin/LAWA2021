@@ -2,11 +2,11 @@ rm(list=ls())
 library(tidyverse)
 library(lubridate)
 
-source("H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R")
-dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),recursive = T,showWarnings = F)
+source("H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
+dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),recursive = T,showWarnings = F)
 
 macroSiteTable=loadLatestSiteTableMacro()
-# extraSites=read.csv('H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/MetaData/ExtraMacrotable.csv',stringsAsFactors = F)
+# extraSites=read.csv('H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/MetaData/ExtraMacrotable.csv',stringsAsFactors = F)
 # extraSites=extraSites[!tolower(extraSites$CouncilSiteID)%in%tolower(macroSiteTable$CouncilSiteID),]
 # macroSiteTable <- rbind(macroSiteTable,extraSites)
 # rm(extraSites)
@@ -54,12 +54,12 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
   }
   macroAudit <- rbind.data.frame(macroAudit,newRows)
 }
-write.csv(macroAudit,paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Audit/",format(Sys.Date(),'%Y-%m-%d'),"/macroAudit.csv"))
+write.csv(macroAudit,paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),'%Y-%m-%d'),"/macroAudit.csv"))
 
 macroAudit%>%dplyr::group_by(agency)%>%dplyr::summarise(xmlAge=mean(xmlAge,na.rm=T),
                                                         endDate=max(lubridate::dmy(latest),na.rm=T))%>%knitr::kable(format='rst')
 
-# lawaIDs=read.csv("H:/ericg/16666LAWA/LAWA2020/WaterQuality/R/lawa_state/2018_csv_config_files/LAWAMasterSiteListasatMarch2018.csv",stringsAsFactors = F)
+# lawaIDs=read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/R/lawa_state/2018_csv_config_files/LAWAMasterSiteListasatMarch2018.csv",stringsAsFactors = F)
 
 
 table(unique(tolower(macroData$CouncilSiteID))%in%tolower(c(macroSiteTable$SiteID,macroSiteTable$CouncilSiteID)))
@@ -98,7 +98,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
         r=r+1
       }
     }
-    write.csv(agencyDeets,paste0( 'H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Audit/',format(Sys.Date(),"%Y-%m-%d"),'/',agency,'Audit.csv'),row.names=F)
+    write.csv(agencyDeets,paste0( 'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/',format(Sys.Date(),"%Y-%m-%d"),'/',agency,'Audit.csv'),row.names=F)
   }
 }
 
@@ -107,7 +107,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
 upara=unique(macroData$Measurement)
 ucounc=c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
 for(up in seq_along(upara)){
-  png(filename = paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/",
+  png(filename = paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/",
                         upara[up],format(Sys.Date(),'%d%b%y'),".png"),
       width = 12,height=9,units='in',res=300,type='cairo')
   pvals=macroData[macroData$Measurement==upara[up],]
@@ -133,7 +133,7 @@ for(up in seq_along(upara)){
 
 
 startTime=Sys.time()
-urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 # workers <- makeCluster(7)
 # registerDoParallel(workers)
 # foreach(agency = c("ac", "boprc", "ecan", "es", "gdc", "gwrc", "hbrc", "hrc", 
@@ -141,13 +141,13 @@ urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",
         # .combine=rbind,.errorhandling="stop")%dopar%{
 for(agency in c("ac", "boprc", "ecan", "es", "gdc", "gwrc", "hbrc", "hrc", 
                 "mdc", "ncc","niwa", "nrc", "orc", "tdc", "trc", "wcrc", "wrc")){
-          if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
+          if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                         pattern = paste0('^',agency,".*audit\\.csv"),
                         recursive = T,full.names = T,ignore.case = T))>0){
-            rmarkdown::render('H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Scripts/AuditDocument.Rmd',
+            rmarkdown::render('H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/AuditDocument.Rmd',
                               params=list(agency=agency,
                                           sos=urls$SOSwq[which(tolower(urls$Agency)==agency)]),
-                              output_dir = paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
+                              output_dir = paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                               output_file = paste0(toupper(agency),"Audit",format(Sys.Date(),'%d%b%y'),".html"),
                               envir = new.env())
           }

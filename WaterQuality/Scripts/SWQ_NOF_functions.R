@@ -1,7 +1,7 @@
 #=======================================================================================================
 #Create a function to adjust Ammonia to pH8
 NH4adj<-function(sub_swq,meas=c("NH4","PH"),csv){
-stop("How abuot make a sigmoidal function and fit by that")
+# stop("How abuot make a sigmoidal function and fit by that")
   A<-read.csv(csv,stringsAsFactors = FALSE)
   A <- rbind(A,c(NA,1))
   

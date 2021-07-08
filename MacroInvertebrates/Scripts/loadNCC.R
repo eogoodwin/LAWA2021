@@ -3,12 +3,12 @@ require(XML)     ### XML library to write hilltop XML
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(RCurl)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/")
+setwd("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/")
 
 agency='ncc'
 
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
 # configsites <- subset(df,df$Type=="Site")[,2]
 # configsites <- as.vector(configsites)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
@@ -27,7 +27,7 @@ for(i in 1:length(sites)){
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
                  "&From=1990-01-01",
-                 "&To=2020-06-01")
+                 "&To=2021-06-01")
     url <- URLencode(url)
 
     xmlfile <- ldMWQ(url,agency)
@@ -126,8 +126,8 @@ for(i in 1:length(sites)){
     }
   }
 }
-#saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"Macro.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"Macro.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),
+#saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"Macro.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"Macro.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),
           overwrite=T)

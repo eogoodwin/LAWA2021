@@ -1,10 +1,10 @@
 rm(list=ls())
 library(tidyverse)
-source('H:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R')
-try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
-try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
-ssm = read.csv('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/MetaData/SwimSiteMonitoringResults-2020-08-01.csv',stringsAsFactors = F)
-WFSsiteTable = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data",pattern='SiteTable',
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
+try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
+try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
+ssm = read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-08-01.csv',stringsAsFactors = F)
+WFSsiteTable = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data",pattern='SiteTable',
                                  recursive=T,full.names=T,ignore.case=T),1),stringsAsFactors = F)
 RegionTable=data.frame(ssm=unique(ssm$Region),
                        wfs=c("bay of plenty","canterbury","gisborne","hawkes bay",
@@ -92,7 +92,7 @@ recData%>%
   #                  bathingSeason=unique(bathingSeason))%>%
   ungroup->graphData
 graphData$bathingSeason <- factor(graphData$bathingSeason)
-write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                   format(Sys.Date(),'%Y-%m-%d'),
                                   "/CISHgraph",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
 ##############################
@@ -132,7 +132,7 @@ table(CISHsiteSummary$MACfwEcoli)
 #Poor                               >540
 
 
-#For LAWA bands in 2020
+#For LAWA bands in 2021
 #50 needed over 5 seasons 
 #Sites must be still recently monitored - if no data fro 19/20, 
 #then must have been last monitored in 18/19. 
@@ -154,7 +154,7 @@ rm(marineEnts)
 #Calculate data abundance
 #number per bathing season
 #This is the old previous rules, about needing ten per season, and every season represented
-if(lubridate::year(Sys.time())<2020){
+if(lubridate::year(Sys.time())<2021){
 #Email, Abi L 15/10/2019
 #2)	Greater Wellington and minimum sample size
 #   So as a starter for 10, can we propose alternative rule if the above isn’t met, that:
@@ -196,10 +196,10 @@ CISHsiteSummary$LawaBand[tooFewNew]=NA #set those data-poor sites' grade to NA
   table(CISHsiteSummary$LawaBand[-tooFew])
   CISHsiteSummary$LawaBand[tooFew]=NA
 }
-write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                         format(Sys.Date(),'%Y-%m-%d'),
                                         "/CISHsiteSummary",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
-# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
 
 
 #Export only the data-rich sites
@@ -211,7 +211,7 @@ NElt10=which(apply(lrsY,1,FUN=function(x){
   }))
 CISHwellSampled=CISHwellSampled[-NElt10,]
 CISHwellSampled <- left_join(CISHwellSampled,recData%>%select(LawaSiteId,Region,SiteType,SiteName)%>%distinct)
-write.csv(CISHwellSampled,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(CISHwellSampled,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                         format(Sys.Date(),'%Y-%m-%d'),
                                         "/CISHwellSampled",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
 
@@ -224,12 +224,12 @@ CISHsiteSummary$SiteType = recData$SiteType[match(CISHsiteSummary$LawaSiteID,rec
 uReg=unique(recData$Region)
 for(reg in seq_along(uReg)){
   toExport=recData[recData$Region==uReg[reg],]
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recData_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  ".csv"),row.names = F)
   toExport=CISHsiteSummary%>%filter(Region==uReg[reg])%>%as.data.frame
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recScore_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  ".csv"),row.names = F)
@@ -250,5 +250,5 @@ recDataITE <- CISHsiteSummary%>%
 recDataITE$Module[recDataITE$Module=="Site"] <- "River"
 recDataITE$Module[recDataITE$Module=="LakeSite"] <- "Lake"
 recDataITE$Module[recDataITE$Module=="Beach"] <- "Coastal"
-write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                             "/ITERecData",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)  

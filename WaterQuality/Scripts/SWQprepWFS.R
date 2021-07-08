@@ -2,25 +2,30 @@ rm(list = ls())
 library(tidyverse)
 library(parallel)
 library(doParallel)
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality/")
-source("H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality/")
+source("H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
 source('K:/R_functions/nzmg2WGS.r')
 source('K:/R_functions/nztm2WGS.r')
 
 # https://www.lawa.org.nz/media/18225/nrwqn-monitoring-sites-sheet1-sheet1.pdf
 
-dir.create(paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 
-urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+
+
+"https://gis.boprc.govt.nz/server2/rest/services/emar/MonitoringSiteReferenceData/MapServer/WFSServer?request=getfeature&service=WFS&VERSION=1.1.0&typename=MonitoringSiteReferenceData&srsName=EPSG:4326"
+
+"https://gis.boprc.govt.nz/server2/services/emar/MonitoringSiteReferenceData/MapServer/WFSServer?request=getfeature&service=WFS&typename=MonitoringSiteReferenceData&srsName=EPSG:4326&Version=1.1.0"
 
 if(0){
   if(HRCsWFSisMisBehaving){
-    urls$URL[8] <- "H:\\ericg\\16666LAWA\\LAWA2020\\WaterQuality\\Data\\2020-07-31\\HRC_WFS.xml"
+    urls$URL[8] <- "H:\\ericg\\16666LAWA\\LAWA2021\\WaterQuality\\Data\\2020-07-31\\HRC_WFS.xml"
   }
 }
 
 #The first on the list prioritises the ID to be used and match every else to it.
-vars <- c("CouncilSiteID","SiteID","LawaSiteID","NZReach","Region","Agency","SWQAltitude","SWQLanduse","Catchment")
+vars <- c("CouncilSiteID","SiteID","LawaSiteID","NZReach","NZSegment","Region","Agency","SWQAltitude","SWQLanduse","Catchment")
 
 if(exists('siteTable')){
   rm(siteTable)
@@ -41,11 +46,12 @@ foreach(h = 1:length(urls$URL),.combine = rbind,.errorhandling = "stop")%dopar%{
   if(!nzchar(urls$URL[h])){  ## returns false if the URL string is missing
     return(NULL)
   }
+  if(urls$Agency[h]=="NCC"){return(NULL)}
   
   xmldata<-try(ldWFS(urlIn = urls$URL[h],agency=urls$Agency[h],dataLocation = urls$Source[h],case.fix = TRUE))
   
   if(is.null(xmldata)||'try-error'%in%attr(xmldata,'class')||grepl(pattern = '^501|error',
-                                                                   x=xmlValue(getNodeSet(xmldata,'/')[[1]]),
+                                                                   x = xmlValue(getNodeSet(xmldata,'/')[[1]]),
                                                                    ignore.case=T)){
     cat('Failed for ',urls$Agency[h],'\n')
     return(NULL)
@@ -192,6 +198,7 @@ foreach(h = 1:length(urls$URL),.combine = rbind,.errorhandling = "stop")%dopar%{
       
       a <- left_join(a,b)
       a$accessDate=format(Sys.Date(),"%d-%b-%Y")
+      rm(b)
       return(a)
     }
   }
@@ -201,16 +208,20 @@ rm(workers)
 
 Sys.time()-startTime  #20s
 
+
+siteTable$Lat = as.numeric(siteTable$Lat)
+siteTable$Long = as.numeric(siteTable$Long)
+
 siteTable$SiteID=as.character(siteTable$SiteID)
 siteTable$LawaSiteID=as.character(siteTable$LawaSiteID)
 siteTable$Region=tolower(as.character(siteTable$Region))
 siteTable$Agency=tolower(as.character(siteTable$Agency))
 
 #Add NIWA sites separately ####
-if(file.exists("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/NIWALawaSiteIDs.csv")){
-  niwaSub=read.csv("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/NIWALawaSiteIDs.csv",stringsAsFactors=F)
+if(file.exists("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteIDs.csv")){
+  niwaSub=read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteIDs.csv",stringsAsFactors=F)
 }else{
-  df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/MetaData/niwaSWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+  df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/MetaData/niwaSWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
   sites=df$Value[which(df$Type=='site')]
   niwaSub=data.frame(CouncilSiteID=sites,LawaSiteID=NA,SiteID=NA,NZReach=NA,
                      Region=NA,Agency='niwa',Catchment=NA,Lat=NA,Long=NA,accessDate=Sys.Date(),stringsAsFactors=F)
@@ -245,10 +256,10 @@ if(file.exists("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/NIWALawaSiteID
   }
   
   # monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2019/Metadata/Monitoring Sites - 8 July 2019.xlsx',guess_max = 5000)
-  monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',
+  monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',
                               sheet=1)
-  lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Site Master List.xlsx',sheet=2)
-  # lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Masterlist of Umbraco Sites as at 15 June 2020.xlsx',
+  lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Site Master List.xlsx',sheet=2)
+  # lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Masterlist of Umbraco Sites as at 15 June 2020.xlsx',
                                      # sheet=1)
   
   #Text-basd distace
@@ -274,10 +285,10 @@ if(file.exists("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/NIWALawaSiteID
   
   
   # monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2019/Metadata/Monitoring Sites - 8 July 2019.xlsx',guess_max = 5000)
-  monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',
+  monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',
                                      sheet=1)
   # monList = rbind(monList,newmonList)
-  lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Site Master List.xlsx',sheet=2)
+  lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Site Master List.xlsx',sheet=2)
   
   
   lawaMasterList$Long = nztm2wgs(ce = as.numeric(lawaMasterList$NZTM_Easting),cn = as.numeric(lawaMasterList$NZTM_Northing))[,2]
@@ -331,7 +342,7 @@ if(file.exists("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/NIWALawaSiteID
   niwaSub <- left_join(niwaSub,NIWAdataInB%>%select(LawaSiteID,SWQAltitude,SWQLanduse)%>%distinct,by="LawaSiteID")
   rm(NIWAdataInB)
   niwaSub$LawaSiteID=tolower(niwaSub$LawaSiteID)
-  write.csv(niwaSub,"H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/NIWALawaSiteIDs.csv",row.names=F)
+  write.csv(niwaSub,"H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteIDs.csv",row.names=F)
 }##
 siteTable=merge(x=siteTable,y=niwaSub,all.x=T,all.y=T)
 rm(niwaSub)
@@ -350,7 +361,8 @@ siteTable$Region[siteTable$Region=='nrc'] <- 'northland'
 siteTable$Region[siteTable$Region=='mdc'] <- 'marlborough'
 siteTable$Region[siteTable$Region=='tdc'] <- 'tasman'
 siteTable$Region[siteTable$Region=='trc'] <- 'taranaki'
-siteTable$Region[siteTable$Region=='horizons'] <- 'manawatu-whanganui'
+siteTable$Region[siteTable$Region=='horizons'] <- 'manawat\u16b-whanganui'
+siteTable$Region[siteTable$Region=='manawatu-whanganui'] <- 'manawat\u16b-whanganui'
 table(siteTable$Region)
 
 
@@ -366,7 +378,7 @@ agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa
 unique(siteTable$Agency[!siteTable$Agency%in%agencies])
 
 
-
+#https://www.stat.auckland.ac.nz/~paul/Reports/maori/maori.html
 ## Changing BOP Site names that use extended characters
 ## Waiōtahe at Toone Rd             LAWA-100395   Waiotahe at Toone Rd 
 ## Waitahanui at Ōtamarākau Marae   EBOP-00038    Waitahanui at Otamarakau Marae
@@ -394,13 +406,13 @@ plot(siteTable$Long,siteTable$Lat)
 plot(siteTable$Long,siteTable$Lat,col=as.numeric(factor(siteTable$Region)))
 points(siteTable$Long[siteTable$Agency=='niwa'],
        siteTable$Lat[siteTable$Agency=='niwa'],pch=16,cex=0.5,
-       col=as.numeric(factor(siteTable$Region[siteTable$Agency=='niwa'])))
+       col=as.numeric(factor(siteTable$Region[siteTable$Agency=='niwa'],levels=sort(unique(siteTable$Region)))))
 table(siteTable$Agency)
 
 
 
 siteTable=unique(siteTable)  #boprc had four dupliates, boprc had two duplicates
-#24/9/2020 1046 to 1044
+#1/7/2021 1062 to 1060
 by(INDICES = siteTable$Agency,data = siteTable,FUN = function(x)head(x))
 
 
@@ -408,6 +420,7 @@ by(INDICES = siteTable$Agency,data = siteTable,FUN = function(x)head(x))
 source('K:/R_functions/nzmg2WGS.r')
 source('K:/R_functions/nztm2WGS.r')
 fwgr <- read_csv('d:/RiverData/FWGroupings.txt')
+load("D:/RiverData/REC2_LCDB4.RData",verbose=T) #REC2_LCDB4
 rec=read_csv("d:/RiverData/RECnz.txt")
 rec$easting=fwgr$easting[match(rec$NZREACH,fwgr$NZREACH)]
 rec$northing=fwgr$northing[match(rec$NZREACH,fwgr$NZREACH)]
@@ -416,7 +429,10 @@ latLong=nzmg2wgs(East = rec$easting,North = rec$northing)
 rec$Long=latLong[,2]
 rec$Lat=latLong[,1]
 rm(latLong)
-rec2=read_csv("d:/RiverData/REC2Reaches.txt")
+rec2=read_csv('D:/RiverData/River_Environment_Classification_(REC2)_New_Zealand.csv')
+
+
+
 latLong=nztm2wgs(ce = rec2$upcoordX,cn = rec2$upcoordY)
 rec2$Long=latLong[,2]
 rec2$Lat=latLong[,1]
@@ -438,7 +454,7 @@ for(st in st:dim(siteTable)[1]){
   }
   recMatch = which(rec$NZREACH==siteTable$NZReach[st])
   if(length(recMatch)==0){
-    cat('No REC reachmatch\t',siteTable$NZReach[st],'\t\n')
+    cat(st,'No REC reachmatch\t',siteTable$NZReach[st],'\t\n')
     dists=sqrt((siteTable$Long[st]-rec$Long)^2+(siteTable$Lat[st]-rec$Lat)^2)
     recMatch=which.min(dists)
   }
@@ -449,8 +465,8 @@ for(st in st:dim(siteTable)[1]){
   if(length(rec2match)==0){
     dists=sqrt((siteTable$Long[st]-rec2$Long)^2+(siteTable$Lat[st]-rec2$Lat)^2)
     rec2match=which.min(dists)
-    cat('No REC2 reachmatch\t',siteTable$Agency[st],'\t',siteTable$NZReach[st],'\t',min(dists,na.rm=T),rec2$nzreach_re[rec2match],'\n')
-    
+    cat(st,'No REC2 reachmatch\t',siteTable$Agency[st],'\t',siteTable$NZReach[st],'\t',
+        min(dists,na.rm=T),rec2$nzreach_re[rec2match],'\n')
   }
   # siteTable$StreamOrder[st]=paste(unique(rec2$StreamOrde[rec2match]),collapse='&')
   siteTable$Altitude[st]=mean(rec2$upElev[rec2match],na.rm=T)
@@ -461,16 +477,16 @@ for(st in st:dim(siteTable)[1]){
 
 
 if(!all(agencies%in%unique(siteTable$Agency))){  #actually if you need to pull sites in from an old WFS sesh, like if one of them doesn respond
-  oldsiteTable = read.csv("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/2020-08-14/SiteTable_River14Aug20.csv",stringsAsFactors = F)
+  oldsiteTable = read.csv("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/2020-09-24/SiteTable_River24Sep20.csv",stringsAsFactors = F)
   missingCouncils = agencies[!agencies%in%unique(siteTable$Agency)]
   oldsiteTable=oldsiteTable%>%filter(Agency%in%missingCouncils)
   if(dim(oldsiteTable)[1]>0){
-    siteTable = rbind(siteTable,oldsiteTable[,names(siteTable)])
+    siteTable = merge(siteTable,oldsiteTable%>%select(names(siteTable)[names(siteTable)%in%names(oldsiteTable)]),all=T)
   }
   rm(oldsiteTable)
 }
 
-# write.csv(siteTable,'h:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/SiteTableRawLandUse.csv',row.names=F)
+# write.csv(siteTable,'h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/SiteTableRawLandUse.csv',row.names=F)
 
 #Categorise landcover and altitude
 siteTable$SWQLanduse=tolower(as.character(siteTable$SWQLanduse))
@@ -498,7 +514,7 @@ perRegionAudit=siteTable%>%dplyr::select(-accessDate)%>%filter(SWQLanduse!=Landc
 for(ag in seq_along(perRegionAudit)){
   thagency=unique(perRegionAudit[[ag]]$Agency)
   if('niwa'%in%thagency){thagency=thagency[thagency!='niwa']}
-  write.csv(perRegionAudit[[ag]],paste0('h:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit/',thagency,'LandUseAudit.csv'),row.names=F)
+  write.csv(perRegionAudit[[ag]],paste0('h:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/',thagency,'LandUseAudit.csv'),row.names=F)
 }
 
 
@@ -526,7 +542,7 @@ sapply(perRegAltAudit,dim)
 for(ag in seq_along(perRegAltAudit)){
   thagency=unique(perRegAltAudit[[ag]]$Agency)
   if('niwa'%in%thagency){thagency=thagency[thagency!='niwa']}
-  write.csv(perRegAltAudit[[ag]],paste0('h:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit/',thagency,'AltitudeAudit.csv'),row.names=F)
+  write.csv(perRegAltAudit[[ag]],paste0('h:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/',thagency,'AltitudeAudit.csv'),row.names=F)
 }
 
 
@@ -539,7 +555,7 @@ siteTable$SWQLanduse[is.na(siteTable$SWQLanduse)]=siteTable$Landcover[is.na(site
 # siteTable$CouncilSiteID = gsub(pattern = 'Makarewa Confl$',replacement = "Makarewa Confluence",x = siteTable$CouncilSiteID)
 
 write.csv(x = siteTable,
-          file = paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+          file = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                         format(Sys.Date(),"%Y-%m-%d"),
                         "/SiteTable_River",format(Sys.Date(),"%d%b%y"),".csv"),row.names = F)
 
@@ -555,7 +571,7 @@ AgencyRep=table(factor(tolower(siteTable$Agency),levels=c("ac", "boprc", "ecan",
 AgencyRep=data.frame(agency=names(AgencyRep),count=as.numeric(AgencyRep))
 names(AgencyRep)[2]=format(Sys.Date(),"%d%b%y")
 
-WQWFSsiteFiles=dir(path = "H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+WQWFSsiteFiles=dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                    pattern = 'SiteTable_River',
                    recursive = T,full.names = T)
 for(wsf in WQWFSsiteFiles){
@@ -569,39 +585,15 @@ for(wsf in WQWFSsiteFiles){
 AgencyRep=AgencyRep[,-2]
 rm(WQWFSsiteFiles)
 
-#    agency 23Jun20 25Jun20 03Jul20 09Jul20 16Jul20 24Jul20 29Jul20 31Jul20 14Aug20 17Aug20 21Aug20 25Aug20 28Aug20 04Sep20 14Sep20
-# 1      ac       0       0       0       0       0      41      36      35      35      35      35      35      35      35      35
-# 2   boprc      47      47      47      47      47      47      47      47      55      55      55      55      55      55      50
-# 3    ecan     183     183     184     184     184     184     184     184     184     184     184     184     184     184     184
-# 4      es      60      60      60      60      60      60      60      60      60      60      60      60      60      60      60
-# 5     gdc      39      39      39      39      39      39      39      39      39      39      39      39      39      39      39
-# 6    gwrc      43      43      43      43      43      43      43      43      43      43      43      43      43      43      43
-# 7    hbrc      71      71      85      85      85      85      85      85      86      86      86      86      86      86      86
-# 8     hrc     138     138     138     138     138     138     138     138     137     137     137     137     137     137     137
-# 9     mdc      32      32      32      32      32      32      32      32      32      32      32      32      32      32      32
-# 10    ncc      25      25      25      25      25      25      25      25      25      25      25      25      25      25      25
-# 11   niwa      77      77      77      77      77      77      77      77      77      77      77      77      77      77      77
-# 12    nrc      32      32      32      32      32      32      32      32      32      32      32      32      32      32      32
-# 13    orc      50      50      50      50      50      50      50      50      50      50      50      50      50      50      50
-# 14    tdc      26      26      26      26      26      26      26      26      26      26      26      26      26      26      26
-# 15    trc      22      22      22      22      22      22      22      22      22      22      22      22      22      22      22
-# 16   wcrc      38      38      38      38      38      38      38      38      38      38      38      38      38      38      38
-# 17    wrc       0     108     108     108     108     108     108     108     108     108     108     108     108     108     108
-   
-
-plot(x=as.numeric(AgencyRep[1,-1]),type='l',ylim=c(10,200))
-apply(AgencyRep[,-1],1,function(x)lines(x))
-text(rep(par('usr')[2]*0.95,dim(AgencyRep)[1]),AgencyRep[,dim(AgencyRep)[2]],AgencyRep[,1])
-
-#    agency 23Jun20 25Jun20 03Jul20
-# 1     arc      41      41      41
-# 2   boprc      47      47      47
-# 3    ecan     183     183     184
+#     agency 29Jun21 01Jul21 08Jul21
+# 1      ac      35      35      35
+# 2   boprc      50      50      50
+# 3    ecan     184     191     191
 # 4      es      60      60      60
 # 5     gdc      39      39      39
 # 6    gwrc      43      43      43
-# 7    hbrc      71      71      85
-# 8     hrc     138     138     138
+# 7    hbrc      96      96      91
+# 8     hrc     137     136     136
 # 9     mdc      32      32      32
 # 10    ncc      25      25      25
 # 11   niwa      77      77      77
@@ -610,27 +602,10 @@ text(rep(par('usr')[2]*0.95,dim(AgencyRep)[1]),AgencyRep[,dim(AgencyRep)[2]],Age
 # 14    tdc      26      26      26
 # 15    trc      22      22      22
 # 16   wcrc      38      38      38
-# 17    wrc       0     108     108
+# 17    wrc     108     108     108
+   
 
-# agency 07Jun19 10Jun19 19Jun19 19Jun19am 20Jun19 08Jul19 11Jul19 17Jul19 22Jul19 29Jul19 02Aug19 05Aug19 12Aug19 19Aug19   26Aug19
-#   arc       5       5      41        36      41      41      36      36      36      36      41      41      41      41       41
-# boprc      54      54      54        54      54      54      54      47      47      47      47      47      47      47       47
-#  ecan     181     181     181       181     181     183     183     183     183     183     183     183     183     183      183
-#    es      60      60      64        60      64      60      60      60      60      60      60      60      60      60       60
-#   gdc      39      39      39        39      39      39      39      39      39      39      39      39      39      39       39
-#  gwrc      43      43      43        43      43      43      43      43      43      43      43      43      43      43       43
-#  hbrc      70      70      70        70      70      70      70      70      70      70      70      70      70      71       71
-#   hrc       0     137     137       137     137     137     137     137     137     137     137     137     137     137      137
-#   mdc      32      32      32        32      32      32      32      32      32      32      32      32      32      32       32
-#   ncc      25      25      25        25      25      25      25      25      25      25       0      25      25      25        25
-#  niwa       0       0       0         0      50      77      77      77      77      77      77      77      77      77       77
-#   nrc      32      32      32        32      32      32      32      32      32      32      32      32      32      32       32
-#   orc      47      47      47        47      47      47      47      47      47      47      47      47      47      50       50
-#   tdc      45      45      46        45      46      46      46      55      55      55      26      26      26      26       26
-#   trc      13      13      20        13      20      20      20      20      20      20      20      20      20      20       20
-#  wcrc      38      38      38        38      38      38      38      38      38      38      38      38      38      38       38
-#   wrc     108     108     108       108     108     108     108     108     108     108     108     108     108     108      108
- 
-# oldsitetable=read.csv("h:/ericg/16666LAWA/LAWA2019/WaterQuality/Data/2019-08-26/SiteTable_River26Aug19.csv",stringsAsFactors=F)
-# siteTable=rbind(siteTable,oldsitetable%>%filter(Agency=='ncc'))
+plot(x=as.numeric(AgencyRep[1,-1]),type='l',ylim=c(20,200),log='y')
+apply(AgencyRep[,-1],1,function(x)lines(x))
+text(rep(par('usr')[2]*0.95,dim(AgencyRep)[1]),AgencyRep[,dim(AgencyRep)[2]],AgencyRep[,1])
 

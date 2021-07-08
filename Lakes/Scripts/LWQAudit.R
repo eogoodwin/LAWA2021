@@ -1,15 +1,15 @@
 rm(list=ls())
 # library(XML)
 library(lubridate)
-source("H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R")
-dir.create(path = paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+source("H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
+dir.create(path = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 EndYear <- lubridate::year(Sys.Date())-1
 StartYear10 <- EndYear-9
 StartYear5 <- EndYear-4
 
-urls <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+urls <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 siteTable=loadLatestSiteTableLakes(maxHistory=90)
-LWQdata=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2020/Lakes',pattern='LakesCombined.csv',recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+LWQdata=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/Lakes',pattern='LakesCombined.csv',recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
 LWQdata$NewValues=LWQdata$Value
 if(mean(LWQdata$Value[which(LWQdata$Measurement%in%c('NH4N','TN','TP'))],na.rm=T)<250){
   LWQdata$Value[which(LWQdata$Measurement%in%c('NH4N','TN','TP'))]=LWQdata$Value[which(LWQdata$Measurement%in%c('NH4N','TN','TP'))]*1000
@@ -100,7 +100,7 @@ by(INDICES = LWQaudit$agency,data = LWQaudit$var,FUN=function(x)unique(as.charac
 LWQaudit%>%dplyr::group_by(agency)%>%dplyr::summarise(xmlAge=mean(xmlAge,na.rm=T),
                                                       endDate=max(lubridate::dmy(latest),na.rm=T))%>%knitr::kable(format='rst')
 
-write.csv(LWQaudit,paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/LWQaudit.csv"))
+write.csv(LWQaudit,paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/LWQaudit.csv"))
 
 if(0){
 allLabs=NULL
@@ -136,7 +136,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
         r=r+1
       }
     }
-    write.csv(agencyDeets,paste0( 'H:/ericg/16666LAWA/LAWA2020/Lakes/Audit/',format(Sys.Date(),"%Y-%m-%d"),
+    write.csv(agencyDeets,paste0( 'H:/ericg/16666LAWA/LAWA2021/Lakes/Audit/',format(Sys.Date(),"%Y-%m-%d"),
                                   '/',agency,'Audit.csv'),row.names=F)
   }
 }
@@ -147,7 +147,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
 upara=unique(LWQdata$Measurement)
 ucounc=unique(LWQdata$agency)
  for(up in seq_along(upara)){
-   png(filename = paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/",
+   png(filename = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/",
                          upara[up],format(Sys.Date(),'%d%b%y'),".png"),
        width = 12,height=9,units='in',res=300,type='cairo')
   pvals=LWQdata[LWQdata$Measurement==upara[up],]
@@ -178,7 +178,7 @@ ucounc=unique(LWQdata$agency)
 
 
 
-urls <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+urls <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 # library(parallel)
 # library(doParallel)
 # workers <- makeCluster(7)
@@ -186,13 +186,13 @@ urls <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAs
 # foreach(agency = c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc"),
 #         .combine=rbind,.errorhandling='stop')%dopar%{
 for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
-  if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d")),
+  if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                         pattern = paste0('^',agency,".*audit\\.csv"),
                         recursive = T,full.names = T,ignore.case = T))>0){
-            rmarkdown::render('H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/AuditDocument.Rmd',
+            rmarkdown::render('H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/AuditDocument.Rmd',
                               params=list(agency=agency,
                                           sos=urls$SOSwq[which(tolower(urls$Agency)==agency)]),
-                              output_dir = paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d")),
+                              output_dir = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                               output_file = paste0(toupper(agency),"Audit",format(Sys.Date(),'%d%b%y'),".html"),
                               envir = new.env())
           }
@@ -203,7 +203,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
 
 
 
-lwqtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis",
+lwqtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",
                            pattern="LakesWQ_Trend*.*",
                            full.names=T,recursive=T,ignore.case=T),1))
 lwqtrend$frequency[grep('unassessed',lwqtrend$frequency,ignore.case=T)]<-'unassessed'

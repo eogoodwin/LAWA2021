@@ -3,10 +3,10 @@ require(XML)     ### XML library to write hilltop XML
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(RCurl)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 
 agency='gdc'
-Measurements <- read.table("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
+Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
 Measurements=c(Measurements,"WQ Sample")
 
@@ -22,8 +22,8 @@ for(i in 1:length(sites)){
     url <- paste0("http://hilltop.gdc.govt.nz/data.hts?service=Hilltop&request=GetData",
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
-                 "&From=2005-01-01",
-                 "&To=2020-01-01")
+                 "&From=2004-01-01",
+                 "&To=2021-01-01")
     url <- URLencode(url)
     xmlback <- ldWQ(url,agency,method='wininet',QC=T)
     if(!is.null(xmlback)){
@@ -116,8 +116,8 @@ for(i in 1:length(sites)){
   }
 }
 
-# saveXML(con$value(), paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml",sep=""))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"SWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"),overwrite = T)
+# saveXML(con$value(), paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml",sep=""))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"),overwrite = T)
 

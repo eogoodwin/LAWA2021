@@ -1,13 +1,13 @@
 #Add auckland data, censored appropriately and QC-filtered, to the data export file
 
 
-GWExportData = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Groundwater/Data/lawa-gwq-download-dataset-2005-2019.xlsx',
+GWExportData = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Groundwater/Data/lawa-gwq-download-dataset-2005-2019.xlsx',
                                  sheet=1,col_types = c('text','text','text','text','numeric','numeric','text','text','text','date','text','text','numeric'))
 
 addmargins(table(GWExportData$Agency,GWExportData$Symbol,useNA = 'always'))
 #AC have no censored symbols
 
-ACdata = read_csv(tail(dir('h:/ericg/16666LAWA/LAWA2020/Groundwater/Data/','GWdata.csv',recursive=T,full.names=T),1),
+ACdata = read_csv(tail(dir('h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/','GWdata.csv',recursive=T,full.names=T),1),
                   col_types = cols(
                     .default = col_character(),
                     Imported_On_UTC = col_datetime(format = ""),
@@ -42,7 +42,7 @@ ACdata <- ACdata %>% transmute(`Region Name`=Region,Agency=Source,`LAWA Site ID`
 GWExportDataOut <- rbind(GWExportData%>%filter(`Region Name`!="Auckland"),
                          ACdata)
 
-write.csv(GWExportDataOut,'h:/ericg/16666LAWA/LAWA2020/Groundwater/Data/LAWA-GWQ-Download-Dataset-2005-2019_AC.csv',row.names=F)
+write.csv(GWExportDataOut,'h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/LAWA-GWQ-Download-Dataset-2005-2019_AC.csv',row.names=F)
 
 library(rgdal)
 nzmap <- readOGR('S:/New_S/Basemaps_Vector/NZ_Coastline/WGS_84/coast_wgs84.shp')
@@ -52,8 +52,8 @@ points(ACdata$Longitude,ACdata$Latitude,pch=16,col='red')
 
 
 
-allGWdata = readxl::read_xlsx(paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2020/Groundwater Quality/",
-                                     "GWExport_20200914.xlsx"),sheet=1,guess_max = 50000)%>%
+allGWdata = readxl::read_xlsx(paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/Groundwater Quality/",
+                                     "GWExport_20210914.xlsx"),sheet=1,guess_max = 50000)%>%
   filter(Variable_aggregated%in%c("Nitrate nitrogen","Chloride",
                                   "Dissolved reactive phosphorus",
                                   "Electrical conductivity/salinity",

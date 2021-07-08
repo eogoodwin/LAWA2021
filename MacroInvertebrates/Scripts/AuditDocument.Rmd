@@ -15,14 +15,14 @@ editor_options:
 library(tidyverse)
 library(DT)
 require(Hmisc)#For hiding TOC
-source('H:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableMacro()
 siteTable$LawaSiteID <- gsub(pattern = ' *- *',replacement = '-',x = siteTable$LawaSiteID)
 agency=params$agency
-urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
-c("% EPT Richness", "Total Richness", "MCI", "TaxaRichness", "PercentageEPTTaxa")
+urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+c("% EPT Richness", "Total Richness", "MCI", "TaxaRichness", "PercentageEPTTaxa","QMCI","ASPM")
 
-agencyFiles = data.frame(name=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+agencyFiles = data.frame(name=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                                   pattern = paste0(agency,'.csv'),
                                   full.names = T,recursive = T,ignore.case = T),6),
                          nCol = 0,nRow=0,nsite=0,stringsAsFactors = F)
@@ -31,6 +31,8 @@ MCIrep=data.frame(LawaSiteID=unique(tolower(siteTable$LawaSiteID[siteTable$Agenc
 rownames(MCIrep)=unique(siteTable$LawaSiteID[siteTable$Agency==agency])
 TaxaRichnessrep=MCIrep
 PercentageEPTTaxarep=MCIrep
+QMCIrep=MCIrep
+ASPMrep=MCIrep
 
 for(af in seq_along(agencyFiles$name)){
   agencyCSV = read.csv(agencyFiles[af,1],stringsAsFactors=F)
@@ -50,6 +52,7 @@ for(af in seq_along(agencyFiles$name)){
   }
   if(all(is.na(agencyCSV$LawaSiteID))){next}
   agencyCSV$LawaSiteID=tolower(agencyCSV$LawaSiteID)
+  
   thisMCI = agencyCSV%>%filter(Measurement=="MCI")%>%group_by(LawaSiteID)%>%transmute(n=n())%>%ungroup%>%distinct
   names(thisMCI)[2]= paste0("pull ",strTo(strFrom(agencyFiles$name[af],'//'),'/'))
   MCIrep=merge(MCIrep,thisMCI,all.y = T)
@@ -62,20 +65,33 @@ for(af in seq_along(agencyFiles$name)){
   names(thisPercentageEPTTaxa)[2]= paste0("pull",strTo(strFrom(agencyFiles$name[af],'//'),'/'))
   PercentageEPTTaxarep=merge(PercentageEPTTaxarep,thisPercentageEPTTaxa,all.y = T)
 
+  thisQMCI = agencyCSV%>%filter(Measurement=="QMCI")%>%group_by(LawaSiteID)%>%transmute(n=n())%>%ungroup%>%distinct
+  names(thisQMCI)[2]= paste0("pull ",strTo(strFrom(agencyFiles$name[af],'//'),'/'))
+  QMCIrep=merge(QMCIrep,thisQMCI,all.y = T)
+  
+  thisASPM = agencyCSV%>%filter(Measurement=="ASPM")%>%group_by(LawaSiteID)%>%transmute(n=n())%>%ungroup%>%distinct
+  names(thisASPM)[2]= paste0("pull ",strTo(strFrom(agencyFiles$name[af],'//'),'/'))
+  ASPMrep=merge(ASPMrep,thisASPM,all.y = T)
+  
+  
   rm(agencyCSV)
   rm(list=ls(pattern='^this'))
 }
 MCIrep=MCIrep[order(MCIrep$LawaSiteID),]
 TaxaRichnessrep=TaxaRichnessrep[order(TaxaRichnessrep$LawaSiteID),]
 PercentageEPTTaxarep=PercentageEPTTaxarep[order(PercentageEPTTaxarep$LawaSiteID),]
-MCIrep = MCIrep[,!apply(MCIrep,2,function(x)all(is.na(x)))]
+MCIrep=MCIrep[order(MCIrep$LawaSiteID),]
+QMCIrep=QMCIrep[order(QMCIrep$LawaSiteID),]
+ASPMrep = ASPMrep[,!apply(ASPMrep,2,function(x)all(is.na(x)))]
 TaxaRichnessrep = TaxaRichnessrep[,!apply(TaxaRichnessrep,2,function(x)all(is.na(x)))]
 PercentageEPTTaxarep = PercentageEPTTaxarep[,!apply(PercentageEPTTaxarep,2,function(x)all(is.na(x)))]
+QMCIrep = QMCIrep[,!apply(QMCIrep,2,function(x)all(is.na(x)))]
+ASPMrep = ASPMrep[,!apply(ASPMrep,2,function(x)all(is.na(x)))]
 
 
 macroData <- loadLatestDataMacro()
 
-macroAudit = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Audit",
+macroAudit = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Audit",
                             pattern = "macroAudit.*csv",
                             recursive = T,full.names = T,ignore.case = T),1),
                    stringsAsFactors = F)
@@ -88,9 +104,9 @@ siteTableLIDs=unique(tolower(siteTable$LawaSiteID[which(siteTable$Agency==agency
 agencyCSVLIDs = unique(tolower(agencyCSV$LawaSiteID))
 macroLIDs= unique(tolower(macroData$LawaSiteID[which(macroData$Agency==agency)]))
 
-agencyRep=read.csv('h:/ericg/16666LAWA/LAWA2020/Metadata/AgencyRepMacroWFS.csv',check.names = F)
+agencyRep=read.csv('h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepMacroWFS.csv',check.names = F)
 
-ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Analysis",
+ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Analysis",
                         pattern = 'Macro_*State',
                         full.names = T,recursive=T,ignore.case = T),
                     1),
@@ -102,7 +118,7 @@ ss$CouncilSiteID=siteTable$CouncilSiteID[match(tolower(ss$LAWAID),tolower(siteTa
 ss$Catchment=siteTable$Catchment[match(tolower(ss$LAWAID),tolower(siteTable$LawaSiteID))]
 
 
-macroTrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis",
+macroTrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis",
                              pattern="MacroMCI_Trend*.*",
                              full.names=T,recursive=T,ignore.case=T),1))
 
@@ -227,6 +243,8 @@ options(warn=-1)
 theseMCI= which(apply(MCIrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
 theseTaxaRichness= which(apply(TaxaRichnessrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
 thesePercentageEPTTaxa= which(apply(PercentageEPTTaxarep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
+theseQMCI= which(apply(QMCIrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
+theseASPM= which(apply(ASPMrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
 options(warn=0)
 if(length(theseMCI)>0){
   cat('  \n\n### MCI\n')
@@ -239,6 +257,14 @@ if(length(theseTaxaRichness)>0){
 if(length(thesePercentageEPTTaxa)>0){
   cat('  \n\n### PercentageEPTTaxa\n')
   DT::datatable(PercentageEPTTaxarep[thesePercentageEPTTaxa,])
+}
+if(length(theseQMCI)>0){
+  cat('  \n\n### QMCI\n')
+  DT::datatable(QMCIrep[theseQMCI,])
+}
+if(length(theseASPM)>0){
+  cat('  \n\n### ASPM\n')
+  DT::datatable(ASPMrep[theseASPM,])
 }
 ```
 
@@ -262,16 +288,24 @@ if(any(agencyCSVn$n>1)){
 The following plots show data relative to other councils from whom data has been collected.
 ```{r echo=F,results='asis'}
 cat('  \n\n### MCI\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Audit",
                                  pattern="MCI.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### PercentageEPTtaxa\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Audit",
                                  pattern="Percentage.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### TaxaRichness\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Audit",
                                  pattern="TaxaR.*png",
+                                 recursive = T,full.names = T,ignore.case = T),1))
+cat('  \n\n### QMCI\n')
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Audit",
+                                 pattern="QMCI.*png",
+                                 recursive = T,full.names = T,ignore.case = T),1))
+cat('  \n\n### ASPM\n')
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Audit",
+                                 pattern="ASPM.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 ```
 
@@ -279,8 +313,8 @@ knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Macroinverteb
 
 The following plots are for this council only, comparing sites against one another, then timeseries per site.
 ```{r echo=F,fig.width=10,fig.height=10,warning=F,results='asis'}
-toLog=data.frame(msms=c("TaxaRichness","PercentageEPTTaxa","MCI","% EPT Richness","Total Richness"),
-                 logy=c("","","","",""),stringsAsFactors=F)
+toLog=data.frame(msms=c("TaxaRichness","PercentageEPTTaxa","MCI","% EPT Richness","Total Richness","QMCI","ASPM"),
+                 logy=c("","","","","","",""),stringsAsFactors=F)
 agencymacroData=macroData%>%dplyr::filter(Agency==agency)
 agencymacroData$Date=lubridate::dmy(agencymacroData$Date)
 for(msm in unique(agencymacroData$Measurement)){

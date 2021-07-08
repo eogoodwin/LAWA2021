@@ -50,7 +50,7 @@ ld <- function(url){
 
 
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 Measurements <- as.vector(Measurements)
 
@@ -64,7 +64,7 @@ for(i in 1:length(sites)){
     url <- paste0("http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?",
                   "service=SOS&version=2.0.0&request=GetObservation&observedProperty=",Measurements[j],
                   "&featureOfInterest=",sites[i],
-                  "&temporalfilter=om:phenomenonTime,2005-01-01/2020-01-01")
+                  "&temporalfilter=om:phenomenonTime,2005-01-01/2021-01-01")
     
     url <- gsub("%", "%25", url)
     url <- gsub(" ", "%20", url)

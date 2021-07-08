@@ -2,13 +2,13 @@
 require(XML)     ### XML library to write hilltop XML
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(RCurl)
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality/")
-source("H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality/")
+source("H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
 # https://www.lawa.org.nz/media/18225/nrwqn-monitoring-sites-sheet1-sheet1.pdf
 agency='niwa'
 tab="\t"
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/MetaData/",agency,"SWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/MetaData/",agency,"SWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 sites=df$Value[which(df$Type=='site')]
 
 # lawaset=c("NH4", "TURB", 
@@ -37,7 +37,7 @@ for(i in 1:length(sites)){
     url <- paste0("https://hydro-sos.niwa.co.nz/?service=SOS&version=2.0.0&request=GetObservation",
                   "&featureOfInterest=",sites[i],
                   "&ObservedProperty=",Measurements[j],
-                  "&TemporalFilter=om:phenomenonTime,2005-01-01/2020-01-01")
+                  "&TemporalFilter=om:phenomenonTime,2004-01-01/2021-01-01")
     url <- URLencode(url)
     
     xmlfile <- ldWQ(url,agency,QC=T)
@@ -173,7 +173,7 @@ while(i<=max){
   con$closeTag() # Data
   con$closeTag() # Measurement
 }
-# saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"SWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+# saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))

@@ -6,8 +6,8 @@ library(lubridate)
 library(doBy)
 library(showtext)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality/")
-source("h:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality/")
+source("h:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R")
 source("K:/R_functions/nztm2WGS.r")
 if(!'source'%in%font_families()){
   font_add_google("Source Sans Pro",family='source')
@@ -37,7 +37,7 @@ OLPalette=c('#cccccc','#f2f2f2')
 plot(1:9,1:9,col=LAWAPalette,cex=5,pch=16)
 points(c(6,4),c(3,7),col=OLPalette,cex=7.5,pch=16)
 
-dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 lakeSiteTable=loadLatestSiteTableLakes()
 library(rgdal)
 nzmap <- readOGR('S:/New_S/Basemaps_Vector/NZ_Coastline/WGS_84/coast_wgs84.shp')
@@ -93,11 +93,11 @@ lakeTable <- lakeSiteTable%>%
 
 if(0){
 
-NOFSummaryTable=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",pattern="NOFLakesOverall",
+NOFSummaryTable=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",pattern="NOFLakesOverall",
                                   recursive=T,full.names = T),1),stringsAsFactors = F)
 }
 
-TLI = read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",
+TLI = read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
                         pattern="ITELakeTLIBYFENZ",recursive=T,full.names=T),1),stringsAsFactors = F)
 TLI <- TLI%>%select(FENZID,TLIYear,TLI)%>%distinct
 
@@ -208,7 +208,7 @@ if(0){
 NOFLTypeexport <- do.call(rbind,list(NitrLTypeexport,PhosLTypeexport,AmmonLTypeexport,ClarLTypeexport,ChlLTypeexport,ECOLILTypeexport))
 
 # rm(PhosLTypeexport,ECOLILTypeexport,AmmonLTypeexport,ClarLTypeexport)
-write.csv(NOFLTypeexport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes/',
+write.csv(NOFLTypeexport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes/',
                              'NOFResultsLatestByRegion.csv'),row.names=F)
 
 #Now the time history one ####
@@ -284,7 +284,7 @@ ECOLINOFs = NOFSummaryTable%>%drop_na(EcoliSummaryBand)%>%filter(EcoliSummaryBan
   dplyr::select(Region,Indicator,Year,Band,Count)
 
 NOFHistoryExport <- do.call(rbind,list(NitrNOFs,PhosNOFs,NH4NOFs,ClarNOFs,ChlNOFs,ECOLINOFs))
-write.csv(NOFHistoryExport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes/',
+write.csv(NOFHistoryExport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes/',
                                   'NOFResultsHistoryCompleteSites.csv'),row.names=F)
 rm(NitrNOFs,PhosNOFs,NH4NOFs,ClarNOFs,ChlNOFs,ECOLINOFs)
 }
@@ -331,7 +331,7 @@ stopifnot(abs(highlow-170)<5)
 
 
 if(0){
-  tiff(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakeLocations.tif"),
+  tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakeLocations.tif"),
        width = 6,height=7.5,units='in',res=300,compression='lzw',type='cairo')
   par(mar=c(1,1,1,1))
   plot(nzmap,col=OLPalette[1],border=NA,
@@ -340,8 +340,8 @@ if(0){
   
   if(names(dev.cur())=='tiff'){dev.off()}
   
-  file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakeLocations.tif"),
-            to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+  file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakeLocations.tif"),
+            to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
             overwrite=T)
   
   
@@ -355,7 +355,7 @@ if(0){
   
   measCounts <- apply(plotLatest,2,function(c)sum(!c%in%c("NA","<NA>")))
   
-  tiff(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakes.tif"),
+  tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakes.tif"),
        width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1),xpd=T,mar=c(5,6,4,2),col.main=LAWAPalette[2],
       col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],family='source',
@@ -381,8 +381,8 @@ if(0){
   # points(plotLatest$Long,plotLatest$Lat,pch=16,cex=0.75)
   if(names(dev.cur())=='tiff'){dev.off()}
   
-  file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakes.tif"),
-            to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+  file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakes.tif"),
+            to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
             overwrite=T)
 }
 
@@ -397,13 +397,13 @@ barTLI=apply(plotLatest%>%select(TLI),2,FUN=function(c){
 })
 
 write.csv(barTLI,
-            paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakesLatest2019Proportions.csv"),
+            paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakesLatest2019Proportions.csv"),
           row.names=c("really poor","poor","average","good","really good"))
 
 TLICounts <- sum(!is.na(plotLatest%>%select(TLI)%>%unlist))
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakes.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakes.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,6,4,2),col.main=LAWAPalette[2],
     col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],family='source',
@@ -428,7 +428,7 @@ plotLatest%>%filter(TLI!="NA")%>%select(Long,Lat)%>%points(pch=16,cex=0.75)
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakeswCounts.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakeswCounts.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,6,4,2),col.main=LAWAPalette[2],
     col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],family='source',
@@ -454,7 +454,7 @@ showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakes_col.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakes_col.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,6,4,2),col.main=LAWAPalette[2],
     col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],family='source',
@@ -479,9 +479,9 @@ showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 
 if(copyThrough){
-file.copy(from = dir(path = paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+file.copy(from = dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
                      pattern = "^TLILakes",full.names = T),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
           overwrite=T)
 }
 
@@ -502,12 +502,12 @@ barTLI = cbind(tabulate(bin=factor(TLIlatest$TLIBand,levels=rev(c('A','B','C','D
                  sum(!is.na(TLIlatest$TLIBand[TLIlatest$Elevation>highlow])))
 
 write.csv(data.frame(barTLI)%>%dplyr::rename("all124"=X1,"lowland77"=X2,"upland47"=X3),
-          paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIElevationPropns.csv"),
+          paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIElevationPropns.csv"),
           row.names=c("Really bad","bad","moderate","great","really great"))
 
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevation.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevation.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mgp=c(4,3,0),family='source',mar=c(5,6,4,2))
 layout(matrix(c(1,1,1,2,2,
@@ -542,7 +542,7 @@ barTLI = cbind(tabulate(bin = factor(TLIlatest$TLIBand[TLIlatest$Elevation<=high
                  sum(!is.na(TLIlatest$TLIBand[TLIlatest$Elevation>highlow])))
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",
             format(Sys.Date(),"%Y-%m-%d"),
             "/LakesTLIbyElevation2band.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
@@ -574,10 +574,10 @@ rm(iT)
 
 TLIlatest%>%dplyr::filter(TLI!='NA')%>%
   dplyr::transmute(Long,Lat,uplow=factor((Elevation<=highlow),levels=c("TRUE","FALSE"),labels=c("lowland","upland")))%>%
-write.csv(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakeLocnElevation.csv"),row.names=F)
+write.csv(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakeLocnElevation.csv"),row.names=F)
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevationwCounts.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevationwCounts.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mgp=c(4,3,0),family='source',cex.lab=6,cex.main=8,mar=c(5,6,4,2))
 layout(matrix(c(1,1,1,2,2,
@@ -605,11 +605,11 @@ rm(iT)
 
 
 if(copyThrough){
-file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevation.tif"),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevation.tif"),
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
           overwrite=T)
-file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevationwCounts.tif"),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevationwCounts.tif"),
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
           overwrite=T)
 }
 
@@ -617,7 +617,7 @@ file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(S
 xlabpos=(1:10)*0.12-0.07
 
 # TLITrend  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrend.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrend.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 TLINOFs = TLI%>%filter(TLIBand!="NA")%>%drop_na(TLIBand)%>%
@@ -644,10 +644,10 @@ points(TLINOFs$Long,TLINOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrend.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrend.csv"),row.names=T)
 rm(TLINOFs,nSites,iT)
 
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrendwCounts.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrendwCounts.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 TLINOFs = TLI%>%filter(TLIBand!="NA")%>%drop_na(TLIBand)%>%
@@ -679,21 +679,21 @@ if(names(dev.cur())=='tiff'){dev.off()}
 rm(TLINOFs,nSites,iT)
 
 if(copyThrough){
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="TLITrend",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
                    overwrite=T)})
 }
 
-for (ff in dir('H:/ericg/16666LAWA/LAWA2020/NationalPicture/L2020-11-20',full.names = T)){
+for (ff in dir('H:/ericg/16666LAWA/LAWA2021/NationalPicture/L2021-11-20',full.names = T)){
   file.rename(from = ff,to = gsub(pattern = '\\.',replacement='NEWTLI.',x=ff))
 }
 
 
 if(0){
 # NOFTrendTNSum ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTNSum.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTNSum.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 TNNOFs = NOFSummaryTable%>%drop_na(NitrogenMed_Band)%>%filter(NitrogenMed_Band!="NA")%>%
@@ -721,18 +721,18 @@ showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 
 iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTN.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTN.csv"),row.names=T)
 rm(TNNOFs,nSites,iT)
 if(copyThrough){
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendTN",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
                    overwrite=T)})
 }
 
 # NOFTrendTPSum ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTPSum.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTPSum.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 TPNOFs = NOFSummaryTable%>%drop_na(PhosphorusMed_Band)%>%filter(PhosphorusMed_Band!="NA")%>%
@@ -759,20 +759,20 @@ with(TPNOFs%>%filter(Year=='2015to2019'),
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTP.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTP.csv"),row.names=T)
 rm(TPNOFs,nSites,iT)
 if(copyThrough){
   
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendTP",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
                    overwrite=T)})
 }
 
 
 # NOFTrendAmmoniacalTox  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmoniacalTox.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmoniacalTox.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 ammonNOFs = NOFSummaryTable%>%filter(Ammonia_Toxicity_Band!="NA")%>%drop_na(Ammonia_Toxicity_Band)%>%
@@ -799,19 +799,19 @@ points(ammonNOFs$Long,ammonNOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites",""))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmonTox.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmonTox.csv"),row.names=T)
 rm(ammonNOFs,nSites,iT)
 
 if(copyThrough){
-  sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+  sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendAmmon",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
                    overwrite=T)})
 }
 
 # NOFTrendClarity  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendClarity.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendClarity.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 clarNOFs = NOFSummaryTable%>%filter(ClarityMedian_Band!="NA")%>%drop_na(ClarityMedian_Band)%>%
@@ -836,20 +836,20 @@ points(clarNOFs$Long,clarNOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendClarity.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendClarity.csv"),row.names=T)
 rm(clarNOFs,nSites,iT)
 if(copyThrough){
   
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendCla",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
                    overwrite=T)})
 }
 
 
 # NOFTrendChlA  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 chlNOFs = NOFSummaryTable%>%filter(ChlASummaryBand!="NA")%>%drop_na(ChlASummaryBand)%>%
@@ -874,14 +874,14 @@ points(chlNOFs$Long,chlNOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.csv"),row.names=T)
 rm(chlNOFs,nSites,iT)
 if(copyThrough){
   
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendChl",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
                    overwrite=T)})
 }
 
@@ -892,7 +892,7 @@ sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sy
 # 
 # 
 # # NOFTrendEcoliSummary ####
-# tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEcoliSummary.tif"),
+# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEcoliSummary.tif"),
 #      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 # showtext_begin()
 # ecoliNOFs = NOFSummaryTable%>%filter(EcoliSummaryBand!="NA")%>%drop_na(EcoliSummaryBand)%>%
@@ -917,7 +917,7 @@ sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sy
 # showtext_end()
 # if(names(dev.cur())=='tiff'){dev.off()}
 # iT=rbind(iT,c("Total","of",nSites,"sites",""))
-# write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEColi.csv"),row.names=T)
+# write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEColi.csv"),row.names=T)
 # rm(ecoliNOFs,nSites,iT)
 
 stdise=function(x){
@@ -929,7 +929,7 @@ TLIb <- TLI%>%filter(TLIYear>2009)%>%
 
 
 
-plot(0,0,type='n',xlim=c(2010,2020),ylim=c(0,10),xlab='Year',ylab='TLI',main="TLI change over time\n114 complete lake sites")
+plot(0,0,type='n',xlim=c(2010,2021),ylim=c(0,10),xlab='Year',ylab='TLI',main="TLI change over time\n114 complete lake sites")
 Modes = rep(0,10)
 for(yy in 2010:2019){
   ydens = TLIb%>%filter(TLIYear==yy)%>%select(TLI)%>%unlist%>%density
@@ -937,12 +937,12 @@ for(yy in 2010:2019){
   lines(yy+ydens$y,ydens$x)
   Modes[yy-2009]=ydens$x[which.max(ydens$y)]
 }
-lines(2011:2020,by(data = TLIb$TLI,INDICES = TLIb$TLIYear,FUN=median),col='blue',lwd=2)
-lines(2011:2020,Modes,col='red',lwd=2)
+lines(2011:2021,by(data = TLIb$TLI,INDICES = TLIb$TLIYear,FUN=median),col='blue',lwd=2)
+lines(2011:2021,Modes,col='red',lwd=2)
 
 
 #Copy fioles to sharepoint ####
-file.copy(from = dir(path=paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+file.copy(from = dir(path=paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
                      pattern = "tif$|csv$",full.names = T),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/Lakes",
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
           overwrite = T,copy.date = T)

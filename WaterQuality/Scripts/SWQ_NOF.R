@@ -14,20 +14,21 @@
 
 
 rm(list = ls())
+gc()
 library(tidyr)
 library(parallel)
 library(doParallel)
 require(reshape2)
 library(areaplot)
-setwd("h:/ericg/16666LAWA/LAWA2020/WaterQuality/")
-source("h:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R")
-source("h:/ericg/16666LAWA/LAWA2020/WaterQuality/scripts/SWQ_NOF_Functions.R")
-dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",format(Sys.Date(),'%Y-%m-%d')),showWarnings = F)
-dir.create(paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+setwd("h:/ericg/16666LAWA/LAWA2021/WaterQuality/")
+source("h:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
+source("h:/ericg/16666LAWA/LAWA2021/WaterQuality/scripts/SWQ_NOF_Functions.R")
+dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),'%Y-%m-%d')),showWarnings = F)
+dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 riverSiteTable=loadLatestSiteTableRiver()
 
 ## Load NOF Bands
-NOFbandDefinitions <- read.csv("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/NOFbandDefinitions3.csv", header = TRUE, stringsAsFactors=FALSE)
+NOFbandDefinitions <- read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NOFbandDefinitions3.csv", header = TRUE, stringsAsFactors=FALSE)
 NOFbandDefinitions <- NOFbandDefinitions[,1:11]
 #   Band Median.Nitrate X95th.Percentile.Nitrate Median.Ammoniacal.N Max.Ammoniacal.N E..coli Ecoli95 EcoliRec540 EcoliRec260       MedianDRP          X95DRP
 # 1    A         x<=1.0                   x<=1.5             x<=0.03          x<=0.05  x<=130  x<=540         x<5        x<20        x<=0.006        x<=0.021
@@ -42,16 +43,16 @@ NOFbandDefinitions <- NOFbandDefinitions[,1:11]
 EndYear <- lubridate::year(Sys.Date())-1
 StartYear5 <- EndYear - 5 + 1
 # firstYear = min(wqdYear,na.rm=T)
-firstYear=2005
+firstYear=2004
 yr <- c(as.character(firstYear:EndYear),paste0(as.character(firstYear:(EndYear-4)),'to',as.character((firstYear+4):EndYear)))
 rollyrs=which(grepl('to',yr))
 nonrollyrs=which(!grepl('to',yr))
 reps <- length(yr)
 
 if(!exists('wqdata')){
-  combowqdata=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
+  combowqdata=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
   cat(combowqdata)
-  wqdata=readr::read_csv(combowqdata,guess_max=150000)%>%as.data.frame
+  wqdata=readr::read_csv(combowqdata,guess_max=200000)%>%as.data.frame
   rm(combowqdata)
   wqdYear=lubridate::year(dmy(wqdata$Date))
 
@@ -62,7 +63,7 @@ if(!exists('wqdata')){
 
 wqparam <- c("BDISC","TURB","NH4",
              "PH","TON","TN",
-             "DRP","TP","ECOLI") 
+             "DRP","TP","ECOLI","DIN","NO3N") 
 
 #Replace censored values with 0.5 or 1.1 x                               NO LONGER as of 10/9/2020 max censored or min censored, per site, 
 #then calculate per site&date median values to take forward
@@ -72,11 +73,12 @@ clusterCall(workers,function(){
   library(magrittr)
   library(plyr)
   library(dplyr)
-  source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
 startTime=Sys.time()
 foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
   wqdata_A = wqdata%>%dplyr::filter(tolower(Measurement)==tolower(wqparam[i]))
+  if(dim(wqdata_A)[1]==0){return(NULL)}
   wqdata_A$origValue=wqdata_A$Value
   #CENSORING
   #left-censored replacement value is the maximum of left-censored values, per site
@@ -128,41 +130,43 @@ cat(Sys.time()-startTime)
 #14.4 seconds June23
 #36.2 s june30, now keeping all years
 #44.5 aug21 all years
-#44.8 aug21 from 2005 onward
+#44.8 aug21 from 2004 onward
+#41.1  29June 2021
 
 # Saving the wqdataPerDateMedian table to be USED in NOF calculations. 
 # NOTE AFTER HAVING OUT-COMMENTED THE LINE 57, WE'VE NOW GOT ALL YEARS, FOR THE ROLLING NOF 
 # Has six years available for ECOli if necessary
-save(wqdataPerDateMedian,file=paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),
+save(wqdataPerDateMedian,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),
                           "/wqdataPerDateMedian",StartYear5,"-",EndYear,"ec6.RData"))
-# load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",pattern='wqdataPerDateMedian',recursive = T,full.names=T,ignore.case=T),1),verbose = T)
+# load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",pattern='wqdataPerDateMedian',recursive = T,full.names=T,ignore.case=T),1),verbose = T)
 
 # Subset to just have the variables that are tested against NOF standards
 sub_swq <- wqdataPerDateMedian%>%dplyr::select(c("LawaSiteID","CouncilSiteID","Date","Measurement","Value"))%>%
-  dplyr::filter(tolower(Measurement)%in%tolower(c("NH4","TON","ECOLI","PH","DRP")))%>%
+  dplyr::filter(tolower(Measurement)%in%tolower(c("NH4","TON","ECOLI","PH","DRP","NO3N","DIN")))%>%
   dplyr::filter(lubridate::year(Date)<=EndYear)
-#1097102 - 649679
+#999805 -> 611299
 
 table(lubridate::year(sub_swq$Date),sub_swq$Measurement)
-#        DRP ECOLI   NH4    PH   TON
-# 2005  5118  4841  5195  4297  3796
-# 2006  5979  5386  6130  5241  4667
-# 2007  6684  6272  6848  6277  5386
-# 2008  7457  7037  7618  6861  6155
-# 2009  8083  7648  8185  7846  6732
-# 2010  8152  7620  8207  7737  6752
-# 2011  8567  8067  8570  8232  7125
-# 2012  8964  8336  9012  8759  7566
-# 2013  9924 10160  9965  9749  8501
-# 2014 10384 10747 10415 10171  8995
-# 2015 10890 11198 10900 10717  9683
-# 2016 11089 11475 11149 10772 10120
-# 2017 11473 11755 11498 10885 10406
-# 2018 11398 11549 11442 10431 10440
-# 2019 11288 11436 11322  9792 10155
+#         DRP ECOLI   NH4    PH   TON
+# 2004  3982  3628  4055  3336  3448
+# 2006  5001  4305  5149  4499  4478
+# 2007  5667  5162  5829  5473  5158
+# 2008  6394  5847  6533  6057  5858
+# 2009  6971  6432  7064  6790  6402
+# 2010  7048  6404  7101  6696  6438
+# 2011  7456  6839  7460  7182  6806
+# 2012  7830  7101  7880  7642  7221
+# 2013  8794  8902  8835  8607  8163
+# 2014  9250  9472  9279  9031  8651
+# 2015  9752  9919  9762  9561  9319
+# 2016 10083 10338 10143  9746  9772
+# 2017 10504 10684 10529  9905 10091
+# 2018 10475 10515 10517  9954 10089
+# 2019 10424 10464 10465  9820  9927
+# 2020  5994  6204  6148  5113  5476
 
 #+++++++++++++++++++++++++++++ Ammonia adjustment for pH++++++++++++++++++++++++++++++++++++
-adjnh4="H:/ericg/16666LAWA/LAWA2020/WaterQuality/metadata/NOFAmmoniaAdjustment.csv"
+adjnh4="H:/ericg/16666LAWA/LAWA2021/WaterQuality/metadata/NOFAmmoniaAdjustment.csv"
 adjnh4=NH4adj(sub_swq,meas=c("NH4","PH"),csv = adjnh4)
 sub_swq<-rbind(sub_swq,adjnh4)
 rm(adjnh4)
@@ -206,7 +210,7 @@ clusterCall(workers,function(){
   # library(doBy)
   library(plyr)
   library(dplyr)
-  source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
 startTime=Sys.time()
 
@@ -444,6 +448,7 @@ cat(Sys.time()-startTime)
 #23.4s 2 July rolling medians
 #25s aug21
 #31s 7/9/2020
+#19s  29 June2021
 
 NOFSummaryTable$EcoliMed_Band <- sapply(NOFSummaryTable$EcoliMed,NOF_FindBand,bandColumn=NOFbandDefinitions$E..coli)
 
@@ -482,17 +487,17 @@ NOFSummaryTable <- merge(NOFSummaryTable, riverSiteTable)
 #############################Save the output table ############################
 #For audit
 write.csv(NOFSummaryTable,
-          file = paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
+          file = paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
                         "/NOFSummaryTable_All.csv"),row.names=F)
 write.csv(NOFSummaryTable%>%dplyr::filter(grepl(pattern = 'to',x = Year)),
-          file = paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
+          file = paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
                         "/NOFSummaryTable_Rolling.csv"),row.names=F)
 
-# NOFSummaryTable <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",pattern="NOFSummaryTable_All",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+# NOFSummaryTable <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern="NOFSummaryTable_All",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
 
 # ************
 # Note this is not the full summary table - only rolling years
-# NOFSummaryTable <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",pattern="NOFSummaryTable_Rolling",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+# NOFSummaryTable <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern="NOFSummaryTable_Rolling",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
 # ************
 
 NOFSummaryTable$SWQAltitude=pseudo.titlecase(NOFSummaryTable$SWQAltitude)
@@ -522,7 +527,7 @@ RiverNOF$Value=as.numeric(RiverNOF$Value)
 RiverNOF$Band[!is.na(RiverNOF$Value)] <- NA
 
 write.csv(RiverNOF,
-          file=paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+          file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITERiverNOF",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 rm(RiverNOF)
 
@@ -530,23 +535,3 @@ rm(RiverNOF)
 
 
 
-#NOF audit after fixing n requirements, and ammonia 95 to ammonia max and fixing the bug where the n count was being assigned as a median
-
-if(0){
-newNOFST = NOFSummaryTable%>%filter(grepl(pattern = 'to',x = Year))
-oldNOFST<- read.csv("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/2020-09-07/NOFSummaryTable_Rolling.csv",stringsAsFactors = F)
-names(newNOFST)[!names(newNOFST)%in%names(oldNOFST)]
-names(oldNOFST)[!names(oldNOFST)%in%names(newNOFST)]
-oldNOFST <- oldNOFST%>%select(-EcoliPeriod)
-names(newNOFST)[names(newNOFST) != names(oldNOFST)]
-names(oldNOFST)[names(newNOFST) != names(oldNOFST)]
-
-names(newNOFST) <- names(oldNOFST)
-table(newNOFST$LawaSiteID==oldNOFST$LawaSiteID)
-
-
-table(newNOFST$Nitrate_Toxicity_Band,tolower(oldNOFST$Nitrate_Toxicity_Band),useNA='always')
-table(newNOFST$DRP_Toxicity_Band,tolower(oldNOFST$DRP_Toxicity_Band),useNA='always')
-table(newNOFST$EcoliSummaryband,tolower(oldNOFST$EcoliSummaryband),useNA='always')
-table(newNOFST$Ammonia_Toxicity_Band,tolower(oldNOFST$Ammonia_Toxicity_Band),useNA='always')
-}

@@ -18,11 +18,11 @@ library(parallel)
 library(doParallel)
 require(reshape2)
 library(tidyverse)
-setwd("h:/ericg/16666LAWA/LAWA2020/Lakes/")
-source("h:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R")
-source("h:/ericg/16666Lawa/LAWA2020/WaterQuality/scripts/SWQ_NOF_Functions.R")
+setwd("h:/ericg/16666LAWA/LAWA2021/Lakes/")
+source("h:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
+source("h:/ericg/16666Lawa/LAWA2021/WaterQuality/scripts/SWQ_NOF_Functions.R")
 
-dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d')),showWarnings = F)
+dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d')),showWarnings = F)
 
 #hydrological year runs e.g. 1 July 2017 to 30 June 2018, and is named like 2017/18
 
@@ -34,7 +34,7 @@ lakeSiteTable$LType=tolower(lakeSiteTable$LType)
 table(lakeSiteTable$LType)
 
 ## Load NOF Bands
-NOFbandDefinitions <- read.csv("H:/ericg/16666LAWA/LAWA2020/Lakes/Metadata/NOFlakeBandDefinitions.csv", header = TRUE, stringsAsFactors=FALSE)
+NOFbandDefinitions <- read.csv("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/NOFlakeBandDefinitions.csv", header = TRUE, stringsAsFactors=FALSE)
 #   Band TotalNitrogenseasonally.stratified.and.brackish TotalNitrogenpolymictic TotalPhosphorus Median.Ammoniacal.N Max.Ammoniacal.N E..coli Ecoli95 EcoliRec540 EcoliRec260  Clarity ChlAMedian    ChlAMax
 # 1    A                                          x<=160                  x<=300           x<=10             x<=0.03          x<=0.05  x<=130  x<=540         x<5        x<20      x>=7       x<=2      x<=10
 # 2    B                                    x>160&x<=350            x>300&x<=500      x>10&x<=20      x>0.03&x<=0.24    x>0.05&x<=0.4  x<=130 x<=1000  x>=5&x<=10 x>=20&x<=30 x>=3&x<7   x>2&x<=5 x>10&x<=25
@@ -48,9 +48,9 @@ NOFbandDefinitions <- read.csv("H:/ericg/16666LAWA/LAWA2020/Lakes/Metadata/NOFla
 #===================================================================================================
 ## Load LAWA Data
 # loads lawaLakesdata dataframe  from LAWA_State.r  - has altered values from censoring, and calculated medians
-lakesMonthlyMedians=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis",
+lakesMonthlyMedians=read_csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",
                                       pattern="lakeMonthlyMedian.*csv",  #"ForITE"
-                                      recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors=F)
+                                      recursive = T,full.names = T,ignore.case = T),1))
 stopifnot(min(lakesMonthlyMedians$Year,na.rm=T)>1990)
 #Reference Dates
 EndYear <- lubridate::year(Sys.Date())-1
@@ -75,8 +75,10 @@ sub_lwq$Measurement[sub_lwq$Measurement=="NH4N"] <- "NH4"
 sub_lwq$YearQuarter=paste0(quarters(sub_lwq$Date),year(sub_lwq$Date))
 
 
-lakeSiteTable$uclid=paste(tolower(lakeSiteTable$LawaSiteID),tolower(lakeSiteTable$CouncilSiteID),sep='||')
-sub_lwq$uclid      =paste(tolower(      sub_lwq$LawaSiteID),tolower(      sub_lwq$CouncilSiteID),sep='||')
+lakeSiteTable$uclid=paste(tolower(trimws(lakeSiteTable$LawaSiteID)),
+                          tolower(trimws(lakeSiteTable$CouncilSiteID)),sep='||')
+sub_lwq$uclid      =paste(tolower(trimws(sub_lwq$LawaSiteID)),
+                          tolower(trimws(sub_lwq$CouncilSiteID)),sep='||')
 
 # lakeSiteTable$uclid[which(!lakeSiteTable$uclid%in%sub_lwq$uclid)]=paste(lakeSiteTable$LawaSiteID,lakeSiteTable$SiteID,sep='||')[which(!lakeSiteTable$uclid%in%sub_lwq$uclid)]
 
@@ -413,10 +415,10 @@ NOFSummaryTable <- NOFSummaryTable%>%select(LawaSiteID:SiteID,Year:EcoliSummaryB
 #############################Save output tables ############################
 #Audit wants NOFLakesOverall.
 write.csv(NOFSummaryTable,
-          file = paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+          file = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                         "/NOFLakesAll",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 write.csv(NOFSummaryTable%>%dplyr::filter(grepl('to',Year)),
-          file = paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+          file = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                         "/NOFLakesOverall",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 
 
@@ -455,7 +457,7 @@ write.csv(LakeSiteNOF%>%transmute(LAWAID=LawaSiteID,
                                   #Parameter=parameter,
                                   Year=Year,
                                   NOFMedian=value)%>%filter(Year=="2015to2019"),
-          file=paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+          file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITELakeSiteNOF",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 rm(LakeSiteNOF)
 
@@ -464,16 +466,16 @@ write.csv(lakesMonthlyMedians%>%transmute(LAWAID=LawaSiteID,
                                           Parameter=Measurement,
                                           NOFDate=format(Date,'%Y-%m-%d'),
                                           NOFValue=Value),
-          file=paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+          file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITELakeSiteNOFGraph",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
-# itelakesitenofgraph=read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/","ITELakeSiteNOFGraph",recursive=T,full.names = T),1))
+# itelakesitenofgraph=read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/","ITELakeSiteNOFGraph",recursive=T,full.names = T),1))
 
 #Audit impact of n requireemnts
 
 if(0){
   dir(pattern='NOFLakesOverAll',recursive=T,full.names = T,ignore.case = T)
-  prevNOF = read.csv("./Analysis/2020-09-09/NOFLakesOverall09Sep2020.csv",stringsAsFactors = F)
-  nowNOF = read.csv("./Analysis/2020-09-16/NOFLakesOverall16Sep2020.csv",stringsAsFactors = F)  
+  prevNOF = read.csv("./Analysis/2021-09-09/NOFLakesOverall09Sep2021.csv",stringsAsFactors = F)
+  nowNOF = read.csv("./Analysis/2021-09-16/NOFLakesOverall16Sep2021.csv",stringsAsFactors = F)  
   
 names(nowNOF)[grepl('_band',names(nowNOF),ignore.case=T)]
   

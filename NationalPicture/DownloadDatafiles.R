@@ -1,6 +1,6 @@
 rm(list=ls())
 library(tidyverse)
-source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 EndYear <- lubridate::isoyear(Sys.Date())-1
 startYear15 <- EndYear - 15+1
 StartYear10 <- EndYear - 10+1
@@ -13,7 +13,7 @@ writeOut=TRUE
 # LAKES: ####
 lakeSiteTable=loadLatestSiteTableLakes()
 #   Lake water quality monitoring dataset (2005-2019) ####
-lakeData=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/Lakes/Data",pattern = "LakesWithMetadata.csv",
+lakeData=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data",pattern = "LakesWithMetadata.csv",
                           recursive = T,full.names = T,ignore.case=T),1)
 lakeData=read.csv(lakeData,stringsAsFactors = F)
 
@@ -29,30 +29,30 @@ lakeWQmon <- lakeData%>%transmute(DateImported=accessDate,
                                   Latitude=Lat,Longitude=Long,GeomorphicLType,LType,
                                   Indicator=Measurement,SampleDate=Date,Symbol=centype,CensoredValue=signif(Value,4))
 if(writeOut)write.csv(lakeWQmon,
-          paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+          paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                  "DownloadDatafiles/LakeWQMonDat.csv"),row.names = F)
 rm(lakeWQmon,lakeData)
 
 # Lake TLI (2005-2019) ####
-lakeTLI=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/",
+lakeTLI=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/",
                  pattern="ITELakeTLI",recursive=T,full.names = T,ignore.case = T),1)
 lakeTLI=read.csv(lakeTLI,stringsAsFactors = F)
 lakeTLI=lakeTLI[which(lakeTLI$TLIYear>=startYear15 & lakeTLI$TLIYear<=EndYear),] #2064 to 1951
 lakeTLI <- merge(all.x=F,x=lakeSiteTable%>%select(Region,Agency,LFENZID)%>%distinct,
                  all.y=T,y=lakeTLI%>%select(LFENZID=FENZID,Year=TLIYear,TLI))%>%select(Region,Agency,LFENZID,Year,TLI)
-if(writeOut)write.csv(lakeTLI,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(lakeTLI,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                          "DownloadDatafiles/LakeTLI.csv"),row.names=F)
 rm(lakeTLI)
 
 # Lake State ####
-lakesState=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/",
+lakesState=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/",
                        pattern="ITELakeSiteState",recursive=T,full.names = T,ignore.case = T),1)
 lakesState=read.csv(lakesState,stringsAsFactors = F)%>%
   dplyr::rename(LawaSiteID=LAWAID,Indicator=Parameter)%>%filter(Indicator!="TLI")
 lakesState = merge(all.x=F,x = lakeSiteTable%>%select(Agency,Region,SiteID,CouncilSiteID,LawaSiteID,LFENZID),
                    all.y=T,y = lakesState%>%select(LawaSiteID,Indicator,Year,Median))
 
-lakeNOF=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/",
+lakeNOF=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/",
                      pattern="ITELakeSiteNOF[^G]",recursive=T,full.names = T,ignore.case = T),1)
 lakeNOF = read.csv(lakeNOF,stringsAsFactors = F)%>%
   dplyr::rename(LawaSiteID=LAWAID,NOFband=NOFMedian)%>%
@@ -74,16 +74,16 @@ lakesStateNOF = merge(all.x=T,x=lakesState,
                    all.y=T,y=lakeNOF)%>%
                      select(Region,Agency,LawaSiteID,SiteID,CouncilSiteID,LFENZID,
                             Indicator,Year,Median,NOFband)%>%distinct
-if(writeOut)write.csv(lakesStateNOF,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(lakesStateNOF,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                            "DownloadDatafiles/LakeState.csv"),row.names=F)
 rm(lakesState,lakeNOF,lakesStateNOF)
 
 # Lake Trends ####
-lst5=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/",
+lst5=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/",
                         pattern="ITELakeSiteTrend5",recursive=T,full.names = T,ignore.case = T),1)
-lst10=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/",
+lst10=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/",
                          pattern="ITELakeSiteTrend10",recursive=T,full.names = T,ignore.case = T),1)
-lst15=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/",
+lst15=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/",
                          pattern="ITELakeSiteTrend15",recursive=T,full.names = T,ignore.case = T),1)
 lst5 = read.csv(lst5,stringsAsFactors = F)
 lst10 = read.csv(lst10,stringsAsFactors = F)
@@ -94,7 +94,7 @@ lst = merge(all.x=T,x=lst,
 rm(lst5,lst10,lst15)
 lst <- merge(all.x=F,x=lakeSiteTable%>%select(Region,Agency,LawaSiteID,CouncilSiteID,SiteID,LFENZID),
              all.y=T,y=lst%>%transmute(LawaSiteID=LAWAID,Indicator=Parameter,Trend5,Trend10,Trend15))
-if(writeOut)write.csv(lst,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(lst,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                      "DownloadDatafiles/LakeTrend.csv"),row.names=F)
 rm(lst)
 rm(lakeSiteTable)  
@@ -140,14 +140,14 @@ rrd$Agency=factor(rrd$Agency,levels=c("ac", "boprc", "ecan", "es", "gdc", "gwrc"
                                       "mdc", "ncc", "niwa", "nrc", "orc", "tdc", "trc", "wcrc", "wrc"),
                   labels=c("Auckland Council","Bay of Plenty Regional Council","Environment Canterbury","Environment Southalnd","Gisborne District Council","Greater Wellington Regional Council","Hawkes Bay Regional Council","Horizons Regional Council",
                            "Marlborough District Council","Nelson City Council","NIWA","Northland Regional Council","Otago Regional Council","Tasman District Council","Taranaki Regional Council","West Coast Regional Council","Waikato Regional Council"))
-if(writeOut)write.csv(rrd,"C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/DownloadDataFiles/RiverWQMonitoringData_LC.csv",row.names=F)
+if(writeOut)write.csv(rrd,"C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/DownloadDataFiles/RiverWQMonitoringData_LC.csv",row.names=F)
 
-rrd%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+rrd%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                                                       "DownloadDatafiles/RiverWQMonitoringData",unique(.$Region),"_LC.csv"),row.names=F)})
 if(writeOut)rrd%>%filter(Region%in%c("auckland", "bay of plenty", "gisborne","wellington", "hawkes bay", "manawatu-whanganui",  "waikato", "taranaki","northland"))%>%
-  write.csv(.,"C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/DownloadDataFiles/RiverWQMonitoringDataNI_LC.csv")
+  write.csv(.,"C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/DownloadDataFiles/RiverWQMonitoringDataNI_LC.csv")
 if(writeOut)rrd%>%filter(Region%in%c("canterbury", "southland",  "marlborough","nelson", "otago", "west coast", "tasman"))%>%
-  write.csv(.,"C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/DownloadDataFiles/RiverWQMonitoringDataSI_LC.csv")
+  write.csv(.,"C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/DownloadDataFiles/RiverWQMonitoringDataSI_LC.csv")
 
 rm(rrd)
 
@@ -155,7 +155,7 @@ rm(rrd)
 # Region 	Agency	LAWA Site ID	SiteID	CouncilSiteID	Latitude	Longitude	SWQLandUse	SWQAltitude	Catchment	Indicator	5-year median
 # State quartile (all sites)	State quartile (same land use)	State quartile (same altitude)	State quartile (same land use and altitude)
 # State NOF band	License
-riverWQState=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/",
+riverWQState=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/",
                     pattern="ITERiverState",recursive=T,full.names = T,ignore.case = T),1)
 riverWQState = read_csv(riverWQState)%>%
   # dplyr::filter(Altitude=="All"&Landuse=="All")%>%
@@ -182,7 +182,7 @@ for(colFill in c("Region","Agency","SiteID","CouncilSiteID","Lat","Long","SWQLan
 rm(colFill)
 riverWQStateW <- riverWQStateW%>%dplyr::rename(Latitude=Lat,Longitude=Long,WFSLanduse=SWQLanduse,WFSAltitude=SWQAltitude)
 
-riverNOF=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/",
+riverNOF=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/",
                   pattern="ITERiverNOF",recursive=T,full.names = T,ignore.case = T),1)
 riverNOF=read_csv(riverNOF,col_types = cols(
   LAWAID = col_character(),
@@ -209,15 +209,15 @@ riverWQStateW <- merge(x=riverWQStateW,all.x=T,
   # Region 	Agency	LAWA Site ID	SiteID	CouncilSiteID	Latitude	Longitude	WFSLandUse	WFSAltitude recLandcover	Catchment	Indicator	5-year median
   # State quartile (all sites)	State quartile (same land use)	State quartile (same altitude)	State quartile (same land use and altitude)
   # State NOF band	License
-if(writeOut)write.csv(riverWQStateW,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(riverWQStateW,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                               "DownloadDatafiles/RiverWQStateResults_LC.csv"),row.names=F)
 if(writeOut)write.csv(riverWQStateW%>%filter(Region%in%c("auckland", "bay of plenty", "gisborne","wellington", "hawkes bay", "manawatu-whanganui",  "waikato", "taranaki","northland")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverWQStateResultsNI_LC.csv"),row.names=F)
 if(writeOut)write.csv(riverWQStateW%>%filter(Region%in%c("canterbury", "southland",  "marlborough","nelson", "otago", "west coast", "tasman")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverWQStateResultsSI_LC.csv"),row.names=F)
-riverWQStateW%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+riverWQStateW%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                                                                     "DownloadDatafiles/RiverWQStateResults",unique(.$Region),"_LC.csv"),row.names=F)})
 
 rm(riverNOF,riverWQStateW)
@@ -227,7 +227,7 @@ rm(riverNOF,riverWQStateW)
 # River water quality Trends ####
 # Region Name	Agency	LAWA Site ID	SiteID	CouncilSiteID	Latitude	Longitude	Catchment
 # 	Indicator	TrendPeriod	TrendDataFrequency	TrendScore	Trend description	License
-riverTrend=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/",
+riverTrend=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/",
                       pattern="ITERiverTrend",recursive=T,full.names = T,ignore.case = T),1)
 riverTrend <- read_csv(riverTrend)%>%as.data.frame
 riverTrend$TrendDescription=factor(riverTrend$TrendScore,levels=c(-99,2,1,0,-1,-2),
@@ -253,15 +253,15 @@ riverTrend <- riverTrend%>%select(Region,Agency,LawaSiteID,SiteID,CouncilSiteID,
                                   WFSLanduse,WFSAltitude,recLandcover,Catchment,Indicator,TrendPeriod,
                                   TrendDataFrequency,TrendScore,TrendDescription)
 
-if(writeOut)write.csv(riverTrend,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(riverTrend,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverWQTrendResults_LC.csv"),row.names=F)
 if(writeOut)write.csv(riverTrend%>%filter(Region%in%c("auckland", "bay of plenty", "gisborne","wellington", "hawkes bay", "manawatu-whanganui",  "waikato", "taranaki","northland")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverWQTrendResultsNI_LC.csv"),row.names=F)
 if(writeOut)write.csv(riverTrend%>%filter(Region%in%c("canterbury", "southland",  "marlborough","nelson", "otago", "west coast", "tasman")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverWQTrendResultsSI_LC.csv"),row.names=F)
-riverTrend%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+riverTrend%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                                                                               "DownloadDatafiles/RiverWQTrendResults",unique(.$Region),"_LC.csv"),row.names=F)})
 rm(riverTrend)
 
@@ -269,7 +269,7 @@ rm(riverTrend)
 
   
 #Rolling NOF results ####
-NOFSummaryTable=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",pattern="NOFSummaryTable_Rolling",
+NOFSummaryTable=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern="NOFSummaryTable_Rolling",
                                   recursive=T,full.names = T),1),stringsAsFactors = F)
 NOFSummaryTable <- NOFSummaryTable%>%filter(Year!='2005to2009')  #Just, you see this way we're left with a single decade
 NOFSummaryTable$SWQAltitude = pseudo.titlecase(tolower(NOFSummaryTable$SWQAltitude))
@@ -299,7 +299,7 @@ NOFTableOut = NOFSummaryTable%>%select(LawaSiteID:Year,NZReach:Long,WFSLanduse=L
 which(apply(NOFTableOut[,15:18],1,FUN=function(x)all(x=="NA")))->toCut
 NOFTableOut = NOFTableOut[-toCut,]
 rm(toCut,NOFSummaryTable)
-if(writeOut)write.csv(NOFTableOut,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(NOFTableOut,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                                          "DownloadDatafiles/RiverNOFHistory_LC.csv"),row.names=F)
 ################################################################# ####
 #Macros ####
@@ -322,7 +322,7 @@ macroSiteTable$recLandcover <- factor(macroSiteTable$recLandcover,levels=c("if",
 # Date Data Imported	Region Name	Agency	LAWA Site ID	SiteID	CouncilSiteID	Latitude	Longitude	Catchment
 # 	Indicator	Indicator Unit of Measure
 
-macroData=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/",
+macroData=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/",
                            pattern="ITEMacroHistoric",recursive=T,full.names = T,ignore.case = T),1)
 macroData <- read_csv(macroData)%>%
   filter(year(CollectionDate)>=2005 & year(CollectionDate)<=2019)%>%as.data.frame
@@ -418,18 +418,18 @@ noSiteIDSites = unique(macroData$LawaSiteID[is.na(macroData$SiteID)])
 # Date Data Imported	Region Name	Agency	LAWA Site ID	SiteID	CouncilSiteID	Latitude	Longitude	Catchment
 # 	Indicator	Indicator Unit of Measure
 macroData <- macroData%>%select(Region,Agency,LawaSiteID,SiteID,CouncilSiteID,Latitude,Longitude,Catchment,recLandcover,Indicator,Date,Value)
-if(writeOut)write.csv(macroData,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(macroData,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                            "DownloadDatafiles/RiverEcologyMonitoringData_LC.csv"),row.names=F)
 
 if(writeOut)write.csv(macroData%>%filter(Region%in%c("auckland", "bay of plenty", "gisborne","wellington", "hawkes bay", "manawatu-whanganui",  "waikato", "taranaki","northland")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverEcologyMonitoringDataNI_LC.csv"),row.names=F)
 
 if(writeOut)write.csv(macroData%>%filter(Region%in%c("canterbury", "southland",  "marlborough","nelson", "otago", "west coast", "tasman")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverEcologyMonitoringDataSI_LC.csv"),row.names=F)
 
-macroData%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+macroData%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                                                                            "DownloadDatafiles/RiverEcologyMonitoringData",unique(.$Region),"_LC.csv"),row.names=F)})
 
 
@@ -437,7 +437,7 @@ macroData%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Us
 # River ecology STATE results (includes 5-year median,  State NOF band)		####									
 # Region Name	Agency	LAWA Site ID	SiteID	CouncilSiteID	Latitude	Longitude	Catchment	Indicator	5-year median	State NOF band	License
 # MCI score only	
-macroState=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/",
+macroState=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/",
                     pattern="ITEMacroState",recursive=T,full.names = T,ignore.case = T),1)
 macroState = read_csv(macroState)%>%as.data.frame
 macroState$NOFBand=NA
@@ -469,15 +469,15 @@ if(length(naCSID)>0)
 macroState$CouncilSiteID[naCSID] <- macroData$CouncilSiteID[match(gsub('_niwa','',macroState$LawaSiteID[naCSID]),
                                                                       macroData$LawaSiteID)]
 rm(naCSID)
-if(writeOut)write.csv(macroState,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(macroState,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                            "DownloadDatafiles/RiverEcologyStateResults_LC.csv"),row.names=F)
 if(writeOut)write.csv(macroState%>%filter(Region%in%c("auckland", "bay of plenty", "gisborne","wellington", "hawkes bay", "manawatu-whanganui",  "waikato", "taranaki","northland")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverEcologyStateResultsNI_LC.csv"),row.names=F)
 if(writeOut)write.csv(macroState%>%filter(Region%in%c("canterbury", "southland",  "marlborough","nelson", "otago", "west coast", "tasman")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverEcologyStateResultsSI_LC.csv"),row.names=F)
-macroState%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+macroState%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                                                                           "DownloadDatafiles/RiverEcologyStateResults",unique(.$Region),"_LC.csv"),row.names=F)})
 
 
@@ -485,10 +485,10 @@ macroState%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/U
 # River Ecology TREND results (MCI score only) ####
 # Region Name	Agency	LAWA Site ID	SiteID	CouncilSiteID	Latitude	Longitude	Catchment
 # 	Indicator	TrendPeriod	TrendDataFrequency	TrendScore	Trend description	License
-macroTrend10=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/",
+macroTrend10=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/",
                       pattern="ITEMacroTrend10",recursive=T,full.names = T,ignore.case = T),1)
 macroTrend10 <- read_csv(macroTrend10)%>%as.data.frame
-macroTrend15=tail(dir(path="H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/",
+macroTrend15=tail(dir(path="H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/",
                       pattern="ITEMacroTrend15",recursive=T,full.names = T,ignore.case = T),1)  
 macroTrend15 <- read_csv(macroTrend15)%>%as.data.frame
 mTrend <- merge(macroTrend10%>%transmute(LawaSiteID=LAWAID,Indicator=Parameter,Trend10y=Trend),
@@ -513,15 +513,15 @@ mTrend$Longitude[is.na(mTrend$Longitude)] <- macroData$Longitude[match(mTrend$La
 mTrend$Catchment[is.na(mTrend$Catchment)] <- macroData$Catchment[match(mTrend$LawaSiteID[is.na(mTrend$Catchment)],macroData$LawaSiteID)]
 
 
-if(writeOut)write.csv(mTrend,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+if(writeOut)write.csv(mTrend,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                         "DownloadDatafiles/RiverEcologyTrendResults_LC.csv"),row.names=F)
 if(writeOut)write.csv(mTrend%>%filter(Region%in%c("auckland", "bay of plenty", "gisborne","wellington", "hawkes bay", "manawatu-whanganui",  "waikato", "taranaki","northland")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverEcologyTrendResultsNI_LC.csv"),row.names=F)
 if(writeOut)write.csv(mTrend%>%filter(Region%in%c("canterbury", "southland",  "marlborough","nelson", "otago", "west coast", "tasman")),
-                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+                      paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                              "DownloadDatafiles/RiverEcologyTrendResultsSI_LC.csv"),row.names=F)
-mTrend%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/",
+mTrend%>%split(.$Region)%>%purrr::map(~{if(writeOut)write.csv(.,paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/",
                                                                            "DownloadDatafiles/RiverEcologyTrendResults",unique(.$Region),"_LC.csv"),row.names=F)})
 
 

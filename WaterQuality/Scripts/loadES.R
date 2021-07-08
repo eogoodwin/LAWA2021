@@ -3,11 +3,11 @@ require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(XML)     ### XML library to write hilltop XML
 # require(RCurl)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 
 agency='es'
 tab="\t"
-Measurements <- read.table("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
+Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%dplyr::select(CallName)%>%unname%>%unlist
 Measurements=c(Measurements,'WQ Sample')
 
@@ -28,16 +28,16 @@ for(i in 1:length(sites)){
       url <- paste0("http://odp.es.govt.nz/WQ.hts?service=Hilltop&request=GetData",
                     "&Site=",sites[i],
                     "&Measurement=E-Coli <CFU>",
-                    "&From=2005-01-01",
-                    "&To=2020-01-01")
+                    "&From=2004-01-01",
+                    "&To=2021-01-01")
       url <- URLencode(url)
       xmlfile <- ldWQ(url,agency) 
       
       urlWQ <- paste0("http://odp.es.govt.nz/WQ.hts?service=Hilltop&request=GetData",
                       "&Site=",sites[i],
                       "&Measurement=WQ Sample",
-                      "&From=2005-01-01",
-                      "&To=2020-01-01")
+                      "&From=2004-01-01",
+                      "&To=2021-01-01")
       urlWQ <- URLencode(urlWQ)
       xmlfileWQ <- ldWQ(urlWQ,agency)  
       if(!is.null(xmlfile)){
@@ -66,7 +66,7 @@ for(i in 1:length(sites)){
                     "&Site=",sites[i],
                     "&Measurement=",Measurements[j],
                     "&From=2006-01-01",
-                    "&To=2020-01-01")
+                    "&To=2021-01-01")
       url <- URLencode(url)
       xmlfile <- ldWQ(url,agency,method='wininet')
       if(!is.null(xmlfile)){
@@ -225,7 +225,7 @@ while(i<=max){
   
 }
 
-# saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"SWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+# saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))

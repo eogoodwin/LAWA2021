@@ -1,7 +1,7 @@
 rm(list=ls())
-source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
-monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',sheet=1)%>%filter(grepl('nrwqn',LAWAID,T))%>%filter(Module=="River Quality")%>%select(Region:Longitude,-SiteType)%>%arrange(LAWAID)%>%as.data.frame
+monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',sheet=1)%>%filter(grepl('nrwqn',LAWAID,T))%>%filter(Module=="River Quality")%>%select(Region:Longitude,-SiteType)%>%arrange(LAWAID)%>%as.data.frame
 nrwqncodes = read.csv('./Metadata/NRWQNCodes.csv',stringsAsFactors = F)
 
 nrwqncodes$Place[nrwqncodes$Place=="Wairu at Purua"] <- "Wairua at Purua"
@@ -28,8 +28,8 @@ nrwqncodes
 allcodes=c(paste0('NRWQN-0000',1:9),paste0('NRWQN-000',10:77))
 allcodes[!allcodes%in%nrwqncodes$monListLawaID]->StillMissing
 
-lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',sheet=1)
-lawaMasterList19 = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Site Master List.xlsx',sheet=2)
+lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',sheet=1)
+lawaMasterList19 = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Site Master List.xlsx',sheet=2)
 
 lml=lawaMasterList[grep('nrwqn',lawaMasterList$LAWAID,ignore.case = T),]%>%select(Region,LAWAID,Name,Latitude,Longitude)%>%arrange(LAWAID)%>%as.data.frame
 rm(lawaMasterList19,lawaMasterList)

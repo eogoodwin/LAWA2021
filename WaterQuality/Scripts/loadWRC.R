@@ -35,9 +35,9 @@ require(RCurl)
 bitops::bitAnd(1034,255)
 bitops::bitAnd(9426,255)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 agency='wrc'
-Measurements <- read.table("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
+Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
 Measurements=c(Measurements,'WQ Sample')
 
@@ -55,7 +55,7 @@ for(i in 1:length(sites)){
 				  "version=2.0&request=GetObservation&procedure=RERIMP.Sample.Results.P",
                   "&featureOfInterest=",sites[i],
                   "&observedProperty=", Measurements[j],
-                  "&temporalfilter=om:phenomenonTime,2005-01-01/2020-01-01")
+                  "&temporalfilter=om:phenomenonTime,2004-01-01/2021-01-01")
     url <- URLencode(url)
     xmlfile <- ldWQ(url,agency,QC=T)
     
@@ -71,7 +71,7 @@ for(i in 1:length(sites)){
 					"version=2.0&request=GetObservation&procedure=WARIMP.Sample.Results.P",
                    "&featureOfInterest=",sites[i],
                    "&observedProperty=", Measurements[j],
-                   "&temporalfilter=om:phenomenonTime,2005-01-01/2020-01-01")
+                   "&temporalfilter=om:phenomenonTime,2004-01-01/2021-01-01")
       url <- URLencode(url)
       xmlfile <- ldWQ(url,agency,QC=T)
 
@@ -287,7 +287,7 @@ while(i<=max){
 }
 
 rm(Data)
-# saveXML(con$value(), file = paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/MetaData/",format(Sys.Date(),'%Y-%m-%d'),"/",agency,"SWQ.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"SWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+# saveXML(con$value(), file = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/MetaData/",format(Sys.Date(),'%Y-%m-%d'),"/",agency,"SWQ.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))

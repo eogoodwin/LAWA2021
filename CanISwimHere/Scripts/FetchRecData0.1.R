@@ -2,10 +2,10 @@ rm(list=ls())
 library(xml2)
 library(stringr)
 library(tidyverse)
-source("H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R")
-setwd('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/')
-try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
-try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
+source("H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
+setwd('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/')
+try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
+try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
 
 if(0){
 '
@@ -38,14 +38,14 @@ ssm$TimeseriesUrl=gsub(ssm$TimeseriesUrl,pattern = 'data.wcrc.govt.nz:9083/',rep
 #Ignore these welly entries, because we've got new ones to put in 
 # ssm$TimeseriesUrl[ssm$Region=='Wellington region']=''
 #replace welly sites
-# welly = read.csv('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/SwimSiteMonitoringResults-2018-11-21.csv',stringsAsFactors=F)
+# welly = read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/SwimSiteMonitoringResults-2018-11-21.csv',stringsAsFactors=F)
 # welly = welly%>%filter(Region=='Wellington region')
 # ssm=rbind(ssm,welly)
 # rm(welly)
 
-ssm$LAWA2020n=0
-ssm$LAWA2020comment=as.character("notyet")
-ssm$LAWA2020comment[ssm$TimeseriesUrl=='']='NoTimeSeriesURL'
+ssm$LAWA2021n=0
+ssm$LAWA2021comment=as.character("notyet")
+ssm$LAWA2021comment[ssm$TimeseriesUrl=='']='NoTimeSeriesURL'
 
 regions=c("Bay of Plenty region", "Canterbury region", "Gisborne region", 
           "Hawke's Bay region", "Manawatu-Wanganui region", "Marlborough region", 
@@ -78,13 +78,13 @@ if(0){
 
 yesstop=FALSE
 #Repeat pulls until dataset is pretty much almost complete
-while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
-  table(ssm$LAWA2020comment==""|ssm$LAWA2020comment=="NoTimeSeriesURL")
+while(sum(!ssm$LAWA2021comment%in%c("","NoTimeSeriesURL"))>90){
+  table(ssm$LAWA2021comment==""|ssm$LAWA2021comment=="NoTimeSeriesURL")
   listToCombine=NULL
   latestAgency=''
   siteNum=1
   for(siteNum in siteNum:dim(ssm)[1]){
-    if(ssm$LAWA2020comment[siteNum]==''|ssm$LAWA2020comment[siteNum]=="NoTimeSeriesURL"){
+    if(ssm$LAWA2021comment[siteNum]==''|ssm$LAWA2021comment[siteNum]=="NoTimeSeriesURL"){
       next
     }
     #Output agency label 
@@ -103,14 +103,14 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
        (file.exists(paste0('./data/dataCache/site',siteNum,'.xml'))&file.info(paste0('./data/dataCache/site',siteNum,'.xml'))$size<1280)){
       
       if(grepl(pattern = 'observedProperty',x = urlToTry,ignore.case = T)){
-        urlToTry=paste0(urlToTry,"&temporalfilter=om:phenomenonTime,P15Y/2020-07-01")
-        # urlToTry=paste0(urlToTry,"&temporalfilter=om:phenomenonTime,2015-06-01T00:00:00/2020-07-01T00:00:00")
+        urlToTry=paste0(urlToTry,"&temporalfilter=om:phenomenonTime,P15Y/2021-07-01")
+        # urlToTry=paste0(urlToTry,"&temporalfilter=om:phenomenonTime,2015-06-01T00:00:00/2021-07-01T00:00:00")
       #BOP example from SWQ
           # http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?
           # service=SOS&version=2.0.0&request=GetObservation&
           # observedProperty=",Measurements[j],
           # &featureOfInterest=",sites[i],
-          # &temporalfilter=om:phenomenonTime,P15Y/2020-01-01
+          # &temporalfilter=om:phenomenonTime,P15Y/2021-01-01
         
       }
       cat('v')
@@ -118,17 +118,17 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
                                       path = paste0('./data/DataCache/site',siteNum,'.xml')),silent=T)
       if('try-error'%in%attr(x = dlTry,which = 'class')){
         cat('-')
-        ssm$LAWA2020comment[siteNum]='try error'
+        ssm$LAWA2021comment[siteNum]='try error'
         next
       }
       if(dlTry$status_code%in%c(500,501,503,404)){
         cat('.')
-        ssm$LAWA2020comment[siteNum]=paste0(ssm$LAWA2020comment[siteNum],'DownloadFail')
+        ssm$LAWA2021comment[siteNum]=paste0(ssm$LAWA2021comment[siteNum],'DownloadFail')
         next
       }
       if(dlTry$status_code==408){
         cat('TO')
-        ssm$LAWA2020comment[siteNum]=paste0(ssm$LAWA2020comment[siteNum],'timeOut')
+        ssm$LAWA2021comment[siteNum]=paste0(ssm$LAWA2021comment[siteNum],'timeOut')
         next
       }
     }
@@ -141,7 +141,7 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
       }else{
         commentToAdd='exception'
       }
-      ssm$LAWA2020comment[siteNum]=paste0(ssm$LAWA2020comment[siteNum],commentToAdd)
+      ssm$LAWA2021comment[siteNum]=paste0(ssm$LAWA2021comment[siteNum],commentToAdd)
       #Dont wanna keep exception files
       file.remove(paste0('./data/dataCache/site',siteNum,'.xml'))
       next
@@ -152,7 +152,7 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
       mvals <- xml_find_all(xmlfile,'//wml2:value')
       if(length(mvals)>0){
         cat('*')
-        ssm$LAWA2020comment[siteNum]=''
+        ssm$LAWA2021comment[siteNum]=''
         mvals=xml_text(mvals)
         faceVals=as.numeric(mvals)
         if(any(lCens<-unlist(lapply(mvals,FUN = function(x)length(grepRaw(pattern = '<',x=x))>0)))){
@@ -189,8 +189,8 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
             urlToTry=gsub(x=urlToTry,pattern='SOS',replacement = 'Hilltop')
             urlToTry=gsub(x=urlToTry,pattern='GetObservation',replacement = 'GetData')
             urlToTry=gsub(x=urlToTry,pattern='FeatureOfInterest',replacement = 'Site')
-            urlToTry=gsub(x=urlToTry,pattern='temporalfilter=om:phenomenonTime,2015-06-01T00:00:00/2020-07-01T00:00:00',
-                          replacement = 'From=1/6/2015&To=1/7/2020')
+            urlToTry=gsub(x=urlToTry,pattern='temporalfilter=om:phenomenonTime,2015-06-01T00:00:00/2021-07-01T00:00:00',
+                          replacement = 'From=1/6/2015&To=1/7/2021')
             dlTry=try(curl::curl_fetch_disk(gsub(x = urlToTry,pattern = ' ',replacement = '%20'),
                                             path = paste0('./data/dataCache/site',siteNum,'_MD.xml')),silent=T)
           }
@@ -226,7 +226,7 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
             urlToTry=gsub(x=urlToTry,pattern='SOS',replacement = 'Hilltop')
           urlToTry=gsub(x=urlToTry,pattern='GetObservation',replacement = 'GetData')
           urlToTry=gsub(x=urlToTry,pattern='featureOfInterest',replacement = 'Site')
-          urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2020')
+          urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2021')
           dlTry=try(curl::curl_fetch_disk(gsub(x = urlToTry,pattern = ' ',replacement = '%20'),
                                           path = paste0('./data/dataCache/site',siteNum,'_MD.xml')),silent=T)
           }
@@ -263,7 +263,7 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
           urlToTry=gsub(x=urlToTry,pattern='SOS',replacement = 'Hilltop')
           urlToTry=gsub(x=urlToTry,pattern='GetObservation',replacement = 'GetData')
           urlToTry=gsub(x=urlToTry,pattern='FeatureOfInterest',replacement = 'Site')
-          urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2020')
+          urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2021')
           dlTry=try(curl::curl_fetch_disk(gsub(x = urlToTry,pattern = ' ',replacement = '%20'),
                                           path = paste0('./data/dataCache/site',siteNum,'_MD.xml')),silent=T)
           }
@@ -300,7 +300,7 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
             urlToTry=gsub(x=urlToTry,pattern='SOS',replacement = 'Hilltop')
             urlToTry=gsub(x=urlToTry,pattern='GetObservation',replacement = 'GetData')
             urlToTry=gsub(x=urlToTry,pattern='featureOfInterest',replacement = 'Site')
-            urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2020')
+            urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2021')
             dlTry=try(curl::curl_fetch_disk(gsub(x = urlToTry,pattern = ' ',replacement = '%20'),
                                             path = paste0('./data/dataCache/site',siteNum,'_MD.xml')),silent=T)
           }
@@ -336,7 +336,7 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
             urlToTry=gsub(x=urlToTry,pattern='SOS',replacement = 'Hilltop')
             urlToTry=gsub(x=urlToTry,pattern='GetObservation',replacement = 'GetData')
             urlToTry=gsub(x=urlToTry,pattern='FeatureOfInterest',replacement = 'Site')
-            urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2020')
+            urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2021')
             dlTry=try(curl::curl_fetch_disk(gsub(x = urlToTry,pattern = ' ',replacement = '%20'),
                                             path = paste0('./data/dataCache/site',siteNum,'_MD.xml')),silent=T)
           }
@@ -374,7 +374,7 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
             urlToTry=gsub(x=urlToTry,pattern='SOS',replacement = 'Hilltop')
             urlToTry=gsub(x=urlToTry,pattern='GetObservation',replacement = 'GetData')
             urlToTry=gsub(x=urlToTry,pattern='featureOfInterest',replacement = 'Site')
-            urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2020')
+            urlToTry=paste0(urlToTry,'&From=1/6/2015&To=1/7/2021')
             dlTry=try(curl::curl_fetch_disk(gsub(x = urlToTry,pattern = ' ',replacement = '%20'),
                                             path = paste0('./data/dataCache/site',siteNum,'_MD.xml')),silent=T)
           }
@@ -415,9 +415,9 @@ while(sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL"))>90){
       file.remove(paste0('./data/dataCache/site',siteNum,'.xml'))
     }
     cat('/')
-    ssm$LAWA2020comment[siteNum]=paste0(ssm$LAWA2020comment[siteNum],'NoDataReturned')
+    ssm$LAWA2021comment[siteNum]=paste0(ssm$LAWA2021comment[siteNum],'NoDataReturned')
   }
-  cat('\n',sum(!ssm$LAWA2020comment%in%c("","NoTimeSeriesURL")),'\n')
+  cat('\n',sum(!ssm$LAWA2021comment%in%c("","NoTimeSeriesURL")),'\n')
   Sys.sleep(time = 6)
 }
 
@@ -451,9 +451,10 @@ rm(listToCombine)
 #         38772 x 13 18/7/19
 #         78741 x 13 1/8/19
 #recData 112587 x 13 29/9/2020
+#recData 110108 x 13 2/7/2021
 
 #Drop retests as indicated by councils
-TDCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Metadata/TDCTestIndication.csv',stringsAsFactors = F)[,1:17]
+TDCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA202/CanISwimHere/Metadata/TDCTestIndication.csv',stringsAsFactors = F)[,1:17]
 TDCtestRetest=TDCtestRetest%>%filter(X=="")
 TDCtestRetest$dateCollected=as.POSIXct(TDCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
 recData=recData%>%filter(region!="Tasman region")
@@ -465,8 +466,9 @@ rm(TDCtestRetest)
 #recData 30540 x 13 2018
 #        29782 x 13
 #         77447 x 13 1/8/2020
+#         
 
-WRCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/MetaData/WRCTestIndication.csv',stringsAsFactors = F)#[,1:17]
+WRCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/WRCTestIndication.csv',stringsAsFactors = F)#[,1:17]
 WRCtestRetest=WRCtestRetest%>%filter(Retest.result...Y.N.=='')
 WRCtestRetest$dateCollected=as.POSIXct(WRCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
 recData=recData%>%filter(region!="Waikato region")
@@ -480,7 +482,7 @@ rm(WRCtestRetest)
 #         37932    18.7.19
 #         75692    1.8.19
 
-ORCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/MetaData/ORCTestIndication.csv',stringsAsFactors = F)#[,1:17]
+ORCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/ORCTestIndication.csv',stringsAsFactors = F)#[,1:17]
 ORCtestRetest=ORCtestRetest%>%filter(Retest.result...Y.N.=='')
 ORCtestRetest$dateCollected=as.POSIXct(ORCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
 recData=recData%>%filter(region!="Otago region")
@@ -523,13 +525,8 @@ bs[recData$month>6]=paste0(recData$year[recData$month>6],'/',recData$year[recDat
 bs[recData$month<7]=paste0(recData$year[recData$month<7]-1,'/',recData$year[recData$month<7])
 recData$bathingSeason=bs
 
-if(0){
-  rdout=recData[67635:67636,]
-  bs[rdout$month>6]=paste0(rdout$year[rdout$month>6],'/',rdout$year[rdout$month>6]+1)
-  bs[rdout$month<7]=paste0(rdout$year[rdout$month<7]-1,'/',rdout$year[rdout$month<7])
-  }
 
-save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                             "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
 # load(dir(path=           'h:/ericg/16666LAWA/2018/RecECOLI',pattern='*RecData*.*Rdata',recursive=T,full.names=T)[6],verbose = T)
 # recData$week=lubridate::week(recData$dateCollected)
@@ -537,7 +534,7 @@ save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",form
 # recData$week[nchar(recData$week)==1]=paste0('0',recData$week[nchar(recData$week)==1])
 # table(recData$YW == paste0(strTo(recData$dateCollected,'-'),recData$week))
 # write.csv(recData%>%filter(YW>201525)%>%filter(month>10|month<4),
-#           file = paste0('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/CISHRaw',format(Sys.time(),'%Y-%b-%d'),'.csv'),row.names = F)
+#           file = paste0('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/CISHRaw',format(Sys.time(),'%Y-%b-%d'),'.csv'),row.names = F)
 
 
 
@@ -549,20 +546,22 @@ test <- recData%>%
   dplyr::filter(YW>201520)%>%   #Trial an alternative to the above
   dplyr::group_by(LawaSiteID,YW,property)%>%
   dplyr::arrange(YW)%>%                    #Count number of weeks recorded per season
-  dplyr::summarise(dateCollected=first(dateCollected),
+  dplyr::summarise(.groups='keep',
+    dateCollected=first(dateCollected),
             region=unique(region),
             n=length(fVal),
             fVal=first(fVal),
             bathingSeason=unique(bathingSeason))%>%
   ungroup->graphData
-write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                   format(Sys.Date(),'%Y-%m-%d'),
                                   "/CISHgraph",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
 
 graphData%>%
   select(-dateCollected)%>%
   group_by(LawaSiteID,property)%>%            #For each site
-  dplyr::summarise(region=unique(region),nBS=length(unique(bathingSeason)),
+  dplyr::summarise(.groups='keep',
+                   region=unique(region),nBS=length(unique(bathingSeason)),
             nPbs=paste(as.numeric(table(bathingSeason)),collapse=','),
             min=min(fVal,na.rm=T),
             max=max(fVal,na.rm=T),
@@ -599,10 +598,10 @@ nPbs=do.call("rbind",lapply(CISHsiteSummary$nPbs,FUN = function(x)lapply(strspli
 tooFew = which(do.call('rbind',lapply(nPbs,function(x)any(x<10)|length(x)<3)))  #see if any per-season counts are below ten, or there are fewer than three seasons
 CISHsiteSummary$LawaBand[tooFew]=NA #set those data-poor sites' grade to NA
 
-write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                   format(Sys.Date(),'%Y-%m-%d'),
                                   "/CISHsiteSummary",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
-# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
 
 #Export only the data-rich sites
 CISHwellSampled=CISHsiteSummary%>%filter(nBS>=5)
@@ -611,7 +610,7 @@ lrsY=apply(lrsY,2,as.numeric)
 NElt10=which(apply(lrsY,1,FUN=function(x)any(x<10)))
 CISHwellSampled=CISHwellSampled[-NElt10,]
 CISHwellSampled <- left_join(CISHwellSampled,recData%>%select(LawaSiteID,region,siteType,siteName)%>%distinct)
-write.csv(CISHwellSampled,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(CISHwellSampled,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                   format(Sys.Date(),'%Y-%m-%d'),
                                   "/CISHwellSampled",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
 
@@ -623,12 +622,12 @@ CISHsiteSummary$siteType = recData$siteType[match(CISHsiteSummary$LawaSiteID,rec
 uReg=unique(recData$region)
 for(reg in seq_along(uReg)){
   toExport=recData[recData$region==uReg[reg],]
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recData_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  ".csv"),row.names = F)
   toExport=CISHsiteSummary%>%filter(region==uReg[reg])%>%as.data.frame
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recScore_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  ".csv"),row.names = F)
@@ -649,6 +648,6 @@ recDataITE <- CISHsiteSummary%>%
 recDataITE$Module[recDataITE$Module=="Site"] <- "River"
 recDataITE$Module[recDataITE$Module=="LakeSite"] <- "Lake"
 recDataITE$Module[recDataITE$Module=="Beach"] <- "Coastal"
-write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                    "/ITERecData",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)  
 

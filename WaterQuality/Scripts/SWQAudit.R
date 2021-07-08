@@ -3,16 +3,16 @@ library(XML)
 library(tidyverse)
 library(parallel)
 library(doParallel)
-source('H:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R')
-dir.create(paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
-StartYear5 <- lubridate::year(Sys.Date())-5  #2014
-EndYear <- lubridate::year(Sys.Date())-1    #2018
+library(lubridate)
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
+dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+StartYear5 <- lubridate::year(Sys.Date())-5  #2016
+EndYear <- lubridate::year(Sys.Date())-1    #2020
 
-urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
 wqdata=loadLatestDataRiver()
 #Overall audit xmlAge, start, stop, n, nSite, mean, max, min audit ####
-library(lubridate)
 wqAudit=data.frame(agency=NULL,xmlAge=NULL,var=NULL,nMeas=NULL,nSite=NULL,earliest=NULL,latest=NULL,minMeas=NULL,meanMeas=NULL,maxMeas=NULL,nNA=NULL)
 for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
   xmlAge = checkXMLageRiver(agency)
@@ -49,7 +49,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
     wqAudit <- rbind.data.frame(wqAudit,newRows)
   }
 }
-write.csv(wqAudit,paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),
+write.csv(wqAudit,paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),
                      "/WQAudit",format(Sys.Date(),'%d%b%y'),".csv"),row.names = F)
 
 wqAudit%>%dplyr::group_by(agency)%>%dplyr::summarise(xmlAge=mean(xmlAge,na.rm=T),
@@ -82,7 +82,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
         r=r+1
       }
     }
-    write.csv(agencyDeets,paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),
+    write.csv(agencyDeets,paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),
                                  "/",agency,format(Sys.Date(),'%d%b%y'),"audit.csv"),row.names = F)
   }
 rm(agencyWQdata)
@@ -99,7 +99,7 @@ wqds=spread(wqd,Measurement,Value.median)
 
 params=unique(wqdata$Measurement)
 for(param in 1:length(params)){
-  png(filename = paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/",
+  png(filename = paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/",
                         names(wqds)[param+3],format(Sys.Date(),'%d%b%y'),".png"),
        width = 12,height=9,units='in',res=300,type='cairo')
   if(names(wqds)[param+3]!="PH"){
@@ -115,29 +115,29 @@ for(param in 1:length(params)){
 
 #And the ubercool html summary audit report doncuments per council!
 wqdata=loadLatestDataRiver()
+urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 startTime=Sys.time()
-urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
  for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){#
-          # if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d")),
+          # if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d")),
           #       pattern = paste0('^',agency,".*audit\\.csv"),
           #       recursive = T,full.names = T,ignore.case = T))>0){
-            rmarkdown::render('H:/ericg/16666LAWA/LAWA2020/WaterQuality/Scripts/AuditDocument.Rmd',
+            rmarkdown::render('H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/AuditDocument.Rmd',
                               params=list(agency=agency,
                                           sos=urls$SOSwq[which(tolower(urls$Agency)==agency)]),
-                              output_dir = paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d")),
+                              output_dir = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                               output_file = paste0(toupper(agency),"Audit",format(Sys.Date(),'%d%b%y'),".html"),
                               envir = new.env())
           # }
 }
 Sys.time()-startTime
-
+#22 minutes 2/7/2021
 
 # Audit the presence of measurements between config files and transfer table file, to allow the transfer table
 # to be used as the source of names to call variables for from
-# transfers=read.table("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/transfers_plain_english_view.txt",
+# transfers=read.table("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/transfers_plain_english_view.txt",
 #                      sep=',',header = T,stringsAsFactors = F)
 # for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
-#   df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/MetaData/",agency,"SWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+#   df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/MetaData/",agency,"SWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 #   ta <- transfers%>%filter(Agency==agency)  
 #   if(any(!tolower(subset(df,df$Type=="Measurement")[,2])%in%tolower(ta$CallName))){
 #     cat(agency,'\n')

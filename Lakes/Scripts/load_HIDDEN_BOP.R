@@ -9,9 +9,9 @@ require(dplyr)   ### dply library to manipulate table joins on dataframes
 #library(scales)
 #require(tidyr)   ### for reshaping data
 #library(readr)
-source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
-# source("H:/ericg/16666LAWA/LAWA2020/LAWAScripts/lawa_state_functions.r")
+# source("H:/ericg/16666LAWA/LAWA2021/LAWAScripts/lawa_state_functions.r")
 
 trim <- function (x) gsub("^\\s+|\\s+$", "", x)
 
@@ -39,7 +39,7 @@ nd <- function(val){
 
 
 ### BAY OF PLENTY'UTF-8-BOM'
-fname <- "H:/ericg/16666LAWA/LAWA2020/Lakes/Data/BoPLakesData2017a.csv"
+fname <- "H:/ericg/16666LAWA/LAWA2021/Lakes/Data/BoPLakesData2017a.csv"
 df <- read_csv(fname,guess_max = 20000)
 mtRows=which(apply(df,1,function(x)length(x)==sum(is.na(x))))
 if(length(mtRows)>0){
@@ -253,7 +253,7 @@ while(i<=max){
 }
 
 cat("Saving: ",Sys.time()-tm,"\n")
-saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/boprcLWQ.xml"))
+saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/boprcLWQ.xml"))
 cat("Finished",Sys.time()-tm,"\n")
 
 
@@ -276,12 +276,12 @@ require(XML)     ### XML library to write hilltop XML
 require(RCurl)
 
 agency='boprc'
-setwd("H:/ericg/16666LAWA/LAWA2020/Lakes")
+setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 
 siteTable=loadLatestSiteTableLakes()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/MetaData/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/MetaData/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 #WFS  http://geospatial.boprc.govt.nz/arcgis/services/emar/MonitoringSiteReferenceData/MapServer/WFSServer?request=getfeature&service=WFS&VERSION=1.1.0&typename=MonitoringSiteReferenceData&srsName=EPSG:4326
 # http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?service=SOS&version=2.0.0&request=GetCapabilities
 Measurements <- subset(df,df$Type=="Measurement")[,1]
@@ -296,7 +296,7 @@ for(i in 1:length(sites)){
     url <- paste0("http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?service=SOS&version=2.0.0&request=GetObservation&",
                   "observedProperty=",Measurements[j],
                   "&featureOfInterest=",sites[i],
-                  "&temporalfilter=om:phenomenonTime,P15Y/2020-01-01")
+                  "&temporalfilter=om:phenomenonTime,P15Y/2021-01-01")
     url <- URLencode(url)
     xmlfile <- ldWQ(url,agency=agency)
     if(!is.null(xmlfile) && 
@@ -414,9 +414,9 @@ while(i<=max){
   con$closeTag() # Measurement
 }
 
-# saveXML(con$value(), paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
-# saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"SWQ.xml"))
-# file.copy(from=paste0("D:/LAWA/2020/",agency,"SWQ.xml"),
-          # to=paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+# saveXML(con$value(), paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+# saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
+# file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
+          # to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
 
 

@@ -1,7 +1,7 @@
 #load NIWA
 rm(list=ls())
 library(tidyverse)
-source("H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R")
+source("H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
 #NIWA data has lats and longs which we can match to the lawa ids,
 # to get a lawasiteID assigned to it.  Most of those lawasiteIDs should be in the siteTable
 # But who cares anyway, just keep the lawaIDs trackign across to the end. 
@@ -24,7 +24,7 @@ macroSiteTable=loadLatestSiteTableMacro()
 #                                  Landcover=NA,Altitude=NA,Order=NA,StreamOrder=NA,AltitudeCl=NA))
 # extraMacroTable$Macro=F
 # extraMacroTable <- extraMacroTable%>%select("SiteID","CouncilSiteID","LawaSiteID","Macro","Region","Agency","SWQLanduse","SWQAltitude","Lat","Long")
-# write.csv(extraMacroTable,file='h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/ExtraMacrotable.csv',row.names=F)
+# write.csv(extraMacroTable,file='h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/ExtraMacrotable.csv',row.names=F)
 # 
 # 
 
@@ -54,7 +54,7 @@ for(nms in 1:(dim(NIWAmacroSites)[1])){
   NIWAmacroSites$lidname[nms]=lawaIDs$SiteName[which.min(dists)]
 }
 NIWAmacroSites$dist=minDists
-#This hand correction was identified 24/9/2020
+#This hand correction was identified 24/9/2021
 NIWAmacroSites$LawaSiteID[NIWAmacroSites$LawaSiteID=='ECAN-10028'] <- 'NRWQN-00054'
 
 # NIWAmacroSites[,c(8,15)]%>%as.data.frame
@@ -102,10 +102,10 @@ niwaMacrol$Value=as.numeric(niwaMacrol$Value)
 niwaMacrol <- niwaMacrol%>%drop_na(Date)
 
 write.csv(niwaMacrol%>%select(LawaSiteID,CouncilSiteID,Date,Measurement,Value,Agency),
-          file=paste0( 'H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/','NIWA.csv'),
+          file=paste0( 'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/','NIWA.csv'),
           row.names=F)
 
-write.csv(NIWAmacroSites,'H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Metadata/NIWASiteTable.csv',row.names = F)
+write.csv(NIWAmacroSites,'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/NIWASiteTable.csv',row.names = F)
 
 if(0){
   NIWAMCI=readxl::read_xlsx('h:/ericg/16666LAWA/2018/MacroInvertebrates/1.Imported/NIWAInvertebrate.xlsx',sheet = 'MCI',na = 'NA')
@@ -141,7 +141,7 @@ if(0){
   rm(lawaIDs)
   # NIWAMCIl$Measurement=NIWAMCIl$parameter
   write.csv(NIWAMCIl%>%select(LawaSiteID,CouncilSiteID=lawaid,Date,Measurement,Value,Agency=agency),
-            file=paste0( 'H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/','NIWA.csv'),
+            file=paste0( 'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/','NIWA.csv'),
             row.names=F)
 }
 

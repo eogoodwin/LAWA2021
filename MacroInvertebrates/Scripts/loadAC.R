@@ -2,21 +2,21 @@
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(XML)     ### XML library to write hilltop XML
 require(RCurl)
-setwd("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/")
+setwd("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/")
 
 
 agency='ac'
 
 
-# df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
+# df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
 # Measurements <- subset(df,df$Type=="Measurement")[,1]
 # Measurements <- as.vector(Measurements)
 # 
 # siteTable=loadLatestSiteTableMacro()
 
-# acmacros = readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/ARC_LAWA_MCI_2020.xlsx",sheet='Sheet2',skip=1)
-acmacros = readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/20200625_LAWA_MCI_AC edit2.xlsx",sheet='Sheet2',skip=3)
-                             # 190703_LAWA_MCI_2020.xlsx",sheet='Sheet2',skip=1)
+# acmacros = readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/ARC_LAWA_MCI_2021.xlsx",sheet='Sheet2',skip=1)
+acmacros = readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/20210625_LAWA_MCI_AC edit2.xlsx",sheet='Sheet2',skip=3)
+                             # 190703_LAWA_MCI_2021.xlsx",sheet='Sheet2',skip=1)
 acmacros$SiteID[acmacros$SiteID=="Avondale @ Shadbolt park"] <- "Avondale @ Shadbolt Park"
 acMacros <- acmacros%>%
   dplyr::select(LAWASiteID,SiteID,Date,"Selected MCI score","Taxonomic Richness","% EPT Richness","QualityCode")%>%
@@ -29,7 +29,7 @@ acMacros <- acmacros%>%
 acMacros$Agency='ac'
 acMacros$Date=format(acMacros$Date,'%d-%b-%y')
 write.csv(acMacros,
-          file=paste0( 'H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/',agency,'.csv'),
+          file=paste0( 'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/',agency,'.csv'),
           row.names=F)
 
  cat("AC MACROS DELIVERED BY SPREADSHEET")
@@ -77,7 +77,7 @@ acmissingCSIDs = acmacros$SiteID[match(acmissingsites,acmacros$CouncilSampleID)]
 #     url <- paste0("http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=2&service=SOS&version=2.0&request=GetObservation",
 #     "&featureOfInterest=",sites[i],
 #     "&observedProperty=", Measurements[j],
-#     "&Procedure=raw&temporalfilter=om:phenomenonTime,2005-01-01/2020-01-01")
+#     "&Procedure=raw&temporalfilter=om:phenomenonTime,2005-01-01/2021-01-01")
 #     url <- URLencode(url)
 #     xmlfile <- ldMWQ(url,agency=agency)
 # 
@@ -232,8 +232,8 @@ acmissingCSIDs = acmacros$SiteID[match(acmissingsites,acmacros$CouncilSampleID)]
 #     
 #   }
 # }
-# #saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
+# #saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
 # 
-# saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"Macro.xml"))
-# file.copy(from=paste0("D:/LAWA/2020/",agency,"Macro.xml"),
-#           to=paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
+# saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"Macro.xml"))
+# file.copy(from=paste0("D:/LAWA/2021/",agency,"Macro.xml"),
+#           to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))

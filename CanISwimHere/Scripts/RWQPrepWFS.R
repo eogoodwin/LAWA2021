@@ -2,11 +2,11 @@ rm(list = ls())
 library(tidyverse)
 library(parallel)
 library(doParallel)
-source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
-try(shell(paste0('mkdir "H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
+try(shell(paste0('mkdir "H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
 
-urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
 #The first on the list prioritises the ID to be used and match every else to it.
 vars <- c("CouncilSiteID","SiteID","LawaSiteID","NZReach","Region","Agency","RWQAltitude","RWQLanduse")
@@ -15,7 +15,7 @@ if(exists('siteTable')){
   rm(siteTable)
 }
 
-workers <- makeCluster(7)
+workers <- makeCluster(3)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   library(XML)
@@ -31,9 +31,10 @@ foreach(h = 1:length(urls$URL),.combine = rbind,.errorhandling = "stop")%dopar%{
   
   xmldata<-try(ldWFS(urlIn = URLencode(urls$URL[h]),agency=urls$Agency[h],dataLocation = urls$Source[h],case.fix = TRUE))
   
-  if(is.null(xmldata)||'try-error'%in%attr(xmldata,'class')||grepl(pattern = '^501|error',
-                                                                   x=xmlValue(getNodeSet(xmldata,'/')[[1]]),
-                                                                   ignore.case=T)){
+  if(is.null(xmldata)||'try-error'%in%attr(xmldata,'class')||
+     grepl(pattern = '^501|error',
+           x=xmlValue(getNodeSet(xmldata,'/')[[1]]),
+           ignore.case=T)){
     cat('Failed for ',urls$Agency[h],'\n')
      return(NULL)
   }
@@ -218,7 +219,7 @@ siteTable=unique(siteTable)
 
 
 write.csv(x = siteTable,
-          file = paste0("H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",
+          file = paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
                         format(Sys.Date(),"%Y-%m-%d"),
                         "/SiteTable_CISH",format(Sys.Date(),"%d%b%y"),".csv"),row.names = F)
 
@@ -234,7 +235,7 @@ AgencyRep=table(factor(tolower(siteTable$Agency),levels=c("ac", "boprc", "ecan",
 AgencyRep=data.frame(agency=names(AgencyRep),count=as.numeric(AgencyRep))
 names(AgencyRep)[2]=format(Sys.Date(),"%d%b%y")
 
-RWQWFSsiteFiles=dir(path = "H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",
+RWQWFSsiteFiles=dir(path = "H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
                    pattern = 'SiteTable_CISH',
                    recursive = T,full.names = T)
 for(wsf in RWQWFSsiteFiles){
@@ -248,9 +249,27 @@ for(wsf in RWQWFSsiteFiles){
 AgencyRep=AgencyRep[,-2]
 rm(RWQWFSsiteFiles)
 
-write.csv(AgencyRep,'h:/ericg/16666LAWA/LAWA2020/Metadata/AgencyRepCISHWFS.csv',row.names=F)
+write.csv(AgencyRep,'h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepCISHWFS.csv',row.names=F)
 
 
 
-
+# agency 02Jul21
+# 1      ac       0
+# 2   boprc      67
+# 3    ecan      99
+# 4      es      21
+# 5     gdc      78
+# 6    gwrc      83
+# 7    hbrc      36
+# 8     hrc       0
+# 9     mdc      19
+# 10    ncc      11
+# 11   niwa       0
+# 12    nrc      73
+# 13    orc      26
+# 14    tdc      14
+# 15    trc       0
+# 16   wcrc      19
+# 17    wrc      33
+ 
 

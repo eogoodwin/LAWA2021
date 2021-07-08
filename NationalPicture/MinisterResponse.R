@@ -6,11 +6,11 @@ library(lubridate)
 library(doBy)
 library(showtext)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality/")
-source("h:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality/")
+source("h:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R")
 
 
-dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 riverSiteTable=loadLatestSiteTableRiver()
 macroSiteTable=loadLatestSiteTableMacro()
 
@@ -41,16 +41,16 @@ for(ms in seq_along(these)){
 
 
 #prep data ####
-# wqdataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
+# wqdataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
 # cat(wqdataFileName)
 # wqdata=read_csv(wqdataFileName,guess_max = 100000)%>%as.data.frame
 # rm(wqdataFileName)
-# macroData=read_csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data",pattern="MacrosWithMetadata",
+# macroData=read_csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data",pattern="MacrosWithMetadata",
 # recursive = T,full.names = T),1))
 # macroData$LawaSiteID = tolower(macroData$LawaSiteID)
 
 
-NOFSummaryTable=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",pattern="NOFSummaryTable_Rolling",
+NOFSummaryTable=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern="NOFSummaryTable_Rolling",
                                   recursive=T,full.names = T),1),stringsAsFactors = F)
 NOFSummaryTable <- NOFSummaryTable%>%filter(Year!='2005to2009')  #Just, you see this way we're left with a single decade
 NOFSummaryTable$SWQAltitude = pseudo.titlecase(tolower(NOFSummaryTable$SWQAltitude))
@@ -76,7 +76,7 @@ NOFSummaryTable$Lat=riverSiteTable$Lat[match(tolower(NOFSummaryTable$LawaSiteID)
 NOFlatest = droplevels(NOFSummaryTable%>%filter(Year=="2015to2019"))
 
 
-MCINOF = read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",pattern="MacroRollingMCI",
+MCINOF = read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="MacroRollingMCI",
                            recursive = T,full.names = T),1),stringsAsFactors = F)
 MCINOF$Region=macroSiteTable$Region[match(gsub('_niwa','',tolower(MCINOF$LawaSiteID)),tolower(macroSiteTable$LawaSiteID))]
 
@@ -151,7 +151,7 @@ xlabpos=(1:10)*0.12-0.07
 
 #Landuse trend plots ####
 for(GLCR in levels(NOFSummaryTable$gRecLC)){
-  tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrend",pseudo.titlecase(GLCR),".tif"),
+  tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrend",pseudo.titlecase(GLCR),".tif"),
        width = 10,height=8,units='in',res=600,compression='lzw',type='cairo')
   showtext_begin()
   layout(matrix(c(1,1,3,4,4,6,
@@ -302,7 +302,7 @@ for(indic in c("DRP_Summary_Band","Ammonia_Toxicity_Band","EcoliSummaryband","MC
   }else{
     relPal = BWPalette[c(5,6,7,8,3)]
   }
-  tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrend",pseudo.titlecase(indic),"ByLU.tif"),
+  tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrend",pseudo.titlecase(indic),"ByLU.tif"),
        width = 10,height=8,units='in',res=600,compression='lzw',type='cairo')
   showtext_begin()
   layout(matrix(c(1,1,3,4,4,6,
@@ -405,14 +405,14 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   startYear5 <- EndYear - 5+1
   startYear10 <- EndYear - 10+1
   startYear15 <- EndYear - 15+1
-  load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",
+  load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
                 pattern = "Trend15Year.rData",full.names = T,recursive = T),1),verbose =T)
-  load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",
+  load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
                 pattern = "Trend10Year.rData",full.names = T,recursive = T),1),verbose = T)
-  load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",
+  load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
                 pattern = "Trend5Year.rData",full.names = T,recursive = T),1),verbose = T)
   
-  combTrend=read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis","RiverWQ_Trend",	recursive = T,full.names = T,ignore.case=T),1),stringsAsFactors = F)
+  combTrend=read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis","RiverWQ_Trend",	recursive = T,full.names = T,ignore.case=T),1),stringsAsFactors = F)
 
 
   combTrend$ConfCat=factor(combTrend$ConfCat,levels=c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
@@ -455,7 +455,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
 # colnames(plotable) = paste0(colnames(plotable),'\n(',nperlanduse[colnames(plotable)],' sites)')
   
   
-  tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/"
+  tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/"
               ,format(Sys.Date(),"%Y-%m-%d"),"/Trend10yrByLU.tif"),
        width = 8,height=8,units='in',res=600,compression='lzw',type='cairo')
   showtext_begin()
@@ -490,7 +490,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   plotable <- apply(plotable,1,FUN=function(x)rev(x/sum(x,na.rm=T)*100))
   # colnames(plotable) = paste0(colnames(plotable),'\n(',nperMeasure[colnames(plotable)],' sites)')
   
-  tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/"
+  tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/"
               ,format(Sys.Date(),"%Y-%m-%d"),"/Trend10yr4Indic.tif"),
        width = 8,height=8,units='in',res=600,compression='lzw',type='cairo')
   showtext_begin()
@@ -524,7 +524,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
     if(indic=="DRP"){indiclabel=as.expression(bquote(atop(LAWA~National~River~Water~Quality~'10-Year'~Trends~by~Land~Cover~Class~'(2010-2019)',
                                                           Dissolved~Reactive~Phosphorus~'(DRP)')))}
 
-      tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/"
+      tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/"
                 ,format(Sys.Date(),"%Y-%m-%d"),"/Trend",pseudo.titlecase(indic),"ByLU.tif"),
          width = 8,height=8,units='in',res=600,compression='lzw',type='cairo')
     with(combTrend%>%filter(period==10&Measurement==indic),plotable <<- table(gRecLC,ConfCat))
@@ -609,7 +609,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   
   
   #TrendAndNOF plots ####
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TrendAndNOF_4.tif"),width = 12,height=12,units='in',res=300,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TrendAndNOF_4.tif"),width = 12,height=12,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(2,2))
   by(data = ntfp,INDICES = ntfp$Measurement,FUN = function(x){
     x <- x%>%drop_na(NOFband,ConfCat)
@@ -618,7 +618,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
     labelAreas(invisibleTable)})
   if(names(dev.cur())=='tiff'){dev.off()}
   
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TrendAndNOF_1.tif"),width = 12,height=12,units='in',res=300,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TrendAndNOF_1.tif"),width = 12,height=12,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1))
   plot(factor(ntfp$NOFband),factor(ntfp$ConfCat),col=c("#dd1111FF","#cc7766FF","#AAAAAAFF","#55bb66FF","#008800FF"),
        main="Ecoli, MCI, NH4 and TON combined",off=0,xlab="NOF Band",ylab="Trend Category")->invisibleTable
@@ -627,10 +627,10 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   
   
   #Load state info ####
-  lawaMacroState5yr = read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/',pattern='MACRO_STATE_ForITE|MacroState',recursive = T,full.names = T),1),stringsAsFactors = F)
+  lawaMacroState5yr = read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/',pattern='MACRO_STATE_ForITE|MacroState',recursive = T,full.names = T),1),stringsAsFactors = F)
   lawaMacroState5yr = lawaMacroState5yr%>%filter(Parameter=="MCI")%>%dplyr::rename(LawaSiteID=LAWAID,Measurement=Parameter,Q50=Median)
   
-  sa <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",pattern=paste0("^sa",startYear5,"-",EndYear,".csv"),recursive=T,full.names=T,ignore.case=T),1),stringsAsFactors = F)
+  sa <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern=paste0("^sa",startYear5,"-",EndYear,".csv"),recursive=T,full.names=T,ignore.case=T),1),stringsAsFactors = F)
   sa <- sa%>%filter(Scope=="Site")%>%select(LawaSiteID,Measurement,Q50)
   sa <- rbind(sa,lawaMacroState5yr)
   tfp <- merge(tfp,sa)
@@ -651,7 +651,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   mbp = (mbp[-1,]+mbp[-6,])/2
   
   # TenYearMonthlyTrendsClean.tif ####
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TenYearMonthlyTrendsClean.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TenYearMonthlyTrendsClean.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1),mar=c(5,10,6,2))
   barplot(tbp,main="Ten year monthly trends",las=2,
           col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),yaxt='n',xaxt='n') #"#dddddd",
@@ -666,7 +666,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   if(names(dev.cur())=='tiff'){dev.off()}
   
   # TenYearMonthlyTrendsNumbres.tif ####
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TenYearMonthlyTrendsNumbres.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TenYearMonthlyTrendsNumbres.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1),mar=c(5,10,6,2))
   barplot(tbp,main="Ten year monthly trends",las=2,
           col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),yaxt='n',xaxt='n') #"#dddddd",
@@ -682,7 +682,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   if(names(dev.cur())=='tiff'){dev.off()}
   
   # TenYearMonthlyTrendsPercentage.tif ####
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TenYearMonthlyTrendsPercentage.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TenYearMonthlyTrendsPercentage.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1),mar=c(5,10,6,2))
   barplot(tbp,main="Ten year monthly trends",las=2,
           col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),yaxt='n',xaxt='n') #"#dddddd",
@@ -731,7 +731,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   mbp = (mbp[-1,]+mbp[-6,])/2
   
   #FifteenYearTrendsClean.tif ####
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/FifteenYearTrendsClean.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/FifteenYearTrendsClean.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1),mar=c(5,10,6,2))
   barplot(tbp,main="Fifteen year trends",las=2,
           col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),yaxt='n',xaxt='n') #"#dddddd",
@@ -747,7 +747,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   if(names(dev.cur())=='tiff'){dev.off()}
   
   #FifteenYearTrendsNumbres.tif ####
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/FifteenYearTrendsNumbres.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/FifteenYearTrendsNumbres.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1),mar=c(5,10,6,2))
   barplot(tbp,main="Fifteen year trends",las=2,
           col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),yaxt='n',xaxt='n') #"#dddddd",
@@ -763,7 +763,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   if(names(dev.cur())=='tiff'){dev.off()}
   
   #FifteenYearTrendsPercentage.tif ####
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/FifteenYearTrendsPercentage.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/FifteenYearTrendsPercentage.tif"),width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1),mar=c(5,10,6,2))
   barplot(tbp,main="Fifteen year trends",las=2,
           col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),yaxt='n',xaxt='n') #"#dddddd",
@@ -787,9 +787,9 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   t5 <- plot(factor(trendTable5$Measurement),trendTable5$ConfCat,col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),main="5 Year monthly")
   t10 <- plot(factor(trendTable10$Measurement),trendTable10$ConfCat,col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),main="10 Year monthly")
   t15 <- plot(factor(trendTable15$Measurement),trendTable15$ConfCat,col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),main="15 Year monthly")
-  # write.csv(t5,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/Trend5Year.csv"))
-  # write.csv(t10,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10Year.csv"))
-  # write.csv(t15,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10YearQuarterly.csv"))
+  # write.csv(t5,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/Trend5Year.csv"))
+  # write.csv(t10,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10Year.csv"))
+  # write.csv(t15,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10YearQuarterly.csv"))
   t5p <- apply(X = t5,MARGIN = 1,FUN = function(x)x/sum(x))
   t10p <- apply(X = t10,MARGIN = 1,FUN = function(x)x/sum(x))
   t15p <- apply(X = t15,MARGIN = 1,FUN = function(x)x/sum(x))
@@ -808,7 +808,7 @@ unique(gsub('_niwa','',tolower(combTrend$LawaSiteID)))[!unique(gsub('_niwa','',t
   
   colMPs=-0.5+(1:8)*1.2
   
-  # tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TrendByPeriod.tif"),width = 10,height=15,units='in',res=350,compression='lzw',type='cairo')
+  # tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/TrendByPeriod.tif"),width = 10,height=15,units='in',res=350,compression='lzw',type='cairo')
   par(mfrow=c(3,1),mar=c(5,10,4,2))
   barplot(t5p,main="5 Year",las=2,
           col=c("#dd1111FF","#cc7766FF","#aaaaaaFF","#55bb66FF","#008800FF"),yaxt='n')

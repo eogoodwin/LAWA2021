@@ -4,10 +4,10 @@ require(RCurl)
 
 
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 agency='nrc'
 tab='\t'
-Measurements <- read.table("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
+Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
 Measurements=c(Measurements,'WQ Sample')
 
@@ -23,11 +23,11 @@ if(exists("Data"))rm(Data)
 for(i in 1:length(sites)){
   cat(sites[i],i,'out of',length(sites),'\n')
   for(j in 1:length(Measurements)){
-    url <- paste0("http://hilltop.nrc.govt.nz/SOERiverWQ.hts?service=Hilltop&request=GetData&agency=LAWA",
+    url <- paste0("http://hilltop.nrc.govt.nz/SOEFinalArchive.hts?service=Hilltop&request=GetData&agency=LAWA",
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
-                 "&From=2005-01-01",
-                 "&To=2020-01-01")
+                 "&From=2004-01-01",
+                 "&To=2021-01-01")
     url <- URLencode(url)
     xmlfile <- ldWQ(url,agency,extra='-g',QC=T)
     if(!is.null(xmlfile)){
@@ -118,13 +118,12 @@ for(i in 1:length(sites)){
       newNode <- DataNode
       replaceNodes(oldNode, newNode)
       con$addNode(m) 
-    }
+    }else{cat('-')}
   }
-  cat('\n')
 }
 
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"SWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"),
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"),
           overwrite=T)
 

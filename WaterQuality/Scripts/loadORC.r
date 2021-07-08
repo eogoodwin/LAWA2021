@@ -22,7 +22,7 @@ for(i in 1:length(sites)){
     url <- paste0("http://gisdata.orc.govt.nz/hilltop/ORCWQ.hts?service=Hilltop&request=GetData", #&agency=LAWA WQGlobal.hs
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
-                 "&From=2005-01-01",
+                 "&From=2004-01-01",
                  "&To=2021-01-01")
     url <- URLencode(url)
     xmlfile <- ldWQ(url,agency,QC=T)

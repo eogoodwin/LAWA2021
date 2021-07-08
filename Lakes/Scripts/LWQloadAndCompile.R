@@ -2,44 +2,44 @@
 # BATCH LOADER FOR COUNCIL DATA
 # ------------------------------
 rm(list=ls())
-dir.create(path = paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+dir.create(path = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 
 #This is find out what they had last year?
-# ldl=readxl::read_xlsx("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/LakeDownloadData.xlsx",sheet = "Lakes Data")
+# ldl=readxl::read_xlsx("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/LakeDownloadData.xlsx",sheet = "Lakes Data")
 # by(data = ldl[,7:14],INDICES = ldl$rcid,FUN = function(x)apply(x,2,FUN=function(x)any(!is.na(x))))
 # rm(ldl)
 ## ----------------------------------------------------------------------------,
 ## Import Lake data to the "1.Imported" folder for 2018
 
 ## import destination will be in folder with todays date (created above)
-# importDestination <- paste("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",sep="")
-source('h:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+# importDestination <- paste("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",sep="")
+source('h:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableLakes()
 siteTable$Agency=tolower(siteTable$Agency)
 
 
-scriptsToRun = c("H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadAC.R", #1
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadBOP.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadECAN.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadES.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadGDC.R", #5
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadGW.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadHBRC.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadHRC.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadMDC.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadNCC.R", #10
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadNRC.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadORC.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadTDC.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadTRC.R",
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadWCRC.R", #15
-                 "H:/ericg/16666LAWA/LAWA2020/Lakes/Scripts/loadWRC.R")
-agencies = c('ac','boprc','ecan','es','gdc','gwrc','hbrc','hrc','mdc','ncc','nrc','orc','tdc','trc','wcrc','wrc')
-workers <- makeCluster(7)
+scriptsToRun = c("H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadAC.R", #1
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadBOP.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadECAN.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadES.R",
+                 # "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadGDC.R", #5
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadGW.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadHBRC.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadHRC.R",
+                 # "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadMDC.R",
+                 # "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadNCC.R", #10
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadNRC.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadORC.R",
+                 # "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadTDC.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadTRC.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadWCRC.R", #15
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadWRC.R")
+agencies = c('ac','boprc','ecan','es','gwrc','hbrc','hrc','nrc','orc','trc','wcrc','wrc')
+workers <- makeCluster(4)
 startTime=Sys.time()
 registerDoParallel(workers)
 clusterCall(workers,function(){
-  source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
 foreach(i = 1:length(scriptsToRun),.errorhandling = "stop")%dopar%{
   if(agencies[i]%in%tolower(siteTable$Agency)) try(source(scriptsToRun[i]))
@@ -48,7 +48,7 @@ foreach(i = 1:length(scriptsToRun),.errorhandling = "stop")%dopar%{
 stopCluster(workers)
 rm(workers)
 cat("Done load\n")
-Sys.time()-startTime #3 mins
+Sys.time()-startTime #20 mins with NCC 4.3 minutes without
  
 for(ag in agencies){
   checkXMLageLakes(agency = ag)
@@ -60,7 +60,9 @@ for(ag in agencies){
 ##############################################################################
 #                                 XML to CSV
 ##############################################################################
-lawaset=c("TN","NH4N","TP","CHLA","pH","Secchi","ECOLI")
+lawaset=c("TN","NH4N","TP","CHLA","pH","Secchi","ECOLI","Total Cyanobacteria Bio Volume","Potentially Toxic Cyanobacteria Biovol")
+
+
 for(agency in sort(unique(siteTable$Agency))){
    suppressWarnings({rm(forcsv)})
   forcsv=xml2csvLake(agency=agency,maxHistory = 40,quiet=F)
@@ -94,7 +96,7 @@ for(agency in sort(unique(siteTable$Agency))){
   stopifnot(sum(is.na(forcsv$Value))==prenacount)
   rm(prenacount)
   write.csv(forcsv,
-            file=paste0( 'H:/ericg/16666LAWA/LAWA2020/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/',agency,'.csv'),
+            file=paste0( 'H:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/',agency,'.csv'),
             row.names=F)
   suppressWarnings({rm(forcsv)})
 }
@@ -113,6 +115,7 @@ library(parallel)
 library(doParallel)
 workers=makeCluster(7)
 registerDoParallel(workers)
+startTime=Sys.time()
 foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'remove')%dopar%{
   mfl=loadLatestCSVLake(agencies[agency],maxHistory = 30)
   if(!is.null(mfl)&&dim(mfl)[1]>0){
@@ -135,7 +138,7 @@ foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'remove')%d
     missingCombos=targetCombos[!targetCombos%in%currentSiteMeasCombos]
     #BackFill
     if(length(missingCombos)>0){
-      agencyFiles = rev(dir(path = "H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+      agencyFiles = rev(dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             pattern = paste0('^',agencies[agency],'.csv'),
                             full.names = T,recursive = T,ignore.case = T))[-1]
       for(af in seq_along(agencyFiles)){
@@ -181,6 +184,7 @@ foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'remove')%d
 }->lakedata 
 stopCluster(workers)
 rm(workers)
+Sys.time()-startTime #0.3s
 #23Jun 70297
 #25Jun 77483
 #9July 79582
@@ -191,6 +195,8 @@ rm(workers)
 # 14/9/2020 72954
 # 21/9/2020 72983
 # 23/9/2020 72983
+# 2/7/2021 60039
+# 7/7 2021 60484
 
 #September 2020 TRC had a bunch of lake sites with the same LAWAID. Simplify those.
 lakedata <- lakedata%>%filter(!CouncilSiteID%in%c('lrt00h450','lrt00h300'))
@@ -204,16 +210,16 @@ lrt300rep = siteTable%>%filter(grepl('lrt00.300',CouncilSiteID,T))%>%mutate(Coun
 siteTableRep=siteTableRep%>%filter(!grepl('lrt00.450',CouncilSiteID,T))
 lrt450rep = siteTable%>%filter(grepl('lrt00.450',CouncilSiteID,T))%>%mutate(CouncilSiteID='lrt00x450',Lat=mean(Lat),Long=mean(Long))
 siteTableRep=rbind(siteTableRep,lrt300rep[1,],lrt450rep[1,])
-write.csv(x = siteTableRep,file = paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+write.csv(x = siteTableRep,file = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                                       format(Sys.Date(),'%Y-%m-%d'),
                                       "/SiteTable_Lakes",format(Sys.Date(),'%d%b%y'),".csv"),row.names=F)
 siteTable=siteTableRep
-rm(siteTableRep)
+rm(siteTableRep,lrt450rep,lrt300rep)
 }
+#59834
 
-
-write.csv(lakedata,paste0('h:/ericg/16666LAWA/LAWA2020/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesCombined.csv'),row.names = F)
-# lakedata=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2020/Lakes/Data/',pattern='LakesCombined',recursive=T,full.names = T,ignore.case = T),1),stringsAsFactors=F)
+write.csv(lakedata,paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesCombined.csv'),row.names = F)
+# lakedata=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',pattern='LakesCombined',recursive=T,full.names = T,ignore.case = T),1),stringsAsFactors=F)
 lakedata$LawaSiteID = siteTable$LawaSiteID[match(tolower(lakedata$CouncilSiteID),tolower(siteTable$CouncilSiteID))]
 lakedata$LawaSiteID[which(is.na(lakedata$LawaSiteID))]=siteTable$LawaSiteID[match(tolower(lakedata$CouncilSiteID[is.na(lakedata$LawaSiteID)]),
                                                                      tolower(siteTable$SiteID))]
@@ -227,7 +233,7 @@ lakedata%>%group_by(LawaSiteID)%>%
 
 lakedata <- lakedata%>%drop_na(LawaSiteID)
 
-#72353
+#59864
 
 # lakedata$LawaSiteID[tolower(lakedata$CouncilSiteID) =="omanuka lagoon (composite)"] = siteTable$LawaSiteID[tolower(siteTable$CouncilSiteID) =="omanuka lagoon (composite)"]
 
@@ -254,16 +260,21 @@ table(lakesWithMetadata$Agency,lakesWithMetadata$GeomorphicLType)
 table(factor(lakesWithMetadata$Agency,levels=c('ac','boprc','ecan','es','gdc','gwrc','hbrc','hrc','mdc','ncc','nrc','orc','tdc','trc','wcrc','wrc')))
 
 # ac   boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc   nrc   orc   tdc   trc  wcrc   wrc 
+#    0 11040 16883  9844     0  1997     0  1479     0     0     0  7601     0   859  1678  8008 
 # 6580 22513 15939  9194     0  1997  3514  1794     0     0  8927  6829     0  1461  1563  7186 
 # 3050 9704  15939  9194     0  1997  3513  1794     0     0  8927  7023     0  1461  1556  7186
 # 3050 9742  15939  9194     0  1997  3513  1794     0     0  8927  7372     0  1461  1556  7186 
 # 3050 10965 15939  9194     0  1997  3513  1794   0     0    8927  7401     0   831  1556  7186
+#    0 11040 17077  9565     0  1997     0  2009     0     0     0  7601     0   859  1678  8008 
 
-suppressWarnings(try(dir.create(paste0('h:/ericg/16666LAWA/LAWA2020/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d")))))
-write.csv(lakesWithMetadata,paste0('h:/ericg/16666LAWA/LAWA2020/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesWithMetadata.csv'),row.names = F)
-save(lakesWithMetadata,file = paste0('h:/ericg/16666LAWA/LAWA2020/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesWithMetadata.rData'))
+suppressWarnings(try(dir.create(paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d")))))
+write.csv(lakesWithMetadata,paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesWithMetadata.csv'),row.names = F)
+save(lakesWithMetadata,file = paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesWithMetadata.rData'))
 
 table(lakedata$agency)
+
+# boprc  ecan    es  gwrc   hrc   orc   trc  wcrc   wrc 
+# 11040 17132  9565  1997  2009  7601   859  1678  8008
 
 #    ac boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc   nrc   orc   tdc   trc  wcrc   wrc 
 # 10145 17501 15967  8244     0  1897  2336  1026     0     0  5627  6629     0  1461  1563  7186 

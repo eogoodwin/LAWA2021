@@ -2,7 +2,7 @@ library(lubridate)
 library(XML)
 
 #Is the core of the trend funcgorithm
-source('h:/ericg/16666LAWA/LAWA2020/scripts/LWPTrends_Dec18/LWPTrends_v1811.R')
+source('h:/ericg/16666LAWA/LAWA2021/scripts/LWPTrends_Dec18/LWPTrends_v1811.R')
 trendCore <- function(subDat,periodYrs,proportionNeeded=0.5){
   siteTrendTable=data.frame(LawaSiteID=unique(subDat$LawaSiteID),Measurement=unique(subDat$Measurement),
                             nMeasures = NA_integer_,nFirstYear=NA_real_,nLastYear=NA_real_,numMonths=NA_real_,
@@ -133,7 +133,8 @@ cc <- function(file){
   y <- gsub( "AGENCY",            "Agency",            y, ignore.case = TRUE  ) 
   y <- gsub( "ns2.",              "",                  y, ignore.case = TRUE  ) 
   y <- gsub( "ns3.",              "",                  y, ignore.case = TRUE  ) 
-  
+  y <- gsub( "^YES$",             "Yes",               y, ignore.case = TRUE  )
+  y <- gsub( "^NO$",              "No",               y, ignore.case = TRUE  )
   writeLines(y,file)
   
 }
@@ -219,21 +220,40 @@ ldWFS <- function(urlIn,dataLocation,agency,case.fix=TRUE,method='curl'){
     wfsxml <- try(xmlParse(file = paste0("WFS",agency)),silent=T)
     unlink(paste0("WFS",agency))
     if('try-error'%in%attr(wfsxml,'class')){return(NULL)}
-  } else if(dataLocation=="file"){
-    cc(urlIn)
-    message("trying file",urlIn,"\nContent type  'text/xml'\n")
-    if(grepl("xml$",urlIn)){
-      wfsxml <- xmlParse(urlIn)
-    } else {
-      wfsxml=FALSE
+  }else{
+    if(dataLocation=="file"){
+      cc(urlIn)
+      message("trying file",urlIn,"\nContent type  'text/xml'\n")
+      if(grepl("xml$",urlIn)){
+        wfsxml <- xmlParse(urlIn)
+      } else {
+        wfsxml=FALSE
+      }
     }
   }
   return(wfsxml)
 }
 
+ldWFSlist <- function(urlIn,dataLocation,agency,case.fix=TRUE,method='curl'){
+  require(xml2)
+  dl=try(download.file(urlIn,destfile=paste0("WFS",agency),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
+  if('try-error'%in%attr(dl,'class')|
+     'try-error'%in%attr(try(xmlParse(file = paste0("WFS",agency)),silent=T),'class')){
+    method=ifelse(method=='curl',yes = 'wininet',no = 'curl')
+    dl=try(download.file(urlIn,destfile=paste0("WFS",agency),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
+  }
+  if('try-error'%in%attr(dl,'class')){
+    return(NULL)
+  }
+  if(case.fix)  cc(paste0("WFS",agency))
+  WFSList <- as_list(read_xml(paste0("WFS",agency)))[[1]]
+  WFSList <- sapply(WFSList,`[`,'MonitoringSiteReferenceData')
+  return(WFSList)
+}
+
 ldWQ <- function(urlIn,agency,method='curl',module='',QC=F,...){
   require(XML)
-  tempFileName=tempfile(tmpdir="D:/LAWA/2020",pattern=paste0(module,agency),fileext=".xml")
+  tempFileName=tempfile(tmpdir="D:/LAWA/2021",pattern=paste0(module,agency),fileext=".xml")
   #Try both methods of downloading, return a NULL if neither works
   # dl=download.file(urlIn,destfile=tempFileName,method=method,quiet=T)
   dl=try(download.file(urlIn,destfile=tempFileName,method=method,quiet=T,...),silent = T)
@@ -263,7 +283,7 @@ ldWQ <- function(urlIn,agency,method='curl',module='',QC=F,...){
   if(QC){
     if(grepl('hilltop',urlIn)){
       urlIn=paste0(urlIn,"&tstype=stdqualseries")
-      tempFileName=paste0("D:/LAWA/2020/tmpQC",module,agency,".xml")
+      tempFileName=paste0("D:/LAWA/2021/tmpQC",module,agency,".xml")
       dl=try(download.file(urlIn,destfile=tempFileName,method=method,quiet=T,...),silent = T)
       if('try-error'%in%attr(dl,'class')){
         method=ifelse(method=='curl',yes = 'wininet',no = 'curl')
@@ -309,9 +329,9 @@ ldMWQ <- function(...){
 checkCSVageRiver <- function(agency,maxHistory=100){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
         cat(agency,"CSV from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         return(stepBack)
@@ -328,11 +348,11 @@ checkCSVageRiver <- function(agency,maxHistory=100){
 checkXMLageRiver <- function(agency,maxHistory=100){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))){
-        if(file.info(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/"
+        if(file.info(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/"
                             ,format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))$size>1000){
           cat(agency,"XML from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
           return(stepBack)
@@ -350,11 +370,11 @@ checkXMLageRiver <- function(agency,maxHistory=100){
 xml2csvRiver <- function(maxHistory=365,quiet=F,reportCensor=F,agency,reportVars=F,ageCheck=T,saves=T){
 require(XML)
     if(!exists('transfers')){
-    transfers=read.table("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/transfers_plain_english_view.txt",
+    transfers=read.table("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/transfers_plain_english_view.txt",
                          sep=',',header = T,stringsAsFactors = F)
     transfers$CallName[which(transfers$CallName=="Clarity (Black Disc Field)"&transfers$Agency=='es')] <- "Clarity (Black Disc, Field)"
   }
-  suppressWarnings(try(dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),'%Y-%m-%d'),"/"))))
+  suppressWarnings(try(dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),'%Y-%m-%d'),"/"))))
   suppressWarnings(rm(forcsv,xmlIn))
   if(ageCheck){
     CSVage = checkCSVageRiver(agency,maxHistory)
@@ -368,14 +388,14 @@ require(XML)
     #Find XML file
     stepBack=0
     while(stepBack<maxHistory){
-      if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+      if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                            format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-        if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/"
+        if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/"
                               ,format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))){
-          if(file.info(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/"
+          if(file.info(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/"
                               ,format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))$size>1000){
             if(!quiet)cat("loading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-            xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+            xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                                      format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))
             break
           }
@@ -568,16 +588,22 @@ require(XML)
       if(length(labMeasureNames)>0 & length(fieldMeasureNames)>0){
         if(any(gsub(pattern = 'Lab|lab',replacement = '',x = labMeasureNames)%in%
                gsub(pattern = 'Field|field',replacement = '',x = fieldMeasureNames))){
-          matchy=gsub(pattern = 'Lab|lab',replacement = '',x = labMeasureNames)[gsub(pattern = 'Lab|lab',replacement = '',x = labMeasureNames)%in%
-                                                                                  gsub(pattern = 'Field|field',replacement = '',x = fieldMeasureNames)]
+          matchy=gsub(pattern = 'Lab|lab',
+                      replacement = '',
+                      x = labMeasureNames)[gsub(pattern = 'Lab|lab',
+                                                replacement = '',
+                                                x = labMeasureNames)%in%gsub(pattern = 'Field|field',
+                                                                             replacement = '',
+                                                                             x = fieldMeasureNames)]
           matchy=gsub(pattern = "[[:punct:]]|[[:space:]]",replacement='',x = matchy)
           cat(agency,'\t',matchy,'\n')
           for(mm in seq_along(matchy)){
-            LAWAName=unique(transfers$LAWAName[transfers$CallName==matchy])
+            LAWAName=unique(transfers$LAWAName[transfers$CallName==matchy[mm]])
             transfers=rbind(transfers,c(agency,matchy[mm],LAWAName))
             forsub=forcsv[grep(pattern = paste0(matchy[mm],' *\\('),x = forcsv$Measurement,ignore.case = T),]
             teppo = forsub%>%group_by(CouncilSiteID,Date,Measurement)%>%
-              dplyr::summarise(Value=mean(as.numeric(Value),na.rm=T),
+              dplyr::summarise(.groups='keep',
+                               Value=mean(as.numeric(Value),na.rm=T),
                                Censored=any(Censored),
                                CenType=ifelse(all(CenType=="FALSE"),
                                               'FALSE',
@@ -594,7 +620,7 @@ require(XML)
             teppo$Value[is.na(teppo$Value)]=unlist(teppo[is.na(teppo$Value),FieldCol])
             teppo=teppo[,-c(LabCol,FieldCol)]
             teppo$Measurement=matchy[mm]
-            teppo <- left_join(teppo,unique(forcsv[,c(1,9:24)]),by="CouncilSiteID")%>%as.data.frame
+            teppo <- left_join(teppo,unique(forcsv%>%select(-(Date:QC))),by="CouncilSiteID")%>%as.data.frame
             without=forcsv[-grep(pattern = paste0(matchy[mm],' *\\('),
                                  x = forcsv$Measurement,ignore.case = T),]
             forcsv=rbind(without,teppo)
@@ -618,7 +644,7 @@ require(XML)
       rm(excess)
       if(saves==T){
         write.csv(forcsv,
-                  file =paste0( "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+                  file =paste0( "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                                 format(Sys.Date(),'%Y-%m-%d'),"/",agency,".csv"),row.names=F)
       }
     }
@@ -630,13 +656,13 @@ require(XML)
 loadLatestSiteTableRiver <- function(maxHistory=365){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/SiteTable_river",
                             format(Sys.Date()-stepBack,'%d%b%y'),".csv"))){
         cat("loading siteTable from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                                format(Sys.Date()-stepBack,'%Y-%m-%d'),"/SiteTable_river",
                                format(Sys.Date()-stepBack,'%d%b%y'),".csv"),
                         stringsAsFactors = F))
@@ -650,13 +676,13 @@ loadLatestSiteTableRiver <- function(maxHistory=365){
 loadLatestSiteTableLakes <- function(maxHistory=100){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/SiteTable_lakes",
                             format(Sys.Date()-stepBack,'%d%b%y'),".csv"))){
         cat("loading siteTable from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                                format(Sys.Date()-stepBack,'%Y-%m-%d'),"/SiteTable_lakes",
                                format(Sys.Date()-stepBack,'%d%b%y'),".csv"),
                         stringsAsFactors = F))
@@ -668,7 +694,7 @@ loadLatestSiteTableLakes <- function(maxHistory=100){
 }
 
 loadLatestDataLakes <- function(){
-  lakeDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/Lakes/Data",pattern = "LakesWithMetadata.csv",
+  lakeDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data",pattern = "LakesWithMetadata.csv",
                             recursive = T,full.names = T,ignore.case=T),1)
   cat(lakeDataFileName)
   lakeData=read.csv(lakeDataFileName,stringsAsFactors = F)
@@ -681,13 +707,13 @@ loadLatestDataLakes <- function(){
 loadLatestSiteTableMacro <- function(maxHistory=365){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/SiteTable_macro",
                             format(Sys.Date()-stepBack,'%d%b%y'),".csv"))){
         cat("loading siteTable from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Data/",
+        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Data/",
                                format(Sys.Date()-stepBack,'%Y-%m-%d'),"/SiteTable_macro",
                                format(Sys.Date()-stepBack,'%d%b%y'),".csv"),
                         stringsAsFactors = F))
@@ -699,7 +725,7 @@ loadLatestSiteTableMacro <- function(maxHistory=365){
 }
 
 loadLatestDataMacro <- function(){
-  macroDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/Macroinvertebrates/Data",pattern = "MacrosWithMetadata.csv",
+  macroDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Data",pattern = "MacrosWithMetadata.csv",
                              recursive = T,full.names = T,ignore.case=T),1)
   cat(macroDataFileName)
   macroData=read.csv(macroDataFileName,stringsAsFactors = F)
@@ -709,10 +735,10 @@ loadLatestDataMacro <- function(){
 loadLatestCSVRiver <- function(agency,maxHistory=365,silent=F){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
         if(!silent)cat("loading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                                format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"),stringsAsFactors = F))
       }
     }
@@ -723,7 +749,7 @@ loadLatestCSVRiver <- function(agency,maxHistory=365,silent=F){
 }
 
 loadLatestDataRiver <- function(){
-  wqdataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data",
+  wqdataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",
                           pattern = "AllCouncils.csv",
                           recursive = T,
                           full.names = T,
@@ -737,8 +763,8 @@ loadLatestDataRiver <- function(){
 searchCSVRiver <- function(agency,maxHistory=365){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
         cat(agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\t")
         # cat(paste(unique(forcsv$Measurement),collapse="\t"),"\n")
       }
@@ -751,10 +777,10 @@ searchCSVRiver <- function(agency,maxHistory=365){
 searchXMLRiver <- function(agency,maxHistory=365){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))){
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))){
         cat(agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\t")
-        xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))
+        xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))
         varNames = unique(sapply(getNodeSet(doc=xmlIn,path="//Measurement/DataSource"),xmlGetAttr,name="Name"))
         cat(paste(varNames,collapse=",\t"),"\n")
       }
@@ -771,12 +797,12 @@ checkReturnNamesRiver <- function(maxHistory=365,quiet=F,reportCensor=F,agency){
   rm(forcsv)
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))){
         cat("loading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+        xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                                  format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"swq.xml"))
         break
       }
@@ -798,12 +824,12 @@ checkReturnNamesRiver <- function(maxHistory=365,quiet=F,reportCensor=F,agency){
 loadLatestCSVmacro <- function(agency,maxHistory=365,quiet=F){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
         if(!quiet)cat("loading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                                format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"),
                         stringsAsFactors = F))
       }
@@ -817,12 +843,12 @@ loadLatestCSVmacro <- function(agency,maxHistory=365,quiet=F){
 loadLatestMacroCombo <- function(maxHistory=100,quiet=F){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/MacrosCombined.csv"))){
         if(!quiet)cat("loading combined macros from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                                format(Sys.Date()-stepBack,'%Y-%m-%d'),"/MacrosCombined.csv"),
                         stringsAsFactors = F))
       }
@@ -834,18 +860,18 @@ loadLatestMacroCombo <- function(maxHistory=100,quiet=F){
 }
 
 xml2csvMacro <- function(agency,maxHistory=365,quiet=F){
-  suppressWarnings(try(dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),'%Y-%m-%d'),"/"))))
+  suppressWarnings(try(dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),'%Y-%m-%d'),"/"))))
   stepBack=0
   suppressWarnings({rm(xmlIn)})
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"Macro.xml"))){
-        if(file.info(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/"
+        if(file.info(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/"
                             ,format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"Macro.xml"))$size>1000){
           cat("loading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+        xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                                  format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"Macro.xml"))
         break
         }
@@ -938,9 +964,9 @@ xml2csvMacro <- function(agency,maxHistory=365,quiet=F){
 checkXMLageLakes <- function(agency,maxHistory=100){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"lwq.xml"))){
         cat(agency,"XML from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         return(stepBack)
@@ -956,9 +982,9 @@ checkXMLageLakes <- function(agency,maxHistory=100){
 checkXMLageMacro <- function(agency,maxHistory=100){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"Macro.xml"))){
         cat(agency,"XML from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         return(stepBack)
@@ -974,9 +1000,9 @@ checkXMLageMacro <- function(agency,maxHistory=100){
 checkCSVageMacros <- function(agency,maxHistory=100){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
         cat(agency,"CSV from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         return(stepBack)
@@ -992,9 +1018,9 @@ checkCSVageMacros <- function(agency,maxHistory=100){
 checkCSVageLakes <- function(agency,maxHistory=100){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
         cat(agency,"CSV from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         return(stepBack)
@@ -1010,14 +1036,14 @@ checkCSVageLakes <- function(agency,maxHistory=100){
 loadLatestCSVLake <- function(agency,maxHistory=365,quiet=F){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
         if(!quiet){
           cat("loading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         }
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                                format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"),
                         stringsAsFactors = F))
       }
@@ -1031,14 +1057,14 @@ loadLatestCSVLake <- function(agency,maxHistory=365,quiet=F){
 loadLatestColumnHeadingLake <- function(agency,maxHistory=365,quiet=F){
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"LakeDataColumnLabels.csv"))){
         if(!quiet){
           cat("loading",agency,"column names from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         }
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                                format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"LakeDataColumnLabels.csv"),
                         stringsAsFactors = F))
       }
@@ -1050,18 +1076,18 @@ loadLatestColumnHeadingLake <- function(agency,maxHistory=365,quiet=F){
 }
 
 xml2csvLake <- function(agency,quiet=F,maxHistory=100){
-  suppressWarnings(try(dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),'%Y-%m-%d'),"/"))))
+  suppressWarnings(try(dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),'%Y-%m-%d'),"/"))))
   suppressWarnings(rm(forcsv,xmlIn))
   stepBack=0
   while(stepBack<maxHistory){
-    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+    if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
-      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+      if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"lwq.xml"))){
-        if(file.info(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+        if(file.info(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"lwq.xml"))$size>100){
           cat("\nloading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-          xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+          xmlIn <- xmlParse(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                                    format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"lwq.xml"))
           break
         }

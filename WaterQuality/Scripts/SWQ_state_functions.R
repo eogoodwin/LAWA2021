@@ -34,8 +34,8 @@
 # */
 
 
-pkgs <- c('XML', 'RCurl','ggplot2','gridExtra','plyr','reshape2',#'RODBC',
-          'doBy','NADA','gdata','survival','lubridate','tidyr','dplyr','EnvStats')
+pkgs <- c('XML', 'RCurl','ggplot2','gridExtra','plyr','reshape2',#'RODBC','gdata',
+          'doBy','NADA','survival','lubridate','tidyr','dplyr','EnvStats')
 if(!all(pkgs %in% installed.packages()[, 'Package']))
   install.packages(pkgs[!pkgs%in%installed.packages()], dep = T)
 
@@ -48,7 +48,7 @@ require(plyr)
 # require(RODBC)      # Database connectivity
 require(doBy)
 require(NADA)
-require(gdata)
+# require(gdata)
 require(survival)
 require(lubridate)
 require(tidyr)

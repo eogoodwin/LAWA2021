@@ -15,16 +15,16 @@ editor_options:
 library(tidyverse)
 library(DT) #All the data table cleverness
 require(Hmisc)#For hiding TOC
-source('H:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableLakes(maxHistory = 400)
 lawaset=c("TN", "NH4N", "TP", "CHLA", "pH", "Secchi", "ECOLI")
 agency=params$agency
-urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
 siteTableLIDs=unique(tolower(siteTable$LawaSiteID[which(siteTable$Agency==agency)]))
 siteTableLIDs = siteTableLIDs[!is.na(siteTableLIDs)]
 #"NH4N"   "TP"     "TN"     "Secchi" "ECOLI"  "pH"     "CHLA"
-agencyFiles = data.frame(name=dir(path = "H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",
+agencyFiles = data.frame(name=dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                                   pattern = paste0(agency,'.csv'),
                                   full.names = T,recursive = T,ignore.case = T),
                          nCol = 0,nRow=0,nsite=0,stringsAsFactors = F)
@@ -109,18 +109,9 @@ LWQdata$NewValues=LWQdata$Value
 if(mean(LWQdata$Value[which(LWQdata$Measurement%in%c('NH4N','TN','TP'))],na.rm=T)<250){
   LWQdata$Value[which(LWQdata$Measurement%in%c('NH4N','TN','TP'))]=LWQdata$Value[which(LWQdata$Measurement%in%c('NH4N','TN','TP'))]*1000
 }
-if(lubridate::year(Sys.Date())==2019){
-  # Lake Omapere in northland was being measured for chlorophyll in the wrong units.  It's values need converting.
-  these = which(LWQdata$CouncilSiteID==100501 & LWQdata$Measurement=='CHLA')
-  if(mean(LWQdata$Value[these],na.rm=T)<1){
-    LWQdata$Value[these] = LWQdata$Value[these]*1000
-  }
-  rm(these)
-}
 
 
-
-LWQaudit = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/Audit",
+LWQaudit = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
                              pattern = "LWQaudit.*csv",
                              recursive = T,full.names = T,ignore.case = T),1),
                     stringsAsFactors = F)
@@ -133,12 +124,12 @@ siteTableLIDs=unique(siteTable$LawaSiteID[which(siteTable$Agency==agency)])
 agencyCSVLIDs = unique(tolower(agencyCSV$LawaSiteID))
 lwqLIDs = unique(LWQdata$LawaSiteID[which(LWQdata$Agency==agency)])
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Metadata/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 
-agencyRep=read.csv('h:/ericg/16666LAWA/LAWA2020/Metadata/AgencyRepLakeWFS.csv',check.names = F)
+agencyRep=read.csv('h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepLakeWFS.csv',check.names = F)
 
-ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis",
+ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",
                         pattern = 'ITELakeSiteState[[:digit:]]',
                         full.names = T,recursive=T,ignore.case=T),
                     1),
@@ -150,19 +141,19 @@ ss$CouncilSiteID=siteTable$CouncilSiteID[match(tolower(ss$LAWAID),tolower(siteTa
 ss$SiteID=siteTable$SiteID[match(tolower(ss$LAWAID),tolower(siteTable$LawaSiteID))]
 ss$Catchment=siteTable$Catchment[match(tolower(ss$LAWAID),tolower(siteTable$LawaSiteID))]
 
-nfts <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis",
+nfts <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",
                           pattern = 'NOFLakesOverall.*csv',
                           full.names=T,recursive=T,ignore.case=T),1),
                  stringsAsFactors=F)
 nfts <- nfts%>%filter(Agency==agency)
 nfts$Catchment = siteTable$Catchment[match(nfts$LawaSiteID,siteTable$LawaSiteID)]
 
-TLI <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis",
+TLI <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",
                          pattern='auditLakeTLI[[:digit:]].*csv',
                          full.names=T,recursive=T,ignore.case=T),1),stringsAsFactors=F)
 TLI <- TLI%>%filter(Agency==agency)
 
-lwqtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis",
+lwqtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",
                            pattern="LakesWQ_Trend*.*",
                            full.names=T,recursive=T,ignore.case=T),1))
 lwqtrend <- lwqtrend%>%filter(Agency==agency)
@@ -289,13 +280,13 @@ This count includes all years available, whereas subsequent analysis below limit
 
 ```{r echo=F,results='asis'}
 options(warn=-1)
-theseNH4= which(apply(NH4rep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
-theseSECCHI= which(apply(SECCHIrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
-theseECOLI= which(apply(ECOLIrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
-theseTN= which(apply(TNrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
-theseTP= which(apply(TPrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
-thesePH= which(apply(PHrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
-theseCHLA= which(apply(CHLArep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))
+theseNH4= ifelse(dim(NH4rep)[2]>2,which(apply(NH4rep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1)))),"")
+theseSECCHI= ifelse(dim(SECCHIrep)[2]>2,which(apply(SECCHIrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1)))),"")
+theseECOLI= ifelse(dim(ECOLIrep)[2]>2,which(apply(ECOLIrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1)))),"")
+theseTN= ifelse(dim(TNrep)[2]>2,which(apply(TNrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1)))),"")
+theseTP= ifelse(dim(TPrep)[2]>2,which(apply(TPrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1)))),"")
+thesePH= ifelse((dim(PHrep)[2]>2),(which(apply(PHrep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1))))),"")
+theseCHLA= ifelse(dim(CHLArep)[2]>2,which(apply(CHLArep,1,FUN=function(x)var(x,na.rm=T)!=0|is.na(tail(x,1)))),"")
 options(warn=0)
 if(length(theseTN)>0){
   cat('  \n\n### TN\n')
@@ -349,25 +340,25 @@ The following plots show data relative to other councils from whom data has been
 
 ```{r echo=F,results='asis'}
 cat('  \n\n### TN  \n  ')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
                                  pattern='TN.*png',recursive=T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### NH4N  \n  ')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
                                  pattern='NH4N.*png',recursive=T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### TP  \n  ')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
                                  pattern='TP.*png',recursive=T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### CHLA  \n  ')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
                                  pattern='CHLA.*png',recursive=T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### pH  \n  ')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
                                  pattern='PH.*png',recursive=T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### Secchi  \n  ')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
                                  pattern='Secchi.*png',recursive=T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### ECOLI  \n  ')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Lakes/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
                                  pattern='Ecoli.*png',recursive=T,full.names = T,ignore.case = T),1))
 ```
 

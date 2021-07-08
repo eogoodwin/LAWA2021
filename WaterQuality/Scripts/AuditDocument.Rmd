@@ -15,13 +15,13 @@ editor_options:
 library(tidyverse)
 library(DT)#https://rstudio.github.io/DT/
 require(Hmisc)#For hiding TOC
-source('H:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableRiver()
-lawaset=c("NH4", "TURB", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH")
+lawaset=c("NH4", "TURB", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN")
 if(!exists('agency'))agency=params$agency
-urls          <- read.csv("H:/ericg/16666LAWA/LAWA2020/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
+urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
-agencyFiles = data.frame(name=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",
+agencyFiles = data.frame(name=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                                        pattern = paste0('^',agency,'.csv'),
                                        full.names = T,recursive = T,ignore.case = T),6),
                          nCol = 0,nRow=0,nsite=0,stringsAsFactors = F)
@@ -117,7 +117,7 @@ TONrep = TONrep[,!apply(TONrep,2,function(x)all(is.na(x)))]
 PHrep = PHrep[,!apply(PHrep,2,function(x)all(is.na(x)))]
 
 wqdata=get("wqdata",pos=1)#parent.frame()$wqdata#loadLatestDataRiver()
-wqAudit = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+wqAudit = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                             pattern = "WQAudit.*csv",
                             recursive = T,full.names = T,ignore.case = T),1),
                    stringsAsFactors = F)
@@ -133,13 +133,14 @@ wqDataCSIDs = unique(tolower(wqdata$CouncilSiteID[which(wqdata$Agency==agency)])
 
 agencyLIDs=unique(c(siteTableLIDs,agencyCSVLIDs,wqDataLIDs))
 
-Measurements <- read.table("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
+Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",
+                           sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
 
-agencyRep=read.csv('h:/ericg/16666LAWA/LAWA2020/Metadata/AgencyRepWFS.csv',check.names = F)
+agencyRep=read.csv('h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepWFS.csv',check.names = F)
 
 #RiverState Summary
-ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis",
+ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",
                         pattern = 'AuditRiverSTATE',
                         full.names = T,recursive=T,ignore.case=T),1),stringsAsFactors = F)
 ss=ss[which(ss$LawaID%in%agencyLIDs),]
@@ -154,18 +155,18 @@ if(any(ss$Agency=='niwa')){
 ss$Catchment = siteTable$Catchment[match(ss$LawaID,siteTable$LawaSiteID)]
 
 macroSiteTable=loadLatestSiteTableMacro()
-MCINOF <- read.csv(tail(dir(path = 'h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/',
+MCINOF <- read.csv(tail(dir(path = 'h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/',
                             pattern = 'MacroRollingMCI',recursive = T,full.names = T),1),stringsAsFactors = F)
 MCINOF <- MCINOF%>%filter(tolower(LawaSiteID)%in%agencyLIDs) #%>%filter(Parameter=="MCI")
 MCINOF$CouncilSiteID = macroSiteTable$CouncilSiteID[match(gsub('_niwa','',tolower(MCINOF$LawaSiteID)),tolower(macroSiteTable$LawaSiteID))]
 if(any(is.na(MCINOF$CouncilSiteID))){
   MCINOF$CouncilSiteID[is.na(MCINOF$CouncilSiteID)] = siteTable$CouncilSiteID[match(gsub('_niwa','',tolower(MCINOF$LawaSiteID[is.na(MCINOF$CouncilSiteID)])),tolower(siteTable$LawaSiteID))]
 }
-MCINOF$NOF2020Band = cut(MCINOF$rollMCI,breaks = c(0,90,110,130,200),right = F,labels = c("D","C","B","A"))
+MCINOF$NOF2021Band = cut(MCINOF$rollMCI,breaks = c(0,90,110,130,200),right = F,labels = c("D","C","B","A"))
 
 #River NOFTableSummary
-nfts <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis",
-                          pattern = 'NOFSummaryTable_Rolling.csv',  #Was ~_Overall until 2 July2020
+nfts <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",
+                          pattern = 'NOFSummaryTable_Rolling.csv',  #Was ~_Overall until 2 July2021
                           full.names=T,recursive=T,ignore.case=T),1),stringsAsFactors=F)
 nfts <- nfts%>%filter(LawaSiteID%in%agencyLIDs) #filter(Year=="2015to2019")%>%
 
@@ -178,7 +179,7 @@ if(any(nfts$Agency=='niwa')){
 nfts$Catchment = siteTable$Catchment[match(nfts$LawaSiteID,siteTable$LawaSiteID)]
 
 #River WQTrend Summary
-wqtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis",
+wqtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",
                           pattern="RiverWQ_Trend*.*",
                           full.names=T,recursive=T,ignore.case=T),1),guess_max = 20000)
 wqtrend <- wqtrend[which(wqtrend$LawaSiteID%in%agencyLIDs),]
@@ -217,7 +218,10 @@ We hope to report on BDISC, TURB, NH4, PH, TON, TN, DRP, TP, and ECOLI, and thes
 The council WFS site `r I(print(urls$URL[tolower(urls$Agency)==agency]))` announces `r I(print(length(siteTableCSIDs)))` unique CouncilSiteIDs, with the following `r I(print(length(siteTableLIDs)))` LawaSiteIDs:
 
 ```{r wfsSites,echo=F,results='asis'}
-DT::datatable(siteTable%>%filter(Agency==agency)%>%select(SiteID,CouncilSiteID,LawaSiteID,Catchment)%>%arrange(LawaSiteID),rownames=F)
+DT::datatable(siteTable%>%
+                filter(Agency==agency)%>%
+                select(SiteID,CouncilSiteID,LawaSiteID,Catchment)%>%
+                arrange(LawaSiteID),rownames=F)
 ```
 
 Over time the number of sites announced on the WFS may change.
@@ -401,39 +405,39 @@ if(any(agencyCSVn$n>1)){
 The following plots show data relative to other councils from whom data has been collected.
 ```{r echo=F,results='asis'}
 cat('  \n### BDisc\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="BDISC.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### DRP\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="DRP.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### ECOLI\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="ECOLI.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### NH4\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="NH4.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### PH\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="PH.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### TN\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="TN.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### TON\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="TON.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### TP\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="TP.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### TURB\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/WaterQuality/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="TURB.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 ```
@@ -457,19 +461,37 @@ for(msm in unique(agencyWQdata$Measurement)){
       bpDat <- bpDat%>%filter(Value>0)
     }
   }
-  boxplot(data=bpDat,
+if(agency=='wrc'){
+      boxplot(data=bpDat,
+          Value~factor(SiteID),
+          main=msm,log=yLog,las=2)
+}else{
+    boxplot(data=bpDat,
           Value~factor(CouncilSiteID),
           main=msm,log=yLog,las=2)
+  }
   yrng=range(bpDat$Value[bpDat$Value>0],na.rm=T)
   xrng=range(bpDat$Date,na.rm=T)
   par(mfrow=c(4,4),mar=c(3,4,2,1))
-  for(csi in sort(unique(agencyWQdata$CouncilSiteID))){
-    tsDat=bpDat%>%filter(CouncilSiteID==csi)
-    if(dim(tsDat)[1]>0){
-      plot(data=tsDat,Value~Date,log=yLog,ylab=msm,xlab='',main=csi,type='p',ylim=yrng,xlim=xrng)
-    }else{
-      plot(0,0,xaxt='n',yaxt='n',xlab='n',ylab='n',main=csi)
-      text(0,0,'no data')
+  if(agency=='wrc'){
+    for(csi in sort(unique(agencyWQdata$SiteID))){
+      tsDat=bpDat%>%filter(SiteID==csi)
+      if(dim(tsDat)[1]>0){
+        plot(data=tsDat,Value~Date,log=yLog,ylab=msm,xlab='',main=csi,type='p',ylim=yrng,xlim=xrng)
+      }else{
+        plot(0,0,xaxt='n',yaxt='n',xlab='n',ylab='n',main=csi)
+        text(0,0,'no data')
+      }
+    }
+  }else{
+    for(csi in sort(unique(agencyWQdata$CouncilSiteID))){
+      tsDat=bpDat%>%filter(CouncilSiteID==csi)
+      if(dim(tsDat)[1]>0){
+        plot(data=tsDat,Value~Date,log=yLog,ylab=msm,xlab='',main=csi,type='p',ylim=yrng,xlim=xrng)
+      }else{
+        plot(0,0,xaxt='n',yaxt='n',xlab='n',ylab='n',main=csi)
+        text(0,0,'no data')
+      }
     }
   }
 }
@@ -537,7 +559,7 @@ Sites can meet criteria for multiple bands, so can receive multiple grades.  Mis
 
 Let's look at MCI first, just because it's on a separate set of sites:
 ```{r, echo=F,results='asis'}
-DT::datatable(MCINOF%>%dplyr::select(LawaSiteID,CouncilSiteID,yearTo=sYear,`5yrRollMCI`=rollMCI,NOF2020Band),
+DT::datatable(MCINOF%>%dplyr::select(LawaSiteID,CouncilSiteID,yearTo=sYear,`5yrRollMCI`=rollMCI,NOF2021Band),
               rownames = F,extensions='Buttons',options=list(dom='Bfpl',buttons=c('copy','csv','excel')))
 ```
 
@@ -606,7 +628,7 @@ I'll first print out the filename of the trend data file. Its datestamp should m
 Note that you can turn columns on and off, as well as re-order them (drag columns left or right), filter by them or sort the table by them.
 
 ```{r echo=F,results='asis'}
-cat(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis",
+cat(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",
              pattern="RiverWQ_Trend*.*",
              full.names=F,recursive=T,ignore.case=T),1),' \n\n')
 DT::datatable(wqtrend,extensions=c('Buttons','ColReorder','FixedColumns'),

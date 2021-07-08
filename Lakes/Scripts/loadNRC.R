@@ -1,12 +1,12 @@
 require(XML)     ### XML library to write hilltop XML
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(RCurl)
-source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
 
-setwd("H:/ericg/16666LAWA/LAWA2020/Lakes")
+setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 agency='nrc'
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Metadata/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 
 siteTable=loadLatestSiteTableLakes(maxHistory=30)
@@ -24,7 +24,7 @@ for(i in 1:length(sites)){
                   "&Site=",sites[i],
                   "&Measurement=",Measurements[j],
                   "&From=2004-01-01",
-                  "&To=2020-01-01")
+                  "&To=2021-01-01")
     url <- URLencode(url)
     xmlfile <- ldLWQ(url,agency,method='wininet')
     if(!is.null(xmlfile)){
@@ -139,9 +139,9 @@ for(i in 1:length(sites)){
   }
 }
 
-# saveXML(con$value(), paste("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml",sep=""))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"LWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"LWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"),overwrite = T)
-if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))
+# saveXML(con$value(), paste("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml",sep=""))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"),overwrite = T)
+if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))
 

@@ -4,9 +4,9 @@ require(XML)     ### XML library to write hilltop XML
 require(RCurl)
 
 agency='boprc'
-setwd("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates")
+setwd("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates")
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/MetaData/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/MetaData/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 # sites <- subset(df,df$Type=="Site")[,1]
 
@@ -21,7 +21,7 @@ library(doParallel)
 workers <- makeCluster(7)
 registerDoParallel(workers)
 clusterCall(workers,function(){
-  source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
 suppressWarnings(rm(Data))
 # for(i in 1:length(sites)){
@@ -32,7 +32,7 @@ foreach(i = 1:length(sites),.errorhandling = 'stop',.combine = rbind)%dopar%{
                   "service=SOS&version=2.0.0&request=GetObservation&",
                   "observedProperty=",Measurements[j],
                   "&featureOfInterest=",sites[i],
-                  "&temporalfilter=om:phenomenonTime,P15Y/2020-06-01")
+                  "&temporalfilter=om:phenomenonTime,P15Y/2021-06-01")
     url <- URLencode(url)
     xmlfile <- ldMWQ(url,agency=agency)
     if(!is.null(xmlfile) && 
@@ -61,7 +61,7 @@ rm(workers)
 
 
 library(tidyverse)
-year2017=read_csv("H:/ericg/16666Lawa/LAWA2020/MacroInvertebrates/Data/BOPRC_Data_for_LAWA_2017_2018.csv")%>%
+year2017=read_csv("H:/ericg/16666Lawa/LAWA2021/MacroInvertebrates/Data/BOPRC_Data_for_LAWA_2017_2018.csv")%>%
   drop_na(Aquarius)%>%
   tidyr::gather(key="Measurement",value="Value",c("MCI_Actual","Richness","P_EPT1_r"))%>%
   transmute(Site=Aquarius,Measurement=Measurement,time="2017-12-31T00:00:00.000Z",value=Value,Units="None")
@@ -163,9 +163,9 @@ while(i<=max){
   con$closeTag() # Measurement
 }
 
-# saveXML(con$value(), paste0("h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"Macro.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"Macro.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),
+# saveXML(con$value(), paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"Macro.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"Macro.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),
           overwrite=T)
 

@@ -1,13 +1,13 @@
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(XML)     ### XML library to write hilltop XML
 require(RCurl)
-source('H:/ericg/16666LAWA/LAWA2020/scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
 
 agency='ac'
-# df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/MetaData/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+# df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/MetaData/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 # Measurements <- subset(df,df$Type=="Measurement")[,1]
-Measurements <- unique(readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Metadata/AC200626_LakeWQ LAWA KiQS Calls_v2.xlsx",col_types = c(rep('skip',4),'text',rep('skip',3)))%>%as.data.frame)
+Measurements <- unique(readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/AC200626_LakeWQ LAWA KiQS Calls_v2.xlsx",col_types = c(rep('skip',4),'text',rep('skip',3)))%>%as.data.frame)
 Measurements <- as.vector(Measurements[,1])
 siteTable=loadLatestSiteTableLakes(maxHistory = 30)
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
@@ -24,21 +24,21 @@ sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 #  &parametertype_name=Tot%20N%20(mg/l)
 #  &period=P25Y&method_name=Total%20Nitrogen%20(Total%20Nitrogen%20-%20lab%20(total%20dissolved%20N%20by%20membr%filtration)&returnfields=station_no,station_name,timestamp,sample_depth,parametertype_name,value_sign,value,unit_name&orderby1=timestamp&orderby2=sample_depth
                                                                                                                                                                                                                                   
-setwd("H:/ericg/16666LAWA/LAWA2020/Lakes")
+setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 if(exists('Data'))rm(Data)
 # for(i in 1:length(sites)){
 #   cat('\n',sites[i],i,'out of',length(sites),'\n')
 #   for(j in 1:length(Measurements)){
 #     url <- paste0("http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&service=Kisters&",
-#                   "type=queryServices&request=getWqmSampleValues&format=csv", #correct as to 04/08/2020 email VP
+#                   "type=queryServices&request=getWqmSampleValues&format=csv", #correct as to 04/08/2021 email VP
 #                   "&station_no=",sites[i],
 #                   "&parametertype_name=",Measurements[j],
 #                   "&period=P25Y&returnfields=station_no,station_name,timestamp,sample_depth,parametertype_name,value_sign,value,unit_name,value_quality")
 #     url <- URLencode(url)
 #     url <- gsub(pattern = '\\+',replacement = '%2B',x = url)
-#     dl=try(download.file(url,destfile="D:/LAWA/2020/tmpLac.csv",method='curl',quiet=T),silent = T)
+#     dl=try(download.file(url,destfile="D:/LAWA/2021/tmpLac.csv",method='curl',quiet=T),silent = T)
 #     
-#     csvfile <- read.csv("D:/LAWA/2020/tmpLac.csv",stringsAsFactors = F,sep=';')
+#     csvfile <- read.csv("D:/LAWA/2021/tmpLac.csv",stringsAsFactors = F,sep=';')
 #     if(dim(csvfile)[1]>0){
 #       cat(Measurements[j],'\t')
 #       if(!exists("Data")){
@@ -50,7 +50,7 @@ if(exists('Data'))rm(Data)
 #   }
 # }
 
-Data = read.csv("./Data/Revised Lakes data sent to LAWA_2020.xlsx.csv",stringsAsFactors = F,encoding='UTF-8-BOM')
+Data = read.csv("./Data/Revised Lakes data sent to LAWA_2021.xlsx.csv",stringsAsFactors = F,encoding='UTF-8-BOM')
 names(Data)[1]='station_no'
 
 Data <- Data%>%filter(Value_quality!=42)
@@ -77,21 +77,21 @@ table(Data$Measurement)
 
 
 # By this point, we have all the data downloaded from the council, in a data frame called Data.
-write.csv(Data,file = paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names = F)
+write.csv(Data,file = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names = F)
 
 
 
 if(0){
   agency='ac'
-  # readxl::excel_sheets("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx")
-  ACdeliveredSecchi=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Secchi")
-  ACdeliveredPH=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "pH")
-  ACdeliveredNH4=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Ammonical Nitrogen")
-  ACdeliveredTN=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Total Nitrogen")
-  ACdeliveredTP=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Total Phosphorus")
-  ACdeliveredCHL=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Cholorophyll")
-  ACdeliveredECOLI=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "E.Coli")
-  # ACdeliveredCYANO=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Cyanoall")
+  # readxl::excel_sheets("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx")
+  ACdeliveredSecchi=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Secchi")
+  ACdeliveredPH=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "pH")
+  ACdeliveredNH4=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Ammonical Nitrogen")
+  ACdeliveredTN=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Total Nitrogen")
+  ACdeliveredTP=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Total Phosphorus")
+  ACdeliveredCHL=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Cholorophyll")
+  ACdeliveredECOLI=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "E.Coli")
+  # ACdeliveredCYANO=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Cyanoall")
   
   ACdeliveredSecchi$Measurement = "Secchi"
   ACdeliveredPH$Measurement = "pH"
@@ -115,7 +115,7 @@ if(0){
                                         Censored=!is.na(`Detection Limit`),
                                         centype=ifelse(test = {!is.na(`Detection Limit`)&`Detection Limit`=="<"},
                                                        yes = "Left",no = "FALSE"))
-  write.csv(ARCtoSave,paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names=F)
+  write.csv(ARCtoSave,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names=F)
   
   cat("AC delivered by csv, has been assimilated\n")
 }
@@ -230,9 +230,9 @@ if(0){
 #   }
 # }
 # 
-# # saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
-# saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"LWQ.xml"))
-# file.copy(from=paste0("D:/LAWA/2020/",agency,"LWQ.xml"),
-#           to=paste0("H:/ericg/16666LAWA/LAWA2020/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"),overwrite = T)
+# # saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
+# saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
+# file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
+#           to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"),overwrite = T)
 #           
 

@@ -1,9 +1,9 @@
 library(tidyverse)
 checkXMLFile <- function(regionName,siteName,propertyName){
-  xmlfile<-read_xml(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+  xmlfile<-read_xml(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
   if('ows'%in%names(xml_ns(xmlfile)) && length(xml_find_all(xmlfile,'ows:Exception'))>0){
     #Dont wanna keep exception files
-    file.remove(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+    file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
     return(1);#next
   }
   #Got Data
@@ -13,7 +13,7 @@ checkXMLFile <- function(regionName,siteName,propertyName){
       return(2);#hoorah break
     }else{
       #Dont wanna keep empty files
-      file.remove(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+      file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
     }
     return(1);#next
   }else{
@@ -22,19 +22,19 @@ checkXMLFile <- function(regionName,siteName,propertyName){
       if(length(pvals)>0){
         return(2);
       }else{
-        file.remove(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+        file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
         return(1);
       }
       rm(pvals)
     }else{
       #Remove non WML files
-      file.remove(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+      file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
       return(1);#next
     }
   }
 }
 readXMLFile <- function(regionName,siteName,propertyName,property){
-  xmlfile<-read_xml(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+  xmlfile<-read_xml(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
   #Check for exceptions
   if('ows'%in%names(xml_ns(xmlfile)) && length(xml_find_all(xmlfile,'ows:Exception'))>0){
     cat('-')
@@ -45,7 +45,7 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
       commentToAdd='exception'
     }
     #Dont wanna keep exception files
-    file.remove(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+    file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
     return(1);#next
   }
   #Check for Data
@@ -85,13 +85,13 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
       return(2)#        break
     }else{
       #Dont wanna keep empty files
-      file.remove(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+      file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
     }
     return(1);#next
   }else{
     #Check is it WQSample
     if(propertyName=="WQ.sample"){
-      xmlfile=xmlParse(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+      xmlfile=xmlParse(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
       xmltop<-xmlRoot(xmlfile)
       m<-xmltop[['Measurement']]
       if(!is.null(m)){
@@ -126,13 +126,13 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
       rm(siteMetaDat)
       return(2)#        break
     }else{
-      file.remove(paste0('D:/LAWA/LAWA2020/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+      file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
       return(1);#next
     }
   }
 }
 
-ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/MetaData/SwimSiteMonitoringResults-2020-10-06.xlsx',sheet=1)
+ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-10-06.xlsx',sheet=1)
 ssm$callID =  NA
 ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
                                                          FUN = function(x)unlist(strsplit(x,split='&')))))%>%
@@ -144,8 +144,8 @@ ssm$LawaSiteID=tolower(ssm$LawaId)
 
 
 
-load(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",
-              pattern="RecData2020",recursive = T,full.names = T,ignore.case=T),1),verbose = T)  
+load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
+              pattern="RecData2021",recursive = T,full.names = T,ignore.case=T),1),verbose = T)  
 
 recData$LawaSiteID=ssm$LawaSiteID[match(make.names(tolower(recData$siteName)),make.names(tolower(ssm$callID)))]
 
@@ -169,8 +169,8 @@ RegionTable=data.frame(ssm=unique(ssm$Region),
 
 
 #Load all previous CISH datasets, and merge
-CISHdata = dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",
-               pattern="RecData2020",recursive = T,full.names = T,ignore.case=T)
+CISHdata = dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
+               pattern="RecData2021",recursive = T,full.names = T,ignore.case=T)
 collectCISH=NULL
 for (renminbi in 1:dim(CISHdata)){
   load(CISHdata[renminbi])
@@ -186,7 +186,7 @@ rm(recData,CISHdata,renminbi)
 
 
 #Compare the number of sites retrieved via SSM with that via WFS enquiry.
-WFSsiteTable = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data",pattern='SiteTable',
+WFSsiteTable = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data",pattern='SiteTable',
                                  recursive=T,full.names=T,ignore.case=T),1),stringsAsFactors = F)
 length(unique(ssm$LawaId))              #624
 length(unique(collectCISH$LawaSiteID))  #484
@@ -288,13 +288,13 @@ bs[recData$month<7]=paste0(recData$year[recData$month<7]-1,'/',recData$year[recD
 recData$bathingSeason=bs
 table(recData$bathingSeason)
 
-save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                            "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
 # load(dir(path=           'h:/ericg/16666LAWA/2018/RecECOLI',pattern='*RecData*.*Rdata',recursive=T,full.names=T)[6],verbose = T)
 recData$week=lubridate::week(recData$dateCollected)
 recData$YW = paste0(strTo(recData$dateCollected,'-'),recData$week)
 # write.csv(recData%>%filter(YW>201525)%>%filter(month>10|month<4),
-#           file = paste0('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Data/CISHRaw',format(Sys.time(),'%Y-%b-%d'),'.csv'),row.names = F)
+#           file = paste0('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/CISHRaw',format(Sys.time(),'%Y-%b-%d'),'.csv'),row.names = F)
 
 
 
@@ -312,7 +312,7 @@ test <- recData%>%
                    fVal=first(fVal),
                    bathingSeason=unique(bathingSeason))%>%
   ungroup->graphData
-write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                   format(Sys.Date(),'%Y-%m-%d'),
                                   "/CISHgraph",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
 rm(test)
@@ -357,10 +357,10 @@ nPbs=do.call("rbind",lapply(CISHsiteSummary$nPbs,FUN = function(x)lapply(strspli
 tooFew = which(do.call('rbind',lapply(nPbs,function(x)any(x<10)|length(x)<3)))  #see if any per-season counts are below ten, or there are fewer than three seasons
 CISHsiteSummary$LawaBand[tooFew]=NA #set those data-poor sites' grade to NA
 
-write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                         format(Sys.Date(),'%Y-%m-%d'),
                                         "/CISHsiteSummary",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
-# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
 
 #Export only the data-rich sites
 CISHwellSampled=CISHsiteSummary%>%filter(nBS>=3)
@@ -369,7 +369,7 @@ lrsY=apply(lrsY,2,as.numeric)
 NElt10=which(apply(lrsY,1,FUN=function(x)any(x<10)))
 CISHwellSampled=CISHwellSampled[-NElt10,]
 CISHwellSampled <- left_join(CISHwellSampled,recData%>%select(LawaSiteID,region,siteType,siteName)%>%distinct)
-write.csv(CISHwellSampled,file = paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",
+write.csv(CISHwellSampled,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                         format(Sys.Date(),'%Y-%m-%d'),
                                         "/CISHwellSampled",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
 
@@ -381,12 +381,12 @@ CISHsiteSummary$siteType = recData$siteType[match(CISHsiteSummary$LawaSiteID,rec
 uReg=unique(recData$region)
 for(reg in seq_along(uReg)){
   toExport=recData[recData$region==uReg[reg],]
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recData_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  ".csv"),row.names = F)
   toExport=CISHsiteSummary%>%filter(region==uReg[reg])%>%as.data.frame
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recScore_",
                                  gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
                                  ".csv"),row.names = F)
@@ -406,7 +406,7 @@ recDataITE <- CISHsiteSummary%>%
 # recDataITE$Module[recDataITE$Module=="Site"] <- "River"
 # recDataITE$Module[recDataITE$Module=="LakeSite"] <- "Lake"
 # recDataITE$Module[recDataITE$Module=="Beach"] <- "Coastal"
-write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                             "/ITERecData",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)  
 
 

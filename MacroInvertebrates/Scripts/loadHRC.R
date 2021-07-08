@@ -2,11 +2,11 @@ require(XML)     ### XML library to write hilltop XML
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(RCurl)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/")
+setwd("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/")
 agency='hrc'
 
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
 # configsites <- subset(df,df$Type=="Site")[,2]
 # configsites <- as.vector(configsites)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
@@ -21,7 +21,7 @@ for(i in 1:length(sites)){
     url <- paste0("http://tsdata.horizons.govt.nz/boo.hts?service=SOS&agency=LAWA&request=GetObservation",
                   "&FeatureOfInterest=",sites[i],
                   "&ObservedProperty=",Measurements[j],
-                  "&TemporalFilter=om:phenomenonTime,2005-01-01,2020-06-01")
+                  "&TemporalFilter=om:phenomenonTime,2005-01-01,2021-06-01")
     # url <- gsub(" ", "%20", url)
     url <- URLencode(url)
     
@@ -154,8 +154,8 @@ while(i<=max){
 }
 
 
-#saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"Macro.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"Macro.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),
+#saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"Macro.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"Macro.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),
           overwrite = T)

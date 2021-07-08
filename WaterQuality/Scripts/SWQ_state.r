@@ -1,7 +1,7 @@
 rm(list=ls())
+gc()
 library(lubridate)
 library(stringr)
-library(doBy)
 StartYear5 <- lubridate::year(Sys.Date())-5  #2016
 EndYear <- lubridate::year(Sys.Date())-1    #2020
 source("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/SWQ_state_functions.R")
@@ -38,14 +38,14 @@ if(!exists('wqdata')){
   wqdYear=lubridate::year(dmy(wqdata$Date))
   wqdata <- wqdata[which((wqdYear>=(StartYear5) & wqdYear<=EndYear)),]
   rm(wqdYear)
-  #468393
+  #390111
 }
 
 
 
 wqparam <- c("BDISC","TURB","NH4",
              "PH","TON","TN",
-             "DRP","TP","ECOLI") 
+             "DRP","TP","ECOLI","DIN","NO3N") 
 
 suppressWarnings(rm(wqdata_A,wqdata_med,wqdata_n,lawadata,lawadata_q))
 library(parallel)
@@ -62,6 +62,7 @@ startTime=Sys.time()
 
 foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
   wqdata_A = wqdata%>%filter(tolower(Measurement)==tolower(wqparam[i]))
+  if(dim(wqdata_A)[1]==0){return(NULL)}
   #CENSORING
   #Previously for state, left-censored was repalced by half the limit value, and right-censored was imputed
   #left-censored replacement value is the maximum of left-censored values, per site
@@ -112,7 +113,7 @@ foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
 }->sa
 stopCluster(workers)
 rm(workers)
-cat(Sys.time()-startTime)  #12.2 seconds 16July
+cat(Sys.time()-startTime)  #14.3 seconds 29June
 
 # State Analysis output contains quantiles for each Measurement by site.
 names(sa) <-   c("LawaSiteID", "Measurement", "Q0", "Q25", "Q50","Q75", "Q100",

@@ -2,11 +2,11 @@ require(XML)     ### XML library to write hilltop XML
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(RCurl)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 tab="\t"
 agency='wcrc'
 
-Measurements <- read.table("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
+Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
 Measurements=c(Measurements,'WQ Sample')
 
@@ -14,15 +14,16 @@ siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
 if(exists("Data"))rm(Data)
-for(i in 1:length(sites)){
+i=1
+for(i in i:length(sites)){
   cat(sites[i],i,'out of',length(sites),'\n')
   for(j in 1:length(Measurements)){
     if(Measurements[j]=="xE.coli (Mem Filtration)"){
       url <- paste0("http://hilltop.wcrc.govt.nz/wq.hts?service=Hilltop&request=GetData",
                    "&Site=",sites[i],
                    "&Measurement=E.coli (Mem Filtration)",
-                   "&From=2005-01-01",
-                   "&To=2020-01-01")
+                   "&From=2004-01-01",
+                   "&To=2021-01-01")
       url <- URLencode(url)
       # url <- gsub(" ", "%20", url)
       xmlfile <- ldWQ(url,agency,QC=T) 
@@ -56,8 +57,8 @@ for(i in 1:length(sites)){
       url <- paste0("http://hilltop.wcrc.govt.nz/wq.hts?service=Hilltop&request=GetData",
                    "&Site=",sites[i],
                    "&Measurement=",Measurements[j],
-                   "&From=2005-01-01",
-                   "&To=2020-01-01")
+                   "&From=2004-01-01",
+                   "&To=2021-01-01")
       url <- URLencode(url)
       xmlfile <- ldWQ(url,agency,QC=T)
       if(!is.null(xmlfile)){
@@ -68,6 +69,7 @@ for(i in 1:length(sites)){
         if(length(value)==0){
           value <- sapply(getNodeSet(doc=xmlfile, "//I1"), xmlValue)
         }
+        if(length(value)==0){next}
         #Add in bit here to get the I2 info
         df <- as.data.frame(time, stringsAsFactors = FALSE)
         df$value <- value
@@ -213,15 +215,15 @@ while(i<=max){
   
 }
 
-# saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2020/",agency,"SWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2020/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+# saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
+file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
 # Setting timeseries to be WQData
-x <- readLines(paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+x <- readLines(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
 y <- gsub( "NumItems=\"1\"", "NumItems=\"2\"", x, ignore.case = TRUE  )
 y <- gsub( "SimpleTimeSeries", "WQData", y, ignore.case = TRUE  )  
-writeLines(y,paste0("H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+writeLines(y,paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
 
 
 

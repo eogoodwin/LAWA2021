@@ -6,16 +6,16 @@ library(lubridate)
 library(doBy)
 library(showtext)
 
-setwd("H:/ericg/16666LAWA/LAWA2020/WaterQuality/")
-source("h:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R")
+setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality/")
+source("h:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R")
 
 
-dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 riverSiteTable=loadLatestSiteTableRiver()
 macroSiteTable=loadLatestSiteTableMacro()
 
 
-#A few of those auckland sites had the worng coordinates as of Sept 2020
+#A few of those auckland sites had the worng coordinates as of Sept 2021
 if(abs(macroSiteTable$Long[which(macroSiteTable$LawaSiteID=='lawa-102734')]-176.5804)<0.0001){
   macroSiteTable$Long[which(macroSiteTable$LawaSiteID=='lawa-102734')] <- 174.7273
   macroSiteTable$Lat[which(macroSiteTable$LawaSiteID=='lawa-102734')] <- (-36.8972)
@@ -41,16 +41,16 @@ for(ms in seq_along(these)){
 
 
 #prep data ####
-# wqdataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
+# wqdataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
 # cat(wqdataFileName)
 # wqdata=read_csv(wqdataFileName,guess_max = 100000)%>%as.data.frame
 # rm(wqdataFileName)
-# macroData=read_csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Data",pattern="MacrosWithMetadata",
+# macroData=read_csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data",pattern="MacrosWithMetadata",
 # recursive = T,full.names = T),1))
 # macroData$LawaSiteID = tolower(macroData$LawaSiteID)
 
 
-NOFSummaryTable=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/WaterQuality/Analysis/",pattern="NOFSummaryTable_Rolling",
+NOFSummaryTable=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern="NOFSummaryTable_Rolling",
                                   recursive=T,full.names = T),1),stringsAsFactors = F)
 NOFSummaryTable <- NOFSummaryTable%>%filter(Year!='2005to2009')  #Just, you see this way we're left with a single decade
 NOFSummaryTable$SWQAltitude = pseudo.titlecase(tolower(NOFSummaryTable$SWQAltitude))
@@ -77,10 +77,10 @@ NOFSummaryTable$Lat=riverSiteTable$Lat[match(tolower(NOFSummaryTable$LawaSiteID)
 NOFlatest = droplevels(NOFSummaryTable%>%filter(Year=="2015to2019"))
 
 
-lawaMacroState5yr = read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/',pattern='MACRO_STATE_ForITE|MacroState',recursive = T,full.names = T),1),stringsAsFactors = F)
+lawaMacroState5yr = read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/',pattern='MACRO_STATE_ForITE|MacroState',recursive = T,full.names = T),1),stringsAsFactors = F)
 lawaMacroState5yr = lawaMacroState5yr%>%filter(Parameter=="MCI")%>%dplyr::rename(LawaSiteID=LAWAID,Measurement=Parameter,Q50=Median)
 
-MCINOF = read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/MacroInvertebrates/Analysis/",pattern="MacroRollingMCI",
+MCINOF = read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="MacroRollingMCI",
                            recursive = T,full.names = T),1),stringsAsFactors = F)
 MCINOF$Region=macroSiteTable$Region[match(gsub('_niwa','',tolower(MCINOF$LawaSiteID)),tolower(macroSiteTable$LawaSiteID))]
 
@@ -172,7 +172,7 @@ MCILUexport <- MCILUexport%>%pivot_longer(cols=A:D,names_to = 'Band',values_to =
 NOFLUexport <- do.call(rbind,list(DRPLUexport,ECOLILUexport,NH4LUexport,MCILUexport))
 
 # rm(DRPLUexport,ECOLILUexport,NH4LUexport,MCILUexport)
-write.csv(NOFLUexport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/',
+write.csv(NOFLUexport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/',
                              'DownloadDataFiles/NOFResultsLatestByLandUseAndRegion.csv'),row.names=F)
 
 #Now the time history one ####
@@ -222,7 +222,7 @@ NH4NOFs = NOFSummaryTable%>%drop_na(Ammonia_Toxicity_Band)%>%filter(Ammonia_Toxi
   dplyr::select(Region,LandCover,Indicator,Year,Band,Count)
 
 NOFHistoryExport <- do.call(rbind,list(DRPNOFs,ECOLINOFs,MCINOFsexp,NH4NOFs))
-write.csv(NOFHistoryExport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/',
+write.csv(NOFHistoryExport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/',
                                   'DownloadDataFiles/NOFResultsHistoryCompleteSites.csv'),row.names=F)
 
 
@@ -256,7 +256,7 @@ plot(1:9,1:9,col=LAWAPalette,cex=5,pch=16)
 
 #NOF results by land use ####
 #NOFDRPLU ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFDRPLU_map.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFDRPLU_map.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,4,4,2),col.main=LAWAPalette[2],col.axis=LAWAPalette[3],col.lab=LAWAPalette[3])
 layout(matrix(c(1,1,2,
@@ -279,18 +279,18 @@ par(mar=c(1,0,0,0))
 plot(nzmap,col=OLPalette[1],border=OLPalette[1],lwd=NULL)
 with(NOFlatest%>%filter(DRP_Summary_Band!="NA")%>%tidyr::drop_na(gRecLC),{
   points(Long,Lat,pch=16,cex=0.75,col='black')
-  write.csv(cbind(Long,Lat,DRP_Summary_Band),paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFDRPmapPts.csv"),row.names=F)
+  write.csv(cbind(Long,Lat,DRP_Summary_Band),paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFDRPmapPts.csv"),row.names=F)
   }
 )
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 testb=rbind(testb,test,c(sum(apply(test[,-1],2,FUN=function(x)sum(as.numeric(x),na.rm=T))),apply(test[,-1],2,FUN=function(x)sum(as.numeric(x),na.rm=T))))
-write.csv(testb,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFDRPLU.csv"),row.names=F)
+write.csv(testb,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFDRPLU.csv"),row.names=F)
 rm(list=ls(pattern='^test'))
 
 
 #NOFECOLILU ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFEcoliLU_map.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFEcoliLU_map.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,4,4,2),col.main=LAWAPalette[2],col.axis=LAWAPalette[3],col.lab=LAWAPalette[3])
 layout(matrix(c(1,1,2,
@@ -313,11 +313,11 @@ par(mar=c(1,0,0,0))
 plot(nzmap,col=OLPalette[1],border=OLPalette[1],lwd=NULL)
 with(NOFlatest%>%filter(EcoliSummaryband!="NA")%>%tidyr::drop_na(gRecLC),{
      points(Long,Lat,pch=16,cex=0.75,col='black')
-     write.csv(cbind(Long,Lat,EcoliSummaryband),paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFEcolimapPts.csv"),row.names=F)
+     write.csv(cbind(Long,Lat,EcoliSummaryband),paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFEcolimapPts.csv"),row.names=F)
 })
 if(names(dev.cur())=='tiff'){dev.off()}
 testb=rbind(testb,test,c(sum(apply(test[,-1],2,FUN=function(x)sum(as.numeric(x),na.rm=T))),apply(test[,-1],2,FUN=function(x)sum(as.numeric(x),na.rm=T))))
-write.csv(testb,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFEcoliLU.csv"),row.names=F)
+write.csv(testb,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFEcoliLU.csv"),row.names=F)
 rm(list=ls(pattern='^test'))
 
 
@@ -325,7 +325,7 @@ rm(list=ls(pattern='^test'))
 
 
 #NOFMCILU ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFMCILU_map.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFMCILU_map.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,4,4,2),col.main=LAWAPalette[2],col.axis=LAWAPalette[3],col.lab=LAWAPalette[3])
 layout(matrix(c(1,1,2,
@@ -349,11 +349,11 @@ par(mar=c(1,0,0,0))
 plot(nzmap,col=OLPalette[1],border=OLPalette[1],lwd=NULL)
 with(MCINOF%>%filter(sYear=="2019")%>%tidyr::drop_na(gRecLC),{
      points(Long,Lat,pch=16,cex=0.75,col='black')
-     write.csv(cbind(Long,Lat,band),paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFMCImapPts.csv"),row.names=F)
+     write.csv(cbind(Long,Lat,band),paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFMCImapPts.csv"),row.names=F)
 })
 if(names(dev.cur())=='tiff'){dev.off()}
 testb=rbind(testb,test,c(sum(apply(test[,-1],2,FUN=function(x)sum(as.numeric(x),na.rm=T))),apply(test[,-1],2,FUN=function(x)sum(as.numeric(x),na.rm=T))))
-write.csv(testb,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFMCILU.csv"),row.names=F)
+write.csv(testb,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFMCILU.csv"),row.names=F)
 rm(list=ls(pattern='^test'))
 
 
@@ -361,7 +361,7 @@ rm(list=ls(pattern='^test'))
 
 
 #NOFNH4LU ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFNH4LU_map.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFNH4LU_map.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,4,4,2),col.main=LAWAPalette[2],col.axis=LAWAPalette[3],col.lab=LAWAPalette[3])
 layout(matrix(c(1,1,2,
@@ -385,12 +385,12 @@ par(mar=c(1,0,0,0))
 plot(nzmap,col=OLPalette[1],border=OLPalette[1],lwd=NULL)
 with(NOFlatest%>%filter(Ammonia_Toxicity_Band!="NA")%>%tidyr::drop_na(gRecLC),{
      points(Long,Lat,pch=16,cex=0.75,col='black')
-     write.csv(cbind(Long,Lat,Ammonia_Toxicity_Band),paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFNH4mapPts.csv"),row.names=F)
+     write.csv(cbind(Long,Lat,Ammonia_Toxicity_Band),paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFNH4mapPts.csv"),row.names=F)
 })
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 testb=rbind(testb,test,c(sum(apply(test[,-1],2,FUN=function(x)sum(as.numeric(x),na.rm=T))),apply(test[,-1],2,FUN=function(x)sum(as.numeric(x),na.rm=T))))
-write.csv(testb,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFNH4LU.csv"),row.names=F)
+write.csv(testb,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFNH4LU.csv"),row.names=F)
 rm(list=ls(pattern='^test'))
 
 
@@ -398,7 +398,7 @@ rm(list=ls(pattern='^test'))
 #Changes in NOF with complete sites ####
 xlabpos=(1:10)*0.12-0.07
 # NOFTrendDRPSum ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendDRPSum.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendDRPSum.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 DRPNOFs = NOFSummaryTable%>%drop_na(DRP_Summary_Band)%>%filter(DRP_Summary_Band!="NA")%>%
@@ -425,7 +425,7 @@ with(DRPNOFs%>%filter(Year=='2015to2019'),
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendDRP.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendDRP.csv"),row.names=T)
 rm(DRPNOFs,nSites,iT)
 
 
@@ -433,7 +433,7 @@ rm(DRPNOFs,nSites,iT)
 
 
 # NOFTrendMCI  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendMCI.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendMCI.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 MCINOFs = MCINOF%>%filter(sYear>=2010)%>%group_by(LawaSiteID)%>%filter(band!='NA')%>%drop_na(band)%>%
@@ -457,12 +457,12 @@ points(MCINOFs$Long,MCINOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendMCI.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendMCI.csv"),row.names=T)
 rm(MCINOFs,nSites,iT)
 
 
 # NOFTrendAmmoniacalTox  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmoniacalTox.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmoniacalTox.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 ammonNOFs = NOFSummaryTable%>%filter(Ammonia_Toxicity_Band!="NA")%>%drop_na(Ammonia_Toxicity_Band)%>%
@@ -487,11 +487,11 @@ points(ammonNOFs$Long,ammonNOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendNH4.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendNH4.csv"),row.names=T)
 rm(ammonNOFs,nSites,iT)
 
 # NOFTrendEcoliSummary ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEcoliSummary.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEcoliSummary.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 ecoliNOFs = NOFSummaryTable%>%filter(EcoliSummaryband!="NA")%>%drop_na(EcoliSummaryband)%>%
@@ -516,15 +516,15 @@ points(ecoliNOFs$Long,ecoliNOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites",""))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEColi.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEColi.csv"),row.names=T)
 rm(ecoliNOFs,nSites,iT)
 
 
 
 #Copy fioles to sharepoint ####
-file.copy(from = dir(path=paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d")),
+file.copy(from = dir(path=paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d")),
                      pattern = "tif$",full.names = T),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2020_NationalPicture/NationalPicturePlots",
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/NationalPicturePlots",
           overwrite = T,copy.date = T)
 
 
@@ -535,7 +535,7 @@ file.copy(from = dir(path=paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",
 xlabpos=(1:10)*0.12-0.07
 
 for(region in unique(NOFSummaryTable$Region)){
-  tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrend",pseudo.titlecase(region),".tif"),
+  tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrend",pseudo.titlecase(region),".tif"),
        width = 10,height=8,units='in',res=600,compression='lzw',type='cairo')
   showtext_begin()
   layout(matrix(c(1,1,3,4,4,6,
@@ -685,7 +685,7 @@ for(region in unique(NOFSummaryTable$Region)){
 
 
 # NOFTrendNitrateTox ####
-# tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendNitrateTox.tif"),
+# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendNitrateTox.tif"),
 #      width = 14,height=8,units='in',res=300,compression='lzw',type='cairo')
 # nitrateNOFs = NOFSummaryTable%>%drop_na(Nitrate_Toxicity_Band)%>%filter(Nitrate_Toxicity_Band!="NA")%>%
 #   select(-starts_with(c('Ecoli','Ammonia'),ignore.case = T))%>%
@@ -710,7 +710,7 @@ for(region in unique(NOFSummaryTable$Region)){
 # if(names(dev.cur())=='tiff'){dev.off()}
 # rm(nitrateNOFs,nSites,iT)
 
-# tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFDRPLU.tif"),
+# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFDRPLU.tif"),
 #      width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
 # par(mfrow=c(2,1),xpd=T)
 # with(NOFlatest%>%filter(DRP_Summary_Band!="NA"),{
@@ -724,7 +724,7 @@ for(region in unique(NOFSummaryTable$Region)){
 #   labelAreas(InvTab)})
 # if(names(dev.cur())=='tiff'){dev.off()}
 
-# tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFEcoliLU.tif"),
+# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFEcoliLU.tif"),
 #      width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
 # par(mfrow=c(2,1),xpd=T)
 # with(NOFlatest%>%filter(EcoliSummaryband!="NA"),{
@@ -738,7 +738,7 @@ for(region in unique(NOFSummaryTable$Region)){
 # labelAreas(InvTab)})
 # if(names(dev.cur())=='tiff'){dev.off()}
 # 
-# tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFNH4LU.tif"),
+# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFNH4LU.tif"),
 #      width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
 # par(mfrow=c(2,1),xpd=T)
 # with(NOFlatest%>%dplyr::filter(Ammonia_Toxicity_Band!="NA"),{
@@ -752,7 +752,7 @@ for(region in unique(NOFSummaryTable$Region)){
 # labelAreas(InvTab)})
 # if(names(dev.cur())=='tiff'){dev.off()}
 
-# tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFMCILU.tif"),
+# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/NOFMCILU.tif"),
 #      width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
 # par(mfrow=c(2,1),xpd=T)
 # with(MCINOF%>%filter(sYear=="2019"),{
@@ -804,7 +804,7 @@ for(uparam in seq_along(uMeasures)){
   bestImp <- which.min(subTrend$MKProbability)
   leastKnown <- which.min(abs(subTrend$MKProbability-0.5))
   if(savePlott){
-    tiff(paste0("h:/ericg/16666LAWA/LAWA2020/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/BestWorst",uMeasures[uparam],".tif"),
+    tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/",format(Sys.Date(),"%Y-%m-%d"),"/BestWorst",uMeasures[uparam],".tif"),
          width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
   }else{
     windows()

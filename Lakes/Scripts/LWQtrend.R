@@ -1,9 +1,9 @@
 rm(list=ls())
 library(tidyverse)
-source("h:/ericg/16666LAWA/LAWA2020/Scripts/LWPTrends_Dec18/LWPTrends_v1811.R")
-source("h:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R")
-#source("h:/ericg/16666LAWA/LAWA2020/WaterQuality/scripts/SWQ_state_functions.R")
-try(dir.create(paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F))
+source("h:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R")
+source("h:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R")
+#source("h:/ericg/16666LAWA/LAWA2021/WaterQuality/scripts/SWQ_state_functions.R")
+try(dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F))
 
 Mode=function(x) {
   ux <- unique(x)
@@ -19,7 +19,7 @@ lakesSiteTable=loadLatestSiteTableLakes()
 
 #Load the latest made 
 if(!exists('lakeData')){
-  lakeDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2020/Lakes/Data",pattern = "LakesWithMetadata.csv",
+  lakeDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data",pattern = "LakesWithMetadata.csv",
                             recursive = T,full.names = T,ignore.case=T),1)
   lakeData=read.csv(lakeDataFileName,stringsAsFactors = F)
   rm(lakeDataFileName)
@@ -176,7 +176,7 @@ trendTable15$ConfCat=factor(trendTable15$ConfCat,levels=rev(c("Very likely impro
 trendTable15$TrendScore=as.numeric(trendTable15$ConfCat)-3
 trendTable15$TrendScore[is.na(trendTable15$TrendScore)]<-(NA)
 
-save(trendTable15,file=paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend15Year.rData"))
+save(trendTable15,file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend15Year.rData"))
 rm(trendTable15)
 
 
@@ -296,7 +296,7 @@ trendTable10$ConfCat <- cut(trendTable10$MKProbability, breaks=  c(-0.1, 0.1,0.3
 trendTable10$ConfCat=factor(trendTable10$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
 trendTable10$TrendScore=as.numeric(trendTable10$ConfCat)-3
 trendTable10$TrendScore[is.na(trendTable10$TrendScore)]<-(NA)
-save(trendTable10,file=paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10Year.rData"))
+save(trendTable10,file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10Year.rData"))
 rm(trendTable10)
 
 
@@ -401,16 +401,16 @@ trendTable5$ConfCat <- cut(trendTable5$MKProbability, breaks=  c(-0.1, 0.1,0.33,
 trendTable5$ConfCat=factor(trendTable5$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
 trendTable5$TrendScore=as.numeric(trendTable5$ConfCat)-3
 trendTable5$TrendScore[is.na(trendTable5$TrendScore)]<-(NA)
-save(trendTable5,file=paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend5Year.rData"))
+save(trendTable5,file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend5Year.rData"))
 rm(trendTable5)
 
 #Reload, combine and output ####
 
-load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",
+load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
               pattern = "Trend15Year.rData",full.names = T,recursive = T),1),verbose =T)
-load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",
+load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
               pattern = "Trend10Year.rData",full.names = T,recursive = T),1),verbose = T)
-load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",
+load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
               pattern = "Trend5Year.rData",full.names = T,recursive = T),1),verbose = T)
 
 
@@ -419,7 +419,7 @@ combTrend <- rbind(rbind(trendTable15,trendTable10),trendTable5)%>%
                 Measurement,nMeasures,frequency,period,TrendScore,ConfCat,AnalysisNote,AnalysisNoteSS,everything())
 
 write.csv(combTrend,
-          paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",
+          paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
                  format(Sys.Date(),"%Y-%m-%d"),"/LakesWQ_Trend",
                  format(Sys.time(),"%d%b%Y"),".csv"),row.names = F)
 
@@ -433,20 +433,20 @@ trendTable15$TrendScore[is.na(trendTable15$TrendScore)] <- (-99)
 write.csv(trendTable5%>%dplyr::transmute(LAWAID=LawaSiteID,
                                          Parameter=Measurement,
                                          Trend5=TrendScore),
-          file=paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+          file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITELakeSiteTrend5",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 write.csv(trendTable10%>%dplyr::transmute(LAWAID=LawaSiteID,
                                          Parameter=Measurement,
                                          Trend10=TrendScore),
-          file=paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+          file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITELakeSiteTrend10",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 write.csv(trendTable15%>%dplyr::transmute(LAWAID=LawaSiteID,
                                          Parameter=Measurement,
                                          Trend15=TrendScore),
-          file=paste0("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+          file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITELakeSiteTrend15",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 
 
-# combTrend <- read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2020/Lakes/Analysis/","LakesWQ_Trend",
+# combTrend <- read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/","LakesWQ_Trend",
 # 		recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
 

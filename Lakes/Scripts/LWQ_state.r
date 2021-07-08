@@ -31,12 +31,12 @@ if(!exists('lakeData')){
   lakeDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data",pattern = "LakesWithMetadata.csv",
                             recursive = T,full.names = T,ignore.case=T),1)
   cat(lakeDataFileName)
-  lakeData=read.csv(lakeDataFileName,stringsAsFactors = F)
+  lakeData=read_csv(lakeDataFileName,guess_max = 10000)
   rm(lakeDataFileName)
   lakeData$Value[which(lakeData$Measurement%in%c('TN','TP'))]=
     lakeData$Value[which(lakeData$Measurement%in%c('TN','TP'))]*1000  #mg/L to mg/m3   #Until 4/10/18 also NH4N
   
-  if(lubridate::year(Sys.Date())==2021){
+  if(lubridate::year(Sys.Date())==2020){
     # Lake Omapere in northland was being measured for chlorophyll in the wrong units.  It's values need converting.
     these = which(lakeData$LawaSiteID=='nrc-00095' & lakeData$Measurement=='CHLA')
     if(mean(lakeData$Value[these],na.rm=T)<1){
@@ -55,7 +55,7 @@ lakeData$Year=lubridate::year(lubridate::dmy(lakeData$Date))
 lakeData$monYear=paste0(lakeData$month,lakeData$Year)
 
 lakeData=lakeData[which( lakeData$Year<=EndYear),] #lakeData$Year>=StartYear10 &
-#67285 to 66233
+#59389 to 59389
 if(0){
   #Marchtwentynineteen PaulScholes identifies that the wrong LFENZ IDs have been applied to the BOPRC lakeData
   #They're correct in the lakeSiteTable, but wrong in the data
@@ -99,7 +99,8 @@ lakeData$Date=lubridate::dmy(lakeData$Date)
 TLI=lakeData%>%dplyr::filter(Measurement%in%c("CHLA","Secchi","TN","TP"))%>%
   dplyr::group_by(LawaSiteID,Year,Measurement)%>%
   # dplyr::mutate(n=n())%>%
-  dplyr::summarise(mean=mean(Value,na.rm=T))%>%
+  dplyr::summarise(.groups='keep',
+                   mean=mean(Value,na.rm=T))%>%
   tidyr::pivot_wider(id_cols=c(LawaSiteID,Year),names_from = Measurement,values_from="mean")%>%as.data.frame
 TLc=2.22+2.54*log(TLI$CHLA,base = 10)
 TLs=5.1+2.27*log((1/TLI$Secchi)-(1/40),base=10) #was 5.1+2.6 for 20eighteen, until 26/6/twentynineteen Deniz Ozkundakci email 
@@ -119,7 +120,8 @@ TLI <- TLI%>%
 TLIbyFENZ=lakeData%>%
   dplyr::group_by(LFENZID,Year,Measurement)%>%
   dplyr::mutate(n=n())%>%
-  dplyr::summarise(mean=mean(Value,na.rm=T))%>%
+  dplyr::summarise(.groups='keep',
+                   mean=mean(Value,na.rm=T))%>%
   tidyr::spread(data=.,key=Measurement,value=mean)%>%as.data.frame
 TLc=2.22+2.54*log(TLIbyFENZ$CHLA,base = 10)
 TLs=5.1+2.27*log((1/TLIbyFENZ$Secchi)-(1/40),base=10) #was 5.1+2.6 for 20eighteen, until 26/6/twentynineteen Deniz Ozkundakci email 
@@ -182,21 +184,21 @@ foreach(i = 1:length(lakeParam),.combine=rbind,.errorhandling='stop')%dopar%{
   
   lakeData_med <- lakeData_A%>%
     dplyr::group_by(monYear,LawaSiteID,CouncilSiteID)%>%  #13/8/twentynineteen added CouncilSiteID in addition to LAWASiteID to separate TRC sites
-    dplyr::summarise(
-      Year = unique(Year,na.rm=T),
-      month = unique(month,na.rm=T),
-      SiteID=unique(SiteID),
-      LFENZID=unique(LFENZID,na.rm=T),
-      Agency=unique(Agency),
-      Region=unique(Region),
-      Value=median(Value,na.rm=T),
-      Measurement=unique(Measurement,na.rm=T),
-      n=n(),
-      Censored=any(Censored),
-      centype=paste(unique(centype[centype!='FALSE']),collapse=''),
-      LType=pseudo.titlecase(unique(tolower(LType),na.rm=T)),
-      GeomorphicLType=pseudo.titlecase(unique(tolower(GeomorphicLType),na.rm=T)),
-      Freq=(unique(Frequency))
+    dplyr::summarise(.groups='keep',
+                     Year = unique(Year,na.rm=T),
+                     month = unique(month,na.rm=T),
+                     SiteID=unique(SiteID),
+                     LFENZID=unique(LFENZID,na.rm=T),
+                     Agency=unique(Agency),
+                     Region=unique(Region),
+                     Value=median(Value,na.rm=T),
+                     Measurement=unique(Measurement,na.rm=T),
+                     n=n(),
+                     Censored=any(Censored),
+                     centype=paste(unique(centype[centype!='FALSE']),collapse=''),
+                     LType=pseudo.titlecase(unique(tolower(LType),na.rm=T)),
+                     GeomorphicLType=pseudo.titlecase(unique(tolower(GeomorphicLType),na.rm=T)),
+                     Freq=(unique(Frequency))
     )%>%ungroup
   rm(lakeData_A)
   
@@ -211,13 +213,15 @@ lake5YearMedian <- lakeMonthlyMedian%>%
   dplyr::filter(!is.na(LawaSiteID))%>%
   dplyr::filter(Year>=StartYear5)%>%
   dplyr::group_by(LawaSiteID,Measurement)%>%
-  dplyr::summarise(Median=quantile(Value,prob=0.5,type=5,na.rm=T),
+  dplyr::summarise(.groups='keep',
+                   Median=quantile(Value,prob=0.5,type=5,na.rm=T),
                    n=n())%>%ungroup
 TLI5Year = TLI%>%
   dplyr::filter(!is.na(LawaSiteID))%>%
   dplyr::filter(Year>=StartYear5)%>%
   dplyr::group_by(LawaSiteID,Measurement)%>%
-  dplyr::summarise(Median = quantile(Value,prob=0.5,type=5,na.rm=T),
+  dplyr::summarise(.groups='keep',
+                   Median = quantile(Value,prob=0.5,type=5,na.rm=T),
                    n=n())%>%ungroup
 lake5YearMedian <- rbind(lake5YearMedian,TLI5Year)%>%arrange(LawaSiteID,Measurement)
 rm(TLI5Year)
@@ -230,13 +234,15 @@ lake5yearMedianBYFENZ <- lakeMonthlyMedian%>%
   drop_na(LFENZID)%>%
   dplyr::filter(Year>=StartYear5)%>%
   dplyr::group_by(LFENZID,Measurement)%>%
-  dplyr::summarise(Median = quantile(Value,prob=0.5,type=5,na.rm=T),
+  dplyr::summarise(.groups='keep',
+                   Median = quantile(Value,prob=0.5,type=5,na.rm=T),
                    n=n())%>%ungroup
 TLI5YearByFENZ <- TLIbyFENZ%>%
   dplyr::filter(!is.na(LFENZID))%>%
   dplyr::filter(Year>=StartYear5)%>%
   dplyr::group_by(LFENZID,Measurement)%>%
-  dplyr::summarise(Median = quantile(Value,prob=0.5,type=5,na.rm=T),
+  dplyr::summarise(.groups='keep',
+                   Median = quantile(Value,prob=0.5,type=5,na.rm=T),
                    n=n())%>%ungroup
 lake5yearMedianBYFENZ <- rbind(lake5yearMedianBYFENZ,TLI5YearByFENZ)%>%arrange(LFENZID,Measurement)
 rm(TLI5YearByFENZ)
