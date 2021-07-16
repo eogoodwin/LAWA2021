@@ -318,12 +318,110 @@ ldWQ <- function(urlIn,agency,method='curl',module='',QC=F,...){
   return(dataxml)   # if no error and no qc, return the data to the loadAgency scripts
 }
 
+
+ldWQlist <- function(urlIn,agency,method='curl',module='',QC=F,...){
+  require(xml2)
+  tempFileName=tempfile(tmpdir="D:/LAWA/2021",pattern=paste0(module,agency),fileext=".xml")
+  #Try both methods of downloading, return a NULL if neither works
+  # dl=download.file(urlIn,destfile=tempFileName,method=method,quiet=T)
+  dl=try(download.file(urlIn,destfile=tempFileName,method=method,quiet=T,...),silent = T)
+  if('try-error'%in%attr(dl,'class')){
+    method=ifelse(method=='curl',yes = 'wininet',no = 'curl')
+    dl=try(download.file(urlIn,destfile=tempFileName,method=method,quiet=T,...),silent = T)
+    if('try-error'%in%attr(dl,'class')){
+      return(NULL)
+    }
+  }
+  
+  #If we havent returned NULL by here, we've got a file.  Try parsing it, return NULL on failure
+  dataxml <- try(as_list(read_xml(tempFileName)),silent=T)
+  if(is.null(dataxml)|'try-error'%in%attr(dataxml,'class')){
+    unlink(tempFileName) #delete the faulty file
+    return(NULL)
+  }
+  #If we havent returned NULL by here we've parsed it.  Look for reported errrors, return NULL on error
+  # error<-try(as.character(sapply(getNodeSet(doc=dataxml, path="//Error"), xmlValue)),silent=T)
+  # if(length(error)>0){
+  #   unlink(tempFileName) #delete the error report file
+  #   return(NULL)
+  # }
+  unlink(tempFileName)
+  
+  #Check whether there's QC data held separately.
+  #Now, for GWRC, GDC, MDC and HBRC  there are QC codes in the I2 field where teh censoring info is held.
+  if(QC){
+    if(grepl('hilltop',urlIn)){
+      urlIn=paste0(urlIn,"&tstype=stdqualseries")
+      tempFileName=paste0("D:/LAWA/2021/tmpQC",module,agency,".xml")
+      dl=try(download.file(urlIn,destfile=tempFileName,method=method,quiet=T,...),silent = T)
+      if('try-error'%in%attr(dl,'class')){
+        method=ifelse(method=='curl',yes = 'wininet',no = 'curl')
+        dl=try(download.file(urlIn,destfile=tempFileName,method=method,quiet=T,...),silent = T)
+        if('try-error'%in%attr(dl,'class')){
+          QC=F
+        }
+      }
+      if(QC){
+        qcxml <- try(xmlParse(file = tempFileName),silent=T)
+        if(is.null(qcxml)|'try-error'%in%attr(qcxml,'class')){
+          unlink(tempFileName) #delete the faulty file
+          rm(qcxml)
+          QC=F
+        }
+      }
+      if(QC){
+        nodataerror<-try(as.character(sapply(getNodeSet(doc=qcxml, path="//Error"), xmlValue)),silent=T)
+        if(length(nodataerror)>0){
+          unlink(tempFileName) #delete the error report file
+          rm(qcxml)
+          QC=F
+        }
+      }
+      unlink(tempFileName)
+      if(exists('qcxml')){
+        # browser()
+        return(list(dataxml,qcxml))
+      }
+    }
+  }
+  # Determine number of records in a wfs with module before attempting to extract all the necessary columns needed
+  dataxml=dataxml$Hilltop$Measurement$Data
+  dataxml=lapply(seq_along(dataxml),function(listIndex){
+    # return(c(time=listItem$T[[1]],value=listItem$Value[[1]]))
+    liout <- unlist(dataxml[[listIndex]][c("T","Value")])
+    liout=data.frame(Name=names(liout),Value=unname(liout))
+    if(length(dataxml[[listIndex]])>2){
+      attrs=sapply(seq_along(dataxml[[listIndex]])[-c(1,2)],
+                   FUN=function(inListIndex){
+                     as.data.frame(attributes(dataxml[[listIndex]][inListIndex]$Parameter))
+                   })
+      if(class(attrs)=="list"&&any(lengths(attrs)==0)){
+        attrs[[which(lengths(attrs)==0)]] <- NULL
+        liout=rbind(liout,bind_rows(attrs))
+      }else{
+        attrs=t(attrs)
+        liout=rbind(liout,attrs)
+      }
+    }
+    return(liout)
+  })
+  dataxml=do.call(rbind,dataxml)
+  return(dataxml)   # if no error and no qc, return the data to the loadAgency scripts
+}
+
+
 ldLWQ <- function(...){
   ldWQ(...,module='L')
 }
 
 ldMWQ <- function(...){
   ldWQ(...,module='M')
+}
+ldLWQlist <- function(...){
+  ldWQlist(...,module='L')
+}
+ldMWQlist <- function(...){
+  ldWQlist(...,module='M')
 }
 
 checkCSVageRiver <- function(agency,maxHistory=100){
@@ -1034,6 +1132,7 @@ checkCSVageLakes <- function(agency,maxHistory=100){
   }
 }
 loadLatestCSVLake <- function(agency,maxHistory=365,quiet=F){
+  require(tidyverse)
   stepBack=0
   while(stepBack<maxHistory){
     if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
@@ -1043,9 +1142,8 @@ loadLatestCSVLake <- function(agency,maxHistory=365,quiet=F){
         if(!quiet){
           cat("loading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         }
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
-                               format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"),
-                        stringsAsFactors = F))
+        return(read_csv(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
+                               format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))%>%as.data.frame)
       }
     }
     stepBack=stepBack+1

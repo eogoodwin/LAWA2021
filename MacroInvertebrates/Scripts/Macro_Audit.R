@@ -108,7 +108,7 @@ upara=unique(macroData$Measurement)
 ucounc=c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
 for(up in seq_along(upara)){
   png(filename = paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/",
-                        upara[up],format(Sys.Date(),'%d%b%y'),".png"),
+                        make.names(upara[up]),format(Sys.Date(),'%d%b%y'),".png"),
       width = 12,height=9,units='in',res=300,type='cairo')
   pvals=macroData[macroData$Measurement==upara[up],]
   p1=quantile(pvals$Value,p=0.01,na.rm=T)
@@ -140,7 +140,7 @@ urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",
                    # "mdc", "ncc", "nrc", "orc", "tdc", "trc", "wcrc", "wrc"),
         # .combine=rbind,.errorhandling="stop")%dopar%{
 for(agency in c("ac", "boprc", "ecan", "es", "gdc", "gwrc", "hbrc", "hrc", 
-                "mdc", "ncc","niwa", "nrc", "orc", "tdc", "trc", "wcrc", "wrc")){
+                "mdc", "ncc", "nrc", "orc", "tdc", "trc", "wcrc", "wrc")){
           if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                         pattern = paste0('^',agency,".*audit\\.csv"),
                         recursive = T,full.names = T,ignore.case = T))>0){

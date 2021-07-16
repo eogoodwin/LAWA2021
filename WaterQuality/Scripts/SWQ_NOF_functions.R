@@ -70,6 +70,9 @@ NOF_FindBand <- function(value, bandColumn){
   paste(LETTERS[which(unlist(lapply(gsub(pattern = 'x',replacement = value,x = bandColumn),FUN = function(x){eval(parse(text=x))})))],collapse='')
 }
 #=======================================================================================================
+
+
+
 rolling5 <- function(siteChemSet,quantProb,nreq=30,quReq=0){ 
   sapply(yr[grepl('to',yr)],FUN=function(dt){
     startYear = as.numeric(strTo(s = dt,c = 'to'))

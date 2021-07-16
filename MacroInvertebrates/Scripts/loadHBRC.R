@@ -10,8 +10,6 @@ tab="\t"
 setwd("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/")
 
 df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
-configsites <- subset(df,df$Type=="Site")[,2]
-configsites <- as.vector(configsites)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 siteTable=loadLatestSiteTableMacro()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
@@ -26,19 +24,28 @@ con$addTag("Agency", agency)
 for(i in 1:length(sites)){
   cat(sites[i],i,'out of ',length(sites),'\n')
   for(j in 1:length(Measurements)){
-    url <- paste0("https://data.hbrc.govt.nz/Envirodata/WQForTrend.hts?service=Hilltop&request=GetData",
-                 "&Site=",sites[i],
-                 "&Measurement=",Measurements[j],
-                 "&From=1990-01-01",
-                 "&To=2021-06-01",sep="")
+    if(Measurements[j]%in%c("Reported MCI","Reported QMCI","ASPM")){
+      url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMAR.hts?service=Hilltop&request=GetData",
+                                                                                      "&Site=",sites[i],
+                                                                                      "&Measurement=",Measurements[j],
+                                                                                      "&From=1990-01-01",
+                                                                                      "&To=2021-06-01",sep="")
+    }else{
+      url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMARDiscreteGood.hts?service=Hilltop&request=GetData",
+                    "&Site=",sites[i],
+                    "&Measurement=",Measurements[j],
+                    "&From=1990-01-01",
+                    "&To=2021-06-01",sep="")
+      
+    }
+    
     url <- URLencode(url)
     
     xmlfile <- ldMWQ(url,agency)
     if(!is.null(xmlfile)){
       xmltop<-xmlRoot(xmlfile)
       m<-xmltop[['Measurement']]
-      
-      
+
       # Create new node to replace existing <Data /> node in m
       DataNode <- newXMLNode("Data",attrs=c(DateFormat="Calendar",NumItems="2"))
       
@@ -73,18 +80,13 @@ for(i in 1:length(sites)){
           }
           # Adding the Item1 node
           addChildren(DataNode[[xmlSize(DataNode)]], newXMLNode(name = "I1",item1))
-          
         }
-        
-        
-        
       } else {
         ## Make new E node
         # Get Time values
         ansTime <- sapply(c("T"),function(var) unlist(xpathApply(m,paste("//",var,sep=""),xmlValue)))
         ansValue <- sapply(c("Value"),function(var) unlist(xpathApply(m,paste("//",var,sep=""),xmlValue)))
 
-        
         # loop through TVP nodes
         for(N in 1:xmlSize(m[['Data']])){  ## Number of Time series values
           # loop through all Children - T, Value, Parameters ..    

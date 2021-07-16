@@ -31,7 +31,7 @@ if(!exists('lakeData')){
   lakeDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data",pattern = "LakesWithMetadata.csv",
                             recursive = T,full.names = T,ignore.case=T),1)
   cat(lakeDataFileName)
-  lakeData=read_csv(lakeDataFileName,guess_max = 10000)
+  lakeData=read_csv(lakeDataFileName,guess_max = 50000)
   rm(lakeDataFileName)
   lakeData$Value[which(lakeData$Measurement%in%c('TN','TP'))]=
     lakeData$Value[which(lakeData$Measurement%in%c('TN','TP'))]*1000  #mg/L to mg/m3   #Until 4/10/18 also NH4N

@@ -26,7 +26,7 @@ for(i in 1:length(sites)){
   cat(sites[i],i,"out of ",length(sites),'\n')
   for(j in 1:length(Measurements)){
     
-    url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMARTest.hts?service=Hilltop&request=GetData",
+    url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMARDiscreteGood.hts?service=Hilltop&request=GetData",
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
                  "&From=2004-01-01",

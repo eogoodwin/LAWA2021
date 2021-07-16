@@ -132,7 +132,7 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
   }
 }
 
-ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-10-06.xlsx',sheet=1)
+ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-07-15.xlsx.xlsx',sheet=1)
 ssm$callID =  NA
 ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
                                                          FUN = function(x)unlist(strsplit(x,split='&')))))%>%
@@ -172,13 +172,13 @@ RegionTable=data.frame(ssm=unique(ssm$Region),
 CISHdata = dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
                pattern="RecData2021",recursive = T,full.names = T,ignore.case=T)
 collectCISH=NULL
-for (renminbi in 1:dim(CISHdata)){
-  load(CISHdata[renminbi])
+for (renminbi in 1:length(CISHdata)){
+  load(CISHdata[renminbi],verbose=T)
   # cat(str(recData),'\n')
   if('lawaSiteID'%in%names(recData)){
-    recData <- recData%>%rename(LawaSiteID=lawaSiteID)
+    recData <- recData%>%dplyr::rename(LawaSiteID=lawaSiteID)
   }
-  recData$LawaSiteID = tolower(recData$LawaSiteID)
+  # recData$LawaSiteID = tolower(recData$LawaSiteID)
   collectCISH = merge(collectCISH,recData,all.y=T)
   cat(dim(collectCISH),'\n')
 }
@@ -188,16 +188,38 @@ rm(recData,CISHdata,renminbi)
 #Compare the number of sites retrieved via SSM with that via WFS enquiry.
 WFSsiteTable = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data",pattern='SiteTable',
                                  recursive=T,full.names=T,ignore.case=T),1),stringsAsFactors = F)
-length(unique(ssm$LawaId))              #624
-length(unique(collectCISH$LawaSiteID))  #484
-length(unique(WFSsiteTable$LawaSiteID)) #683  673 september
+length(unique(ssm$LawaId))              #654
+length(unique(collectCISH$LawaSiteID))  #587
+length(unique(WFSsiteTable$LawaSiteID)) #577
 
-length(unique(c(unique(tolower(ssm$LawaId)),unique(tolower(WFSsiteTable$LawaSiteID)))))              #729
+length(unique(c(unique(tolower(ssm$LawaId)),unique(tolower(WFSsiteTable$LawaSiteID)))))              #739
 
 
 sort(unique((unlist(sapply(X = ssm$TimeseriesUrl,FUN = function(x)unlist(strsplit(x,split='&')))))))
 sort(unique(tolower(unlist(sapply(X = ssm$TimeseriesUrl,FUN = function(x)unlist(strsplit(x,split='&')))))))
+"http://sos.boprc.govt.nz/service?service=sos"                              #bop          
+"http://data.ecan.govt.nz/wqreclawa.hts?service=sos"                        #ecan          
+"http://odp.es.govt.nz/coastal.hts?service=sos"                             #es     1     
+"http://odp.es.govt.nz/cyanoalert.hts?service=sos"                          #es     2     
+"http://hilltop.gdc.govt.nz/data.hts?service=sos"                           #gdc          
+"http://hilltop.gw.govt.nz/cwq_web.hts?service=sos"                         #gw     1     
+"http://hilltop.gw.govt.nz/data.hts?service=sos"                            #gw     2     
+"https://data.hbrc.govt.nz/envirodata/recreational_wq.hts?service=sos"      #hbrc          
+"http://hilltopserver.horizons.govt.nz/cr_provisional.hts?service=sos"      #hrc    1      
+"http://tsdata.horizons.govt.nz/cr_provisional.hts?service=sos"             #hrc    2      
+"https://tsdata.horizons.govt.nz/cr_provisional.hts?service=sos"            #hrc    3
+"http://hydro.marlborough.govt.nz/lawa_rb.hts?service=sos"                  #mdc          
+"http://envdata.nelson.govt.nz/lawa.hts?service=sos"                        #ncc          
+"http://hilltop.nrc.govt.nz/soeswimmingcoastal.hts?service=sos"             #nrc    1      
+"http://hilltop.nrc.govt.nz/soeswimmingfw.hts?service=sos"                  #nrc    2      
+"http://gisdata.orc.govt.nz/hilltop/orcrec.hts?service=sos"                 #orc          
+"https://extranet.trc.govt.nz/getdata/lawa_benthic_wq.hts?service=sos"      #trc    1      
+"https://extranet.trc.govt.nz/getdata/lawa_rec_wq.hts?service=sos"          #trc    2      
+"http://envdata.tasman.govt.nz/waterquality.hts?service=sos"                #tdc          
+"http://envdata.waikatoregion.govt.nz:8080/kiwis/kiwis?datasource=0"        #wrc          
+"http://data.wcrc.govt.nz:9083/contactrecreation.hts?service=sos"           #wcrc          
 
+#2020 archive
 "http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?service=sos"         #BOPRC 
 "http://data.ecan.govt.nz/wqreclawa.hts?service=sos"                                 #ECAN
 "http://wateruse.ecan.govt.nz/bathing.hts?service=sos"                               #ECAN
@@ -223,12 +245,14 @@ sort(unique(tolower(unlist(sapply(X = ssm$TimeseriesUrl,FUN = function(x)unlist(
 
 table(ssm$Region)
 
-# Bay of Plenty region        Canterbury region          Gisborne region       Hawke's Bay region Manawatu-Wanganui region 
-#                       90                      141                       20                       42                      147 
-#       Marlborough region            Nelson region         Northland region             Otago region         Southland region 
-#                       18                       15                       60                       27                       28 
-#          Taranaki region            Tasman region           Waikato region        Wellington region        West Coast region 
-#                       39                        8                       28                      111                       18 
+# Bay of Plenty region         Canterbury region           Gisborne region        Hawke's Bay region 
+#                        91                       142                        33                        37 
+# Manawatū-Whanganui region        Marlborough region             Nelson region          Northland region 
+#                       148                        17                        15                        68 
+#              Otago region          Southland region           Taranaki region             Tasman region 
+#                        27                        28                        39                         7 
+#            Waikato region         Wellington region         West Coast region 
+#                        43                       109                        18 
 
 
 
@@ -238,7 +262,8 @@ table(ssm$Region)
 
 for(SSMregion in unique(ssm$Region)){
   #Find agency Sites
-  agSites <- c(unlist(sapply(X = ssm$TimeseriesUrl[ssm$Region==SSMregion],FUN = function(x)unlist(strsplit(x,split='&')))))%>%
+  agSites <- c(unlist(sapply(X = ssm$TimeseriesUrl[ssm$Region==SSMregion],
+                             FUN = function(x)unlist(strsplit(x,split='&')))))%>%
     grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
     gsub('featureofinterest=','',x=.,ignore.case = T)%>%
     sapply(.,URLdecode)%>%trimws%>%tolower%>%unique
@@ -258,156 +283,6 @@ for(SSMregion in unique(ssm$Region)){
   cat(paste(siteTableSites[!siteTableSites%in%agSites],collapse=';\t'),'\n')
 }  
 
-
-
-
-#Make all yearweeks six characters
-recData$week=as.character(recData$week)
-recData$week[nchar(recData$week)==1]=paste0('0',recData$week[nchar(recData$week)==1])
-recData$YW=as.numeric(paste0(recData$year,recData$week))
-
-#Deal with censored data
-#Anna Madarasz-Smith 1/10/2018
-#Hey guys,
-# We (HBRC) have typically used the value with the >reference 
-# (eg >6400 becomes 6400), and half the detection of the less than values (e.g. <1 becomes 0.5).  I think realistically you can treat
-# these any way as long as its consistent beccuase it shouldn’t matter to your 95th%ile.  These values should be in the highest and lowest of the range.
-# Hope this helps Cheers
-# Anna
-recData$val=as.numeric(recData$val)
-recData$fVal=recData$val
-recData$fVal[recData$lCens]=recData$val[recData$lCens]/2
-recData$fVal[recData$rCens]=recData$val[recData$rCens]
-table(recData$lCens)
-table(recData$rCens)
-
-#Create bathing seasons
-bs=strTo(recData$dateCollected,'-')
-bs[recData$month>6]=paste0(recData$year[recData$month>6],'/',recData$year[recData$month>6]+1)
-bs[recData$month<7]=paste0(recData$year[recData$month<7]-1,'/',recData$year[recData$month<7])
-recData$bathingSeason=bs
-table(recData$bathingSeason)
-
-save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
-                           "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
-# load(dir(path=           'h:/ericg/16666LAWA/2018/RecECOLI',pattern='*RecData*.*Rdata',recursive=T,full.names=T)[6],verbose = T)
-recData$week=lubridate::week(recData$dateCollected)
-recData$YW = paste0(strTo(recData$dateCollected,'-'),recData$week)
-# write.csv(recData%>%filter(YW>201525)%>%filter(month>10|month<4),
-#           file = paste0('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/CISHRaw',format(Sys.time(),'%Y-%b-%d'),'.csv'),row.names = F)
-
-
-
-
-test <- recData%>%
-  # filter(YW>201525)%>%
-  dplyr::filter(LawaSiteID!='')%>%drop_na(LawaSiteID)%>%
-  dplyr::filter(property!='Cyanobacteria')%>%
-  dplyr::filter(year>2014&(month>10|month<4))%>% #bathign season months only
-  dplyr::group_by(LawaSiteID,YW,property)%>%
-  dplyr::arrange(YW)%>%                    #Count number of weeks recorded per season
-  dplyr::summarise(dateCollected=first(dateCollected),
-                   region=unique(region),
-                   n=length(fVal),
-                   fVal=first(fVal),
-                   bathingSeason=unique(bathingSeason))%>%
-  ungroup->graphData
-write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
-                                  format(Sys.Date(),'%Y-%m-%d'),
-                                  "/CISHgraph",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
-rm(test)
-
-graphData%>%
-  select(-dateCollected)%>%
-  group_by(LawaSiteID,property)%>%            #For each site
-  dplyr::summarise(region=unique(region),nBS=length(unique(bathingSeason)),
-                   nPbs=paste(as.numeric(table(bathingSeason)),collapse=','),
-                   min=min(fVal,na.rm=T),
-                   max=max(fVal,na.rm=T),
-                   haz95=quantile(fVal,probs = 0.95,type = 5,na.rm = T),
-                   haz50=quantile(fVal,probs = 0.5,type = 5,na.rm = T))%>%ungroup->CISHsiteSummary
-
-#instantaneous thresholds, shouldnt be applied to percentiles
-# CISHsiteSummary$BathingRisk=cut(x = CISHsiteSummary$haz95,breaks = c(-0.1,140,280,Inf),labels=c('surveillance','warning','alert'))
-
-#https://www.mfe.govt.nz/sites/default/files/microbiological-quality-jun03.pdf
-#For enterococci, marine:                      E.coli, freshwater
-#table D1 A is 95th %ile < 40       table E1     <= 130
-#         B is 95th %ile 41-200                  131 - 260
-#         C is 95th %ile 201-500                 261 - 550
-#         D is 95th %ile >500                       >550
-CISHsiteSummary$marineEnt=cut(x=CISHsiteSummary$haz95,breaks = c(-0.1,40,200,500,Inf),labels=c("A","B","C","D"))
-CISHsiteSummary$marineEnt[CISHsiteSummary$property!='Enterococci'] <- NA
-CISHsiteSummary$fwEcoli=cut(x=CISHsiteSummary$haz95,breaks = c(-0.1,130,260,550,Inf),labels=c("A","B","C","D"))
-CISHsiteSummary$fwEcoli[CISHsiteSummary$property!='E-coli'] <- NA
-table(CISHsiteSummary$marineEnt)
-table(CISHsiteSummary$fwEcoli)
-
-#For LAWA bands
-#30 needed over 3 seasons and 10 per year
-#              marine               fresh
-#              enterococci          e.coli
-#A            <200                  <260
-#B             201-500              261-550
-#C                >500                 >550
-CISHsiteSummary$LawaBand=cut(x=CISHsiteSummary$haz95,breaks=c(-0.1,200,500,Inf),labels=c("A","B","C"))
-CISHsiteSummary$LawaBand[CISHsiteSummary$property!='Enterococci']=cut(x=CISHsiteSummary$haz95[CISHsiteSummary$property!='Enterococci'],
-                                                                      breaks=c(-0.1,260,550,Inf),labels=c("A","B","C"))
-nPbs=do.call("rbind",lapply(CISHsiteSummary$nPbs,FUN = function(x)lapply(strsplit(x,split = ','),as.numeric))) #get the per-season counts
-tooFew = which(do.call('rbind',lapply(nPbs,function(x)any(x<10)|length(x)<3)))  #see if any per-season counts are below ten, or there are fewer than three seasons
-CISHsiteSummary$LawaBand[tooFew]=NA #set those data-poor sites' grade to NA
-
-write.csv(CISHsiteSummary,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
-                                        format(Sys.Date(),'%Y-%m-%d'),
-                                        "/CISHsiteSummary",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
-# CISHsiteSummary=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",pattern="CISHsiteSummary",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
-
-#Export only the data-rich sites
-CISHwellSampled=CISHsiteSummary%>%filter(nBS>=3)
-lrsY=do.call(rbind,str_split(string = CISHwellSampled$nPbs,pattern = ','))
-lrsY=apply(lrsY,2,as.numeric)
-NElt10=which(apply(lrsY,1,FUN=function(x)any(x<10)))
-CISHwellSampled=CISHwellSampled[-NElt10,]
-CISHwellSampled <- left_join(CISHwellSampled,recData%>%select(LawaSiteID,region,siteType,siteName)%>%distinct)
-write.csv(CISHwellSampled,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
-                                        format(Sys.Date(),'%Y-%m-%d'),
-                                        "/CISHwellSampled",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
-
-CISHsiteSummary$region = recData$region[match(CISHsiteSummary$LawaSiteID,recData$LawaSiteID)]
-CISHsiteSummary$siteName = recData$siteName[match(CISHsiteSummary$LawaSiteID,recData$LawaSiteID)]
-CISHsiteSummary$siteType = recData$siteType[match(CISHsiteSummary$LawaSiteID,recData$LawaSiteID)]
-
-#Write individual regional files: data from recData and scores from CISHsiteSummary 
-uReg=unique(recData$region)
-for(reg in seq_along(uReg)){
-  toExport=recData[recData$region==uReg[reg],]
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
-                                 "/recData_",
-                                 gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
-                                 ".csv"),row.names = F)
-  toExport=CISHsiteSummary%>%filter(region==uReg[reg])%>%as.data.frame
-  write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
-                                 "/recScore_",
-                                 gsub(' ','',gsub(pattern = ' region',replacement = '',x = uReg[reg])),
-                                 ".csv"),row.names = F)
-}
-rm(reg,uReg)
-
-#Write export file for ITEffect to use for the website
-recDataITE <- CISHsiteSummary%>%
-  transmute(LAWAID=LawaSiteID,
-            Region=region,
-            Site=siteName,
-            Hazen=haz95,
-            NumberOfPoints=unlist(lapply(str_split(nPbs,','),function(x)sum(as.numeric(x)))),
-            DataMin=min,
-            DataMax=max,
-            RiskGrade=LawaBand)
-# recDataITE$Module[recDataITE$Module=="Site"] <- "River"
-# recDataITE$Module[recDataITE$Module=="LakeSite"] <- "Lake"
-# recDataITE$Module[recDataITE$Module=="Beach"] <- "Coastal"
-write.csv(recDataITE,paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
-                            "/ITERecData",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)  
 
 
 

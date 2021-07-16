@@ -17,7 +17,7 @@ library(DT) #All the data table cleverness
 require(Hmisc)#For hiding TOC
 source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableLakes(maxHistory = 400)
-lawaset=c("TN", "NH4N", "TP", "CHLA", "pH", "Secchi", "ECOLI")
+lawaset=c("TN","NH4N","TP","CHLA","pH","Secchi","ECOLI","CYANOTOT","CYANOTOX")
 agency=params$agency
 urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
@@ -28,7 +28,7 @@ agencyFiles = data.frame(name=dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data
                                   pattern = paste0(agency,'.csv'),
                                   full.names = T,recursive = T,ignore.case = T),
                          nCol = 0,nRow=0,nsite=0,stringsAsFactors = F)
-NH4rep=data.frame(LawaSiteID=siteTableLIDs)
+NH4rep=data.frame(LawaSiteID=sort(siteTableLIDs))
 rownames(NH4rep)=siteTableLIDs
 SECCHIrep=NH4rep
 ECOLIrep=NH4rep
@@ -89,13 +89,8 @@ for(af in seq_along(agencyFiles$name)){
   rm(list=ls(pattern='^this'))
 }
 rm(af)
-NH4rep=NH4rep[order(NH4rep$LawaSiteID),]
-SECCHIrep=SECCHIrep[order(SECCHIrep$LawaSiteID),]
-ECOLIrep=ECOLIrep[order(ECOLIrep$LawaSiteID),]
-TNrep=TNrep[order(TNrep$LawaSiteID),]
-TPrep=TPrep[order(TPrep$LawaSiteID),]
-PHrep=PHrep[order(PHrep$LawaSiteID),]
-CHLArep=CHLArep[order(CHLArep$LawaSiteID),]
+
+
 NH4rep = NH4rep[,!apply(NH4rep,2,function(x)all(is.na(x)))]
 SECCHIrep = SECCHIrep[,!apply(SECCHIrep,2,function(x)all(is.na(x)))]
 ECOLIrep = ECOLIrep[,!apply(ECOLIrep,2,function(x)all(is.na(x)))]
@@ -176,7 +171,9 @@ if(dim(lwqtrend)[1]>0){
 `r Hmisc::hidingTOC(tocSide='right')`
 # Measurement names
 
-We hope to report on TN, NH4N, TP, CHLA, pH, Secchi and ECOLI, and these go by various nomenclatures at different councils.  The list of measurement names that I call from `r agency` is `r paste(Measurements,collapse=', ')`. It would be great to know whether this list is correct, if some could be remove, or others should be added. 
+We hope to report on TN, NH4N, TP, CHLA, pH, Secchi, ECOLI, Total Cyanobacteria Biovolume, and Potentially Toxic Cyanobacteria Biovolume, and these go by various nomenclatures at different councils.  The list of measurement names that I call from `r agency` is `r paste(Measurements,collapse=', ')`. It would be great to know whether this list is correct, if some could be removed, or others should be added. 
+
+Do we have your Total Cyanobacteria Biovolume, and Potentially Toxic Cyanobacteria Biovolume measurement names?  These indicators are new in this year.
 
 # WFS sites announced
 
@@ -367,7 +364,7 @@ knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Lakes/Audit",
 The following plots are for your council, comparing sites against one another, then timeseries per site.
 ```{r echo=F,fig.width=10,fig.height=10,warning=F,results='asis'}
 toLog=data.frame(msms=lawaset,
-                 logy=c("y","y","y","y","","","y"),stringsAsFactors=F)
+                 logy=c("y","y","y","y","","","y",'y','y'),stringsAsFactors=F)
 agencyLWQdata=LWQdata%>%dplyr::filter(Agency==agency)
 agencyLWQdata$Date=lubridate::dmy(agencyLWQdata$Date)
 for(msm in unique(agencyLWQdata$Measurement)){

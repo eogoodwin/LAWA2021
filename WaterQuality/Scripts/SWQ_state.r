@@ -18,6 +18,8 @@ if(!exists('wqdata')){
   wqdata=readr::read_csv(wqDataFileName,guess_max=150000)%>%as.data.frame
   rm(wqDataFileName)
 
+  # wqdata$Date[wqdata$Agency=='ac']=as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency=='ac']),'%d-%b-%y'))
+  
   #Write out for ITEffect
   wqdata$DetectionLimit=1
   wqdata$DetectionLimit[wqdata$Symbol=="<"] <- 0
@@ -38,7 +40,7 @@ if(!exists('wqdata')){
   wqdYear=lubridate::year(dmy(wqdata$Date))
   wqdata <- wqdata[which((wqdYear>=(StartYear5) & wqdYear<=EndYear)),]
   rm(wqdYear)
-  #390111
+  #150852
 }
 
 

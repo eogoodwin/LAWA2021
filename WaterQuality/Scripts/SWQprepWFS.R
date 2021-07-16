@@ -2,6 +2,7 @@ rm(list = ls())
 library(tidyverse)
 library(parallel)
 library(doParallel)
+library(xml2)
 setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality/")
 source("H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
 source('K:/R_functions/nzmg2WGS.r')
@@ -14,18 +15,10 @@ dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/", format(Sys.D
 urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
 
-"https://gis.boprc.govt.nz/server2/rest/services/emar/MonitoringSiteReferenceData/MapServer/WFSServer?request=getfeature&service=WFS&VERSION=1.1.0&typename=MonitoringSiteReferenceData&srsName=EPSG:4326"
-
-"https://gis.boprc.govt.nz/server2/services/emar/MonitoringSiteReferenceData/MapServer/WFSServer?request=getfeature&service=WFS&typename=MonitoringSiteReferenceData&srsName=EPSG:4326&Version=1.1.0"
-
-if(0){
-  if(HRCsWFSisMisBehaving){
-    urls$URL[8] <- "H:\\ericg\\16666LAWA\\LAWA2021\\WaterQuality\\Data\\2020-07-31\\HRC_WFS.xml"
-  }
-}
-
 #The first on the list prioritises the ID to be used and match every else to it.
-vars <- c("CouncilSiteID","SiteID","LawaSiteID","NZReach","NZSegment","Region","Agency","SWQAltitude","SWQLanduse","Catchment")
+vars <- c("CouncilSiteID","SiteID","LawaSiteID",
+          "NZReach","NZSegment","SWQAltitude","SWQLanduse",
+          "Region","Agency","Catchment")
 
 if(exists('siteTable')){
   rm(siteTable)
@@ -46,13 +39,14 @@ foreach(h = 1:length(urls$URL),.combine = rbind,.errorhandling = "stop")%dopar%{
   if(!nzchar(urls$URL[h])){  ## returns false if the URL string is missing
     return(NULL)
   }
-  if(urls$Agency[h]=="NCC"){return(NULL)}
+  # if(urls$Agency[h]=="NCC"){
+  #   return(NULL)
+  # }
   
-  xmldata<-try(ldWFS(urlIn = urls$URL[h],agency=urls$Agency[h],dataLocation = urls$Source[h],case.fix = TRUE))
-  
-  if(is.null(xmldata)||'try-error'%in%attr(xmldata,'class')||grepl(pattern = '^501|error',
-                                                                   x = xmlValue(getNodeSet(xmldata,'/')[[1]]),
-                                                                   ignore.case=T)){
+  xmldata <- try(ldWFSlist(urlIn = urls$URL[h],agency=urls$Agency[h],dataLocation = urls$Source[h],case.fix = TRUE))
+  if(is.null(xmldata)||'try-error'%in%attr(xmldata,'class')){#||grepl(pattern = '^501|error',
+                                                             #      x = xmlValue(getNodeSet(xmldata,'/')[[1]]),
+                                                              #     ignore.case=T)){
     cat('Failed for ',urls$Agency[h],'\n')
     return(NULL)
   }
@@ -72,134 +66,47 @@ foreach(h = 1:length(urls$URL),.combine = rbind,.errorhandling = "stop")%dopar%{
     }
     rm(tmp)
   }else {
-    ### Determine the values used in the [emar:SWQuality] element
-    emarSTR="emar:"
-    swq<-unique(sapply(getNodeSet(doc=xmldata, path=paste0("//",emarSTR,"MonitoringSiteReferenceData/emar:SWQuality")), xmlValue))
-    ## if emar namespace does not occur before TypeName in element,then try without namespace
-    ## Hilltop Server v1.80 excludes name space from element with TypeName tag
-    if(any(swq=="")){
-      swq=swq[-which(swq=='')]
-    }
-    if(length(swq)==0){
-      swq<-unique(sapply(getNodeSet(doc=xmldata, path="//MonitoringSiteReferenceData/emar:SWQuality"), xmlValue))
-      if(any(swq=="")){
-        swq=swq[-which(swq=='')]
-      }
-      if(length(swq)>0){
-        emarSTR <- ""
-      }
-    }
-    
-    swq<-swq[order(swq,na.last = TRUE)]
-    
-    if(length(swq)==2){
-      module <- paste("[emar:SWQuality='",swq[2],"']",sep="")
-    } else {
-      if(all(swq%in%c("NO","Yes","YES"))){   #This copes specifically with ecan, which had these three present
-        module <- paste("[emar:SWQuality=",c("'Yes'","'YES'")[which(c("Yes","YES")%in%swq)],"]",sep='')
-      }else{
-        module <- paste("[emar:SWQuality='",swq[tolower(swq)%in%c('yes','true',1)],"']",sep="")
-      }
-    }
-    
-    cat("\n",urls$Agency[h],"\n---------------------------\n",urls$URL[h],"\n",module,"\n",sep="")
-    
-    # Determine number of records in a wfs with module before attempting to extract all the necessary columns needed
-    if(length(sapply(getNodeSet(doc=xmldata, 
-                                path=paste0("//",emarSTR,"MonitoringSiteReferenceData",module,"/emar:",vars[1])),
-                     xmlValue))==0){
+       # Determine number of records in a wfs with module before attempting to extract all the necessary columns needed
+ wqNodes=unname(which(sapply(xmldata,FUN=function(li){
+      'SWQuality'%in%names(li)&&li$SWQuality%in%c("Yes","yes","YES","Y","y","TRUE","true","T","t","True")})))
+    wqData=lapply(wqNodes,FUN=function(li){
+      liout <- unlist(xmldata[[li]][vars])
+      })
+    if(length(wqNodes)==0){
       cat(urls$Agency[h],"has no records for <emar:SWQuality>\n")
     } else {
-      
-      for(i in 1:length(vars)){
-        if(i==1){
-          # for the first var, the CouncilSiteID
-          a<- sapply(getNodeSet(doc=xmldata, 
-                                path=paste0("//emar:CouncilSiteID/../../",
-                                            emarSTR,"MonitoringSiteReferenceData",
-                                            module,"/emar:CouncilSiteID")),xmlValue)
-          cat(vars[i],":\t",length(a),"\n")
-          #Cleaning var[i] to remove any leading and trailing spaces
-          a <- trimws(a) 
-          nn <- length(a)
-          theseSites=a
-          a=as.data.frame(a,stringsAsFactors=F)
-          names(a)=vars[i]
-        } else {
-          #Get the new Measurement for each site already obtained.  
-          #If the new Measurement is not there for a certain site, it will give it an NA 
-          # for all subsequent vars
-          b=NULL
-          for(thisSite in 1:length(theseSites)){
-            newb<- sapply(getNodeSet(doc=xmldata, 
-                                     path=paste0("//emar:CouncilSiteID/../../",
-                                                 emarSTR,"MonitoringSiteReferenceData[emar:CouncilSiteID='",
-                                                 theseSites[thisSite],"'] ",module,"/emar:",vars[i])),xmlValue)
-            newb=unique(trimws(tolower(newb)))
-            if(any(newb=="")){cat("#");newb=newb[-which(newb=="")]}
-            if(length(newb)==0){cat("$");newb=NA}
-            if(length(newb)>1){
-              cat(theseSites[thisSite],paste('\t',newb,collapse='\t\t'),'\n')
-              #If you get multiple responses for a given CouncilSiteID,
-              #Check if there's multiple of this CouncilSiteID in the list.
-              #If there is, figure which one you're up to, and apply that ones newb to this.
-              if(length(which(theseSites==theseSites[thisSite]))>1){
-                replicates=which(theseSites==theseSites[thisSite])
-                whichReplicate = which(replicates==thisSite)
-                newb=newb[whichReplicate]
-                rm(replicates,whichReplicate)
-              }
-            }
-            b=c(b,newb)
-          }
-          b=as.data.frame(b,stringsAsFactors = F)
-          names(b)=vars[i]
-          
-          cat(vars[i],":\t",length(b[!is.na(b)]),"\n")
-          if(any(is.na(b))){
-            if(vars[i]=="Region"){
-              b[is.na(b)] <-urls$Agency[h]
-            } else if(vars[i]=="Agency"){
-              b[is.na(b)]<-urls$Agency[h]
-            } else {
-              b[is.na(b)]<-""
-            }
-          }
-          a <- cbind.data.frame(a,b)
-          rm(wn,b)
+    if(!(all(lengths(wqData)==length(vars)))){
+      missingvars=which(lengths(wqData)<length(vars))
+      for(mv in missingvars){
+        missingVarNames = vars[!vars%in%names(wqData[[mv]])]
+        for(mvn in missingVarNames){
+          eval(parse(text=paste0("wqData[[mv]]=c(wqData[[mv]],",mvn,"=NA)")))
         }
       }
+    }
+      wqData <- bind_rows(wqData)
+      wqData <- as.data.frame(wqData,stringsAsFactors=FALSE)
       
-      
-      a <- as.data.frame(a,stringsAsFactors=FALSE)
       #Do lat longs separately from other WQParams because they are value pairs and need separating
-      b=matrix(data = 0,nrow=0,ncol=3)
-      for(thisSite in 1:length(theseSites)){
-        latlong=sapply(getNodeSet(doc=xmldata, path=paste0("//gml:Point[../../../",
-                                                           emarSTR,"MonitoringSiteReferenceData[emar:CouncilSiteID='",
-                                                           theseSites[thisSite],"'] ",module,"]")),xmlValue)  
-        if(length(latlong)>0){
-          if(length(latlong)>1){
-            latlong <- t(apply(matrix(data = sapply(sapply(latlong,strsplit," "),as.numeric),ncol = 2),1,mean))
-          }else{
-            latlong <- as.numeric(unlist(strsplit(latlong,' ')))
-          }
-        }else{
-          latlong=matrix(data = NA,nrow = 1,ncol=2)
-        }
-        latlong=c(theseSites[thisSite],latlong)
-        b=rbind(b,latlong)
-        rm(latlong)
+      if("shape"%in%tolower(names(xmldata[[wqNodes[1]]]))){
+        wqPoints=t(sapply(wqNodes,FUN=function(li){
+          liout <- unlist(xmldata[[li]]$Shape$Point$pos)
+          if(is.null(liout)){liout <- unlist(xmldata[[li]]$SHAPE$Point$pos)}
+          as.numeric(unlist(strsplit(liout,' ')))
+        }))
+        wqPoints=as.data.frame(wqPoints,stringsAsFactors=F)
+        names(wqPoints)=c("Lat","Long")
+        
+        wqData <- cbind(wqData,wqPoints)
+        rm(wqPoints)
+      }else{
+        wqData$Lat=NA
+        wqData$Long=NA
       }
-      b=as.data.frame(b,stringsAsFactors=F)
-      names(b)=c("CouncilSiteID","Lat","Long")
-      b$Lat=as.numeric(b$Lat)
-      b$Long=as.numeric(b$Long)
-      
-      a <- left_join(a,b)
-      a$accessDate=format(Sys.Date(),"%d-%b-%Y")
-      rm(b)
-      return(a)
+      wqData$accessDate=format(Sys.Date(),"%d-%b-%Y")
+      wqData$Agency=urls$Agency[h]
+      rm(xmldata)
+      return(wqData)
     }
   }
 }->siteTable
@@ -207,7 +114,7 @@ stopCluster(workers)
 rm(workers)
 
 Sys.time()-startTime  #20s
-
+#980
 
 siteTable$Lat = as.numeric(siteTable$Lat)
 siteTable$Long = as.numeric(siteTable$Long)
@@ -349,21 +256,22 @@ rm(niwaSub)
 
 
 
-table(siteTable$Region)
+table(siteTable$Region,siteTable$Agency,useNA = 'a')
+table(siteTable$Region,useNA = 'a')
 siteTable$Region=tolower(siteTable$Region)
 # siteTable$Region[siteTable$Region=='auckland council'] <- 'auckland'
-siteTable$Region[siteTable$Region=='orc'] <- 'otago'
-siteTable$Region[siteTable$Region=='gdc'] <- 'gisborne'
-siteTable$Region[siteTable$Region=='wcrc'] <- 'west coast'
-siteTable$Region[siteTable$Region=='ncc'] <- 'nelson'
-siteTable$Region[siteTable$Region=='gwrc'] <- 'wellington'
-siteTable$Region[siteTable$Region=='nrc'] <- 'northland'
-siteTable$Region[siteTable$Region=='mdc'] <- 'marlborough'
-siteTable$Region[siteTable$Region=='tdc'] <- 'tasman'
-siteTable$Region[siteTable$Region=='trc'] <- 'taranaki'
+siteTable$Region[siteTable$Region=='orc'|siteTable$Agency=='orc'] <- 'otago'
+siteTable$Region[siteTable$Region=='gdc'|siteTable$Agency=='gdc'] <- 'gisborne'
+siteTable$Region[siteTable$Region=='wcrc'|siteTable$Agency=='wcrc'] <- 'west coast'
+siteTable$Region[siteTable$Region=='ncc'|siteTable$Agency=='ncc'] <- 'nelson'
+siteTable$Region[siteTable$Region=='gwrc'|siteTable$Agency=='gwrc'] <- 'wellington'
+siteTable$Region[siteTable$Region=='nrc'|siteTable$Agency=='nrc'] <- 'northland'
+siteTable$Region[siteTable$Region=='mdc'|siteTable$Agency=='mdc'] <- 'marlborough'
+siteTable$Region[siteTable$Region=='tdc'|siteTable$Agency=='tdc'] <- 'tasman'
+siteTable$Region[siteTable$Region=='trc'|siteTable$Agency=='trc'] <- 'taranaki'
 siteTable$Region[siteTable$Region=='horizons'] <- 'manawat\u16b-whanganui'
 siteTable$Region[siteTable$Region=='manawatu-whanganui'] <- 'manawat\u16b-whanganui'
-table(siteTable$Region)
+table(siteTable$Region,useNA = 'a')
 
 
 table(siteTable$Agency)
@@ -379,48 +287,26 @@ unique(siteTable$Agency[!siteTable$Agency%in%agencies])
 
 
 #https://www.stat.auckland.ac.nz/~paul/Reports/maori/maori.html
-## Changing BOP Site names that use extended characters
-## Waiōtahe at Toone Rd             LAWA-100395   Waiotahe at Toone Rd 
-## Waitahanui at Ōtamarākau Marae   EBOP-00038    Waitahanui at Otamarakau Marae
 siteTable$SiteID=as.character(siteTable$SiteID)
 grep(pattern = "[^a-z,A-Z, ,/,@,0-9,.,-,[:punct:]]",x = siteTable$SiteID,value=T,ignore.case = T)
-# siteTable$SiteID[tolower(siteTable$LawaSiteID)==tolower("LAWA-100395")] <- "Waiotahe at Toone Rd"
-# siteTable$SiteID[tolower(siteTable$LawaSiteID)==tolower("EBOP-00038")] <- "Waitahanui at Otamarakau Marae"
-# siteTable$SiteID[tolower(siteTable$LawaSiteID)==tolower("LAWA-102380")] <- "Wairepo Creek at Ohau Downs"
-grep(pattern = "[^a-z,A-Z, ,/,@,0-9,.,-,[:punct:]]",x = siteTable$SiteID,value=T,ignore.case = T)
 
-
-## Swapping coordinate values where necessary
-plot(siteTable$Long,siteTable$Lat)
-
-# toSwitch=which(siteTable$Long<0 & siteTable$Lat>0)
-# if(length(toSwitch)>0){
-#   unique(siteTable$Agency[toSwitch])
-#   newLon=siteTable$Lat[toSwitch]
-#   siteTable$Lat[toSwitch] <- siteTable$Long[toSwitch]
-#   siteTable$Long[toSwitch]=newLon
-#   rm(newLon)
-# }
-# rm(toSwitch)
 
 plot(siteTable$Long,siteTable$Lat,col=as.numeric(factor(siteTable$Region)))
 points(siteTable$Long[siteTable$Agency=='niwa'],
        siteTable$Lat[siteTable$Agency=='niwa'],pch=16,cex=0.5,
        col=as.numeric(factor(siteTable$Region[siteTable$Agency=='niwa'],levels=sort(unique(siteTable$Region)))))
-table(siteTable$Agency)
 
 
 
-siteTable=unique(siteTable)  #boprc had four dupliates, boprc had two duplicates
-#1/7/2021 1062 to 1060
-by(INDICES = siteTable$Agency,data = siteTable,FUN = function(x)head(x))
+
+siteTable=unique(siteTable)  
+#14/7/2021 1057 
 
 
 #Pull in land use from LCDB
 source('K:/R_functions/nzmg2WGS.r')
 source('K:/R_functions/nztm2WGS.r')
 fwgr <- read_csv('d:/RiverData/FWGroupings.txt')
-load("D:/RiverData/REC2_LCDB4.RData",verbose=T) #REC2_LCDB4
 rec=read_csv("d:/RiverData/RECnz.txt")
 rec$easting=fwgr$easting[match(rec$NZREACH,fwgr$NZREACH)]
 rec$northing=fwgr$northing[match(rec$NZREACH,fwgr$NZREACH)]
@@ -429,8 +315,33 @@ latLong=nzmg2wgs(East = rec$easting,North = rec$northing)
 rec$Long=latLong[,2]
 rec$Lat=latLong[,1]
 rm(latLong)
-rec2=read_csv('D:/RiverData/River_Environment_Classification_(REC2)_New_Zealand.csv')
 
+#Derive rec sediment classes
+rec$ClimateCluster=rec$CLIMATE
+rec$ClimateCluster[rec$CLIMATE%in%c("WW","WX")] <- "WW"
+rec$ClimateCluster[rec$CLIMATE%in%c("CW","CX")] <- "CW"
+rec$SourceFlowCluster=rec$SRC_OF_FLW
+rec$SourceFlowCluster[rec$SRC_OF_FLW%in%c("M","GM")] <- "M"
+rec$GeologyCluster=rec$GEOLOGY
+rec$GeologyCluster[rec$GEOLOGY%in%c("SS","Pl","M")] <- "SS"
+rec$GeologyCluster[rec$GEOLOGY%in%c("VB","VA")] <- "VA"
+rec$CScluster=paste(rec$ClimateCluster,rec$SourceFlowCluster,sep='_')
+rec$CSGcluster = paste(rec$ClimateCluster,rec$SourceFlowCluster,rec$GeologyCluster,sep = '_')
+rec$CSGcluster[which(rec$CSGcluster=="WD_H_VA")] <- "CW_H_VA"
+
+rec$SedimentClass=NA
+rec$SedimentClass[rec$CSGcluster%in%c("CD_L_HS", "WW_L_VA", "WW_H_VA", "CD_L_Al", "CW_H_SS", "CW_M_SS",
+                  "CW_H_VA", "CD_H_SS", "CD_H_VA", "CD_L_VA", "CW_L_VA", "CW_M_VA", "CW_M_HS",
+                  "CD_M_Al", "CW_H_Al", "CW_M_Al", "WD_L_Al")] <- 1
+rec$SedimentClass[rec$CSGcluster%in%c("CD_L_SS", "WW_L_HS", "WW_L_SS", "WW_H_HS", "WW_H_SS", "WW_L_Al",
+                                      "WD_L_SS", "WD_L_HS", "WD_L_VA")|
+                    rec$CScluster%in%c("WD_Lk")] <- 2
+rec$SedimentClass[rec$CSGcluster%in%c("CW_H_HS", "CW_L_HS","CW_L_Al", "CD_H_HS", "CD_H_Al", "CD_M_HS", "CD_M_SS",
+                                      "CD_M_VA")|
+                    rec$CScluster%in%c("CW_Lk","CD_Lk","WW_Lk")] <- 3
+rec$SedimentClass[rec$CSGcluster%in%c("CW_L_SS")] <- 4
+
+rec2=read_csv('D:/RiverData/River_Environment_Classification_(REC2)_New_Zealand.csv')
 
 
 latLong=nztm2wgs(ce = rec2$upcoordX,cn = rec2$upcoordY)
@@ -439,41 +350,80 @@ rec2$Lat=latLong[,1]
 rm(latLong)
 
 siteTable$NZReach=as.numeric(siteTable$NZReach)
-siteTable$NZReach[siteTable$NZReach<min(rec$NZREACH)|siteTable$NZReach>max(rec$NZREACH)] <- NA
+# siteTable$NZReach[which(siteTable$NZReach<min(rec$NZREACH)|siteTable$NZReach>max(rec$NZREACH))] <- NA
+
+
+#Assign Longitude and Latitude from rec based on NZREACH, if Long and Lat are missing
+table(is.na(siteTable$Long),siteTable$Agency)
+table(is.na(siteTable$NZReach),siteTable$Agency)
+table(is.na(siteTable$NZReach)&is.na(siteTable$Long),siteTable$Agency)
+
+siteTable$Long[which(is.na(siteTable$Long)&siteTable$NZReach%in%rec$NZREACH)] <- rec$Long[match(siteTable$NZReach[which(is.na(siteTable$Long)&siteTable$NZReach%in%rec$NZREACH)],
+                                                                                                rec$NZREACH)]
+siteTable$Lat[which(is.na(siteTable$Lat)&siteTable$NZReach%in%rec$NZREACH)] <- rec$Lat[match(siteTable$NZReach[which(is.na(siteTable$Lat)&siteTable$NZReach%in%rec$NZREACH)],
+                                                                                             rec$NZREACH)]
+
 siteTable$Landcover=NA #rec
+siteTable$SedimentClass=NA #derived from rec groups, tables 23 and 26 in NPSFM
 siteTable$Altitude=NA  #rec2
 # siteTable$Order=NA       #rec
 # siteTable$StreamOrder=NA #rec2
 st=1
 for(st in st:dim(siteTable)[1]){
+  #REC (1)
+  #Assign an NZREACH number if its missing
   if(is.na(siteTable$NZReach[st])){
+    cat(st,'No NZREACH number\t')
+    if(!is.na(siteTable$NZSegment[st])&siteTable$NZSegment[st]%in%rec2$nzsegment){
+      siteTable$NZReach[st]=rec2$nzreach_re[match(siteTable$NZSegment[st],rec2$nzsegment)]
+      cat('Assigning',siteTable$NZReach[st],'based on NZSegment match\n')
+    }else{
     dists=sqrt((siteTable$Long[st]-rec$Long)^2+(siteTable$Lat[st]-rec$Lat)^2)
     mindist=which.min(dists)
     siteTable$NZReach[st] = rec$NZREACH[mindist]
+    cat('Assigning',siteTable$NZReach[st],'from',min(dists,na.rm=T),'\n')
     rm(dists,mindist)
+    }
   }
   recMatch = which(rec$NZREACH==siteTable$NZReach[st])
   if(length(recMatch)==0){
-    cat(st,'No REC reachmatch\t',siteTable$NZReach[st],'\t\n')
+    cat(st,'No REC reachmatch\t',siteTable$NZReach[st],'\t')
     dists=sqrt((siteTable$Long[st]-rec$Long)^2+(siteTable$Lat[st]-rec$Lat)^2)
     recMatch=which.min(dists)
+    cat('Assigning',rec$NZREACH[recMatch],'from',min(dists,na.rm=T),'\n')
+    siteTable$NZReach[st]=rec$NZREACH[recMatch]
   }
   # siteTable$Order[st]=paste(unique(rec$ORDER_[recMatch]),collapse='&')
   siteTable$Landcover[st]=paste(unique(rec$LANDCOVER[recMatch]),collapse='&')
-
-  rec2match = which(rec2$nzreach_re == siteTable$NZReach[st]) 
+  siteTable$SedimentClass[st]=rec$SedimentClass[recMatch]
+  rm(recMatch)
+  
+  #REC2
+  #Assign an NZSegment number if its missing
+  if(is.na(siteTable$NZSegment[st])){
+    cat(st,'No NZSegment number\t')
+    if(siteTable$NZReach[st]%in%rec2$nzreach_re){
+      siteTable$NZSegment[st] = rec2$nzsegment[match(siteTable$NZReach[st],rec2$nzreach_re)]
+      cat('Assigning',siteTable$NZSegment[st],'based on NZREACH match\n')
+    }else{
+    dists=sqrt((siteTable$Long[st]-rec2$Long)^2+(siteTable$Lat[st]-rec2$Lat)^2)
+    mindist=which.min(dists)
+    siteTable$NZSegment[st] = rec2$nzsegment[mindist]
+    cat('Assigning',siteTable$NZsegment[st],'from',min(dists,na.rm=T),'\n')
+    rm(dists,mindist)
+    }
+  }
+  rec2match = which(rec2$nzsegment == siteTable$NZSegment[st]) 
   if(length(rec2match)==0){
+    cat(st,'No REC2 segment match\t',siteTable$NZSegment[st],'\t')
     dists=sqrt((siteTable$Long[st]-rec2$Long)^2+(siteTable$Lat[st]-rec2$Lat)^2)
     rec2match=which.min(dists)
-    cat(st,'No REC2 reachmatch\t',siteTable$Agency[st],'\t',siteTable$NZReach[st],'\t',
-        min(dists,na.rm=T),rec2$nzreach_re[rec2match],'\n')
+    cat('Assigning',rec2$nzsegment[rec2match],'from',min(dists,na.rm=T),'\n')
   }
   # siteTable$StreamOrder[st]=paste(unique(rec2$StreamOrde[rec2match]),collapse='&')
   siteTable$Altitude[st]=mean(rec2$upElev[rec2match],na.rm=T)
   rm(rec2match)
 }
-# table(siteTable$StreamOrder,siteTable$Order)
-# siteTable <- siteTable%>%select(-StreamOrder,-Order)
 
 
 if(!all(agencies%in%unique(siteTable$Agency))){  #actually if you need to pull sites in from an old WFS sesh, like if one of them doesn respond
@@ -554,6 +504,12 @@ siteTable$SWQLanduse[is.na(siteTable$SWQLanduse)]=siteTable$Landcover[is.na(site
 # siteTable$CouncilSiteID = gsub(pattern = 'Dipton Rd',replacement = "Dipton Road",x = siteTable$CouncilSiteID)
 # siteTable$CouncilSiteID = gsub(pattern = 'Makarewa Confl$',replacement = "Makarewa Confluence",x = siteTable$CouncilSiteID)
 
+for(c in 1:dim(siteTable)[2]){
+  if(all(is.character(siteTable[,c]))){
+    siteTable[,c]=trimws(siteTable[,c])
+  }
+}
+
 write.csv(x = siteTable,
           file = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                         format(Sys.Date(),"%Y-%m-%d"),
@@ -585,24 +541,24 @@ for(wsf in WQWFSsiteFiles){
 AgencyRep=AgencyRep[,-2]
 rm(WQWFSsiteFiles)
 
-#     agency 29Jun21 01Jul21 08Jul21
-# 1      ac      35      35      35
-# 2   boprc      50      50      50
-# 3    ecan     184     191     191
-# 4      es      60      60      60
-# 5     gdc      39      39      39
-# 6    gwrc      43      43      43
-# 7    hbrc      96      96      91
-# 8     hrc     137     136     136
-# 9     mdc      32      32      32
-# 10    ncc      25      25      25
-# 11   niwa      77      77      77
-# 12    nrc      32      32      32
-# 13    orc      50      50      50
-# 14    tdc      26      26      26
-# 15    trc      22      22      22
-# 16   wcrc      38      38      38
-# 17    wrc     108     108     108
+#     agency 29Jun21 01Jul21    08Jul21  16Jul21
+# 1      ac      35      35      35 35    35
+# 2   boprc      50      50      50 50    50
+# 3    ecan     184     191     191 190   190
+# 4      es      60      60      60 60   60
+# 5     gdc      39      39      39 39   39
+# 6    gwrc      43      43      43 43   43
+# 7    hbrc      96      96      91 94   94
+# 8     hrc     137     136     136 136   136
+# 9     mdc      32      32      32 32   32
+# 10    ncc      25      25      25 25   25
+# 11   niwa      77      77      77 77   77
+# 12    nrc      32      32      32 32   32
+# 13    orc      50      50      50 50   50
+# 14    tdc      26      26      26 26   26
+# 15    trc      22      22      22 22   22
+# 16   wcrc      38      38      38 38   38
+# 17    wrc     108     108     108 108   108
    
 
 plot(x=as.numeric(AgencyRep[1,-1]),type='l',ylim=c(20,200),log='y')

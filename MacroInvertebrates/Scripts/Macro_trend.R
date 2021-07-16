@@ -122,7 +122,7 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
 stopCluster(workers)
 rm(workers,usites,usite,datafor15)
 Sys.time()-startTime
-#23 Jun 3.8s
+#17 Jul 11s
 rownames(trendTable15) <- NULL
 trendTable15$Agency=siteTable$Agency[match(trendTable15$LawaSiteID,siteTable$LawaSiteID)]
 trendTable15$SWQAltitude =  siteTable$SWQAltitude[match(trendTable15$LawaSiteID,siteTable$LawaSiteID)]

@@ -9,7 +9,7 @@ source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F,recursive = T)
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F,recursive = T)
 
-lmsl=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2020/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx")
+lmsl=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx")
 
 checkXMLFile <- function(regionName,siteName,propertyName){
   fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
@@ -238,7 +238,7 @@ if(0){
 # ssm = read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-08-01.csv',stringsAsFactors = F)
 # ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-10-06.xlsx',sheet=1)
 # ssm = readxl::read_xlsx('c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/CanISwimhere/Daily swim results/SwimSiteMonitoringResults-2021-11-03.xlsx',sheet=1)
-ssm = readxl::read_xlsx('c:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2020/CanISwimhere/Daily swim results/SwimSiteMonitoringResults-2020-11-09.xlsx',sheet=1)
+ssm = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Metadata/SwimSiteMonitoringResults-2021-07-13.xlsx',sheet=1)
 
 ssm$callID =  NA
 ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
@@ -260,7 +260,7 @@ agencyURLtable=data.frame(region="",server="",property='',feature='')
 library(parallel)
 library(doParallel)
 startTime=Sys.time()
-workers <- makeCluster(7)
+workers <- makeCluster(5)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   dataToCombine=NULL
@@ -289,12 +289,12 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   if(any(!grepl('^http',agURLs))){
     agURLs = agURLs[grepl('^http',agURLs)]
   }
-  if(regionName=="Bay"){
-    agURLs = paste0(agURLs,'&version=2.0.0')
-  }
-  if(regionName=="Manawatu.Whanganui"){
-    agURLs = gsub(pattern = 'hilltopserver',replacement = 'maps',x = agURLs)
-  }
+  # if(regionName=="Bay"){
+  #   agURLs = paste0(agURLs,'&version=2.0.0')
+  # }
+  # if(regionName=="Manawatu.Whanganui"){
+  #   agURLs = gsub(pattern = 'hilltopserver',replacement = 'maps',x = agURLs)
+  # }
   # if(regionName=='Canterbury'){
   #   agURLs = 'http://wateruse.ecan.govt.nz/WQRecLawa.hts?Service=Hilltop'
   # }
@@ -304,15 +304,15 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   # if(regionName=="Waikato"){
   #   agURLs = paste0(agURLs,'&service=SOS')
   # }
-  if(regionName=="Waikato"){
-    agURLs = gsub(pattern="datasource=0$",replacement = "datasource=0&service=SOS&version=2.0.0&procedure=CBACTO.Sample.Results.P",agURLs)
-  }
+  # if(regionName=="Waikato"){
+  #   agURLs = gsub(pattern="datasource=0$",replacement = "datasource=0&service=SOS&version=2.0.0&procedure=CBACTO.Sample.Results.P",agURLs)
+  # }
   # if(regionName=="Hawke's"){
   #   agURLs = gsub(pattern="EMAR.hts",replacement = "Recreational_WQ.hts",agURLs)%>%unique
   # }
-  if(regionName=='Taranaki'){
-    # https://extranet.trc.govt.nz/getdata/LAWA_rec_WQ.hts?Service=Hilltop&Request=GetData&Site=SEA901033&Measurement=ECOL&From=1/11/2015&To=1/4/2016
-  }
+  # if(regionName=='Taranaki'){
+  #   # https://extranet.trc.govt.nz/getdata/LAWA_rec_WQ.hts?Service=Hilltop&Request=GetData&Site=SEA901033&Measurement=ECOL&From=1/11/2015&To=1/4/2016
+  # }
   
   #Find agency properties from the SSM file
   observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,TimeseriesUrl!='')%>%select(TimeseriesUrl),
@@ -438,10 +438,12 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   return(NULL)
 }
 stopCluster(workers)
-Sys.time()-startTime  #30mins 2/7/2021
+Sys.time()-startTime  
+#30mins 2/7/2021
+#5mins 14/7/2021
 rm(startTime)
 rm(workers)
-rm(SSMregion)
+
 if(0){
 #Investigate the yield of metadata files ####
 loadedFiles = dir('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/')
@@ -547,10 +549,9 @@ startTime=Sys.time()
 stopCluster(workers)
 rm(workers)
 
-Sys.time()-startTime  #3.35 mins 6/10/2020
-                      #1.02 mins 16/10/20
-                      #1.03 3/11/2020
-                      #38 s 2/7/2021
+Sys.time()-startTime  
+#38 s 2/7/2021
+#41s  14/7/21
 rm(startTime)
 
 

@@ -21,7 +21,7 @@ lakesSiteTable=loadLatestSiteTableLakes()
 if(!exists('lakeData')){
   lakeDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/Lakes/Data",pattern = "LakesWithMetadata.csv",
                             recursive = T,full.names = T,ignore.case=T),1)
-  lakeData=read.csv(lakeDataFileName,stringsAsFactors = F)
+  lakeData=read_csv(lakeDataFileName,guess_max = 50000)
   rm(lakeDataFileName)
   lakeData$myDate <- as.Date(as.character(lakeData$Date),"%d-%b-%y")
   lakeData$myDate[which(lakeData$Agency=='ac')] <- as.Date(lubridate::dmy(lakeData$Date[which(lakeData$Agency=='ac')]))
@@ -96,7 +96,7 @@ foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
     subSubDat=subDat%>%filter(subDat$Measurement==uMeasures[uparam])
     siteTrendTable15$nMeasures[uparam]=dim(subSubDat)[1]
     if(dim(subSubDat)[1]>0){
-       SSD_med <- subSubDat#%>%
+       SSD_med <- subSubDat%>%as.data.frame#%>%
       #   dplyr::group_by(LawaSiteID,monYear,Year,Month,Qtr)%>%
       #   dplyr::summarise(Value=quantile(Value,prob=c(0.5),type=5,na.rm=T),
       #                    myDate=mean(myDate,na.rm=T),
@@ -144,7 +144,7 @@ foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
           siteTrendTable15[uparam,names(sss)] <- sss
           rm(sk,sss)
         }else{
-          mk <- MannKendall(x = SSD_med,ValuesToUse = "Value",HiCensor = T,doPlot=F)
+          mk <- MannKendall(x = SSD_med,ValuesToUse = "Value",Year="Season",HiCensor = T,doPlot=F)
           ss <- SenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",ValuesToUseforMedian = "Value",doPlot = F)
           siteTrendTable15[uparam,names(mk)] <- mk
           siteTrendTable15[uparam,names(ss)] <- ss
@@ -218,7 +218,7 @@ foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
     subSubDat=subDat%>%filter(subDat$Measurement==uMeasures[uparam])
     siteTrendTable10$nMeasures[uparam]=dim(subSubDat)[1]
     if(dim(subSubDat)[1]>0){
-      SSD_med <- subSubDat#%>%
+      SSD_med <- subSubDat%>%as.data.frame#%>%
         # dplyr::group_by(LawaSiteID,monYear,Year,Month,Qtr)%>%
         # dplyr::summarise(Value=quantile(Value,prob=c(0.5),type=5,na.rm=T),
         #                  myDate=mean(myDate,na.rm=T),
@@ -339,7 +339,7 @@ foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
     subSubDat=subDat%>%filter(subDat$Measurement==uMeasures[uparam])
     siteTrendTable5$nMeasures[uparam]=dim(subSubDat)[1]
     if(dim(subSubDat)[1]>0){
-      SSD_med <- subSubDat#%>%
+      SSD_med <- subSubDat%>%as.data.frame#%>%
         # dplyr::group_by(LawaSiteID,monYear,Year,Month,Qtr)%>%
         # dplyr::summarise(Value=quantile(Value,prob=c(0.5),type=5,na.rm=T),
         #                  myDate=mean(myDate,na.rm=T),

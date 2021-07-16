@@ -4,8 +4,8 @@ library(stringr)
 library(tidyverse)
 source("H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R")
 setwd('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/')
-try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
-try(shell(paste('mkdir "H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/"',format(Sys.Date(),"%Y-%m-%d"),sep=""), translate=TRUE),silent = TRUE)
+dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 
 if(0){
 '
@@ -27,9 +27,12 @@ Waikato              replacement file
 Otago                replacement file'
 }
 
-ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/MetaData/SwimSiteMonitoringResults-2020-10-06.xlsx',sheet=1)
+ssm = readxl::read_xlsx(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/',
+                                 pattern='SwimSiteMonitoringResults.*.xlsx',
+                                 recursive = T,full.names = T),1),
+                             sheet=1)
 
-ssm$TimeseriesUrl=gsub(ssm$TimeseriesUrl,pattern = 'data.wcrc.govt.nz:9083/',replacement = 'hilltop.wcrc.govt.nz/')
+# ssm$TimeseriesUrl=gsub(ssm$TimeseriesUrl,pattern = 'data.wcrc.govt.nz:9083/',replacement = 'hilltop.wcrc.govt.nz/')
 # ssm$TimeseriesUrl=gsub(ssm$TimeseriesUrl,pattern = 'ecan.govt.nz/bathing.hts/',replacement = 'ecan.govt.nz/WQRecLawa.hts/')
 # ssm$TimeseriesUrl=gsub(ssm$TimeseriesUrl,pattern = "http://hilltopserver.horizons.govt.nz/cr_provisional.hts",
 #                        replacement="http://tsdata.horizons.govt.nz/LAWA-Rec.hts")
@@ -79,7 +82,7 @@ if(0){
 yesstop=FALSE
 #Repeat pulls until dataset is pretty much almost complete
 while(sum(!ssm$LAWA2021comment%in%c("","NoTimeSeriesURL"))>90){
-  table(ssm$LAWA2021comment==""|ssm$LAWA2021comment=="NoTimeSeriesURL")
+  table(ssm$Region,ssm$LAWA2021comment==""|ssm$LAWA2021comment=="NoTimeSeriesURL")
   listToCombine=NULL
   latestAgency=''
   siteNum=1
@@ -100,7 +103,7 @@ while(sum(!ssm$LAWA2021comment%in%c("","NoTimeSeriesURL"))>90){
     if(is.na(urlToTry)|urlToTry==''){next}
     
     if(!file.exists(paste0('./data/dataCache/site',siteNum,'.xml')) || 
-       (file.exists(paste0('./data/dataCache/site',siteNum,'.xml'))&file.info(paste0('./data/dataCache/site',siteNum,'.xml'))$size<1280)){
+       (file.exists(paste0('./data/dataCache/site',siteNum,'.xml'))&file.info(paste0('./data/dataCache/site',siteNum,'.xml'))$size<3500)){
       
       if(grepl(pattern = 'observedProperty',x = urlToTry,ignore.case = T)){
         urlToTry=paste0(urlToTry,"&temporalfilter=om:phenomenonTime,P15Y/2021-07-01")
@@ -452,44 +455,46 @@ rm(listToCombine)
 #         78741 x 13 1/8/19
 #recData 112587 x 13 29/9/2020
 #recData 110108 x 13 2/7/2021
+#        124456 x 13 14/7/2021
+#        124438 x 13 16/7/2021
 
 #Drop retests as indicated by councils
-TDCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA202/CanISwimHere/Metadata/TDCTestIndication.csv',stringsAsFactors = F)[,1:17]
-TDCtestRetest=TDCtestRetest%>%filter(X=="")
-TDCtestRetest$dateCollected=as.POSIXct(TDCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
-recData=recData%>%filter(region!="Tasman region")
-recData$dateCollected=as.POSIXct(recData$dateCollected)
-recData$YW=as.integer(recData$YW)
-recData=bind_rows(recData,TDCtestRetest%>%select(names(recData)))
-rm(TDCtestRetest)
+# TDCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Metadata/TDCTestIndication.csv',stringsAsFactors = F)[,1:17]
+# TDCtestRetest=TDCtestRetest%>%filter(X=="")
+# TDCtestRetest$dateCollected=as.POSIXct(TDCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
+# recData=recData%>%filter(region!="Tasman region")
+# recData$dateCollected=as.POSIXct(recData$dateCollected)
+# recData$YW=as.integer(recData$YW)
+# recData=bind_rows(recData,TDCtestRetest%>%select(names(recData)))
+# rm(TDCtestRetest)
 
 #recData 30540 x 13 2018
 #        29782 x 13
 #         77447 x 13 1/8/2020
 #         
 
-WRCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/WRCTestIndication.csv',stringsAsFactors = F)#[,1:17]
-WRCtestRetest=WRCtestRetest%>%filter(Retest.result...Y.N.=='')
-WRCtestRetest$dateCollected=as.POSIXct(WRCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
-recData=recData%>%filter(region!="Waikato region")
-recData$dateCollected=as.POSIXct(recData$dateCollected)
-recData$YW=as.integer(recData$YW)
-recData=bind_rows(recData,WRCtestRetest%>%select(names(recData)))
-rm(WRCtestRetest)
+# WRCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/WRCTestIndication.csv',stringsAsFactors = F)#[,1:17]
+# WRCtestRetest=WRCtestRetest%>%filter(Retest.result...Y.N.=='')
+# WRCtestRetest$dateCollected=as.POSIXct(WRCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
+# recData=recData%>%filter(region!="Waikato region")
+# recData$dateCollected=as.POSIXct(recData$dateCollected)
+# recData$YW=as.integer(recData$YW)
+# recData=bind_rows(recData,WRCtestRetest%>%select(names(recData)))
+# rm(WRCtestRetest)
 
 #recData 30508 x 13 2018
 #        30491      10.6.19
 #         37932    18.7.19
 #         75692    1.8.19
 
-ORCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/ORCTestIndication.csv',stringsAsFactors = F)#[,1:17]
-ORCtestRetest=ORCtestRetest%>%filter(Retest.result...Y.N.=='')
-ORCtestRetest$dateCollected=as.POSIXct(ORCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
-recData=recData%>%filter(region!="Otago region")
-recData$dateCollected=as.POSIXct(recData$dateCollected)
-recData$YW=as.integer(recData$YW)
-recData=bind_rows(recData,ORCtestRetest%>%select(names(recData)))
-rm(ORCtestRetest)
+# ORCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/ORCTestIndication.csv',stringsAsFactors = F)#[,1:17]
+# ORCtestRetest=ORCtestRetest%>%filter(Retest.result...Y.N.=='')
+# ORCtestRetest$dateCollected=as.POSIXct(ORCtestRetest$dateCollected*60*60*24-(13*60*60),origin="1899-12-30")
+# recData=recData%>%filter(region!="Otago region")
+# recData$dateCollected=as.POSIXct(recData$dateCollected)
+# recData$YW=as.integer(recData$YW)
+# recData=bind_rows(recData,ORCtestRetest%>%select(names(recData)))
+# rm(ORCtestRetest)
 
 #recData 30483 x 13 2018
 #        30028 x 13 10.6.19
@@ -556,6 +561,7 @@ test <- recData%>%
 write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                   format(Sys.Date(),'%Y-%m-%d'),
                                   "/CISHgraph",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
+#49607 at 14/7/2021
 
 graphData%>%
   select(-dateCollected)%>%
@@ -567,6 +573,8 @@ graphData%>%
             max=max(fVal,na.rm=T),
             haz95=quantile(fVal,probs = 0.95,type = 5,na.rm = T),
             haz50=quantile(fVal,probs = 0.5,type = 5,na.rm = T))%>%ungroup->CISHsiteSummary
+
+#582 at 14/7/2021
 
 #instantaneous thresholds, shouldnt be applied to percentiles
 # CISHsiteSummary$BathingRisk=cut(x = CISHsiteSummary$haz95,breaks = c(-0.1,140,280,Inf),labels=c('surveillance','warning','alert'))

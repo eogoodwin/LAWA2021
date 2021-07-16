@@ -26,6 +26,7 @@ if(!exists('wqdata')){
   cat(wqdataFileName)
   wqdata=read_csv(wqdataFileName,guess_max = 100000)%>%as.data.frame
   rm(wqdataFileName)
+  wqdata$Date[wqdata$Agency=='ac']=as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency=='ac']),'%d-%b-%y'))
   wqdata$myDate <- as.Date(as.character(wqdata$Date),"%d-%b-%Y")
   wqdata$myDate[wqdata$myDate<as.Date('2000-01-01')] <- as.Date(as.character(wqdata$Date[wqdata$myDate<as.Date('2000-01-01')]),"%d-%b-%y")
   wqdata <- GetMoreDateInfo(wqdata)

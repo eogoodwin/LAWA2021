@@ -211,7 +211,9 @@ wqtrend <- wqtrend%>%select(CouncilSiteID,SiteID,LawaSiteID,Catchment,everything
 `r Hmisc::hidingTOC(tocSide='right')`
 # Measurement names
 
-We hope to report on BDISC, TURB, NH4, PH, TON, TN, DRP, TP, and ECOLI, and these go by various nomenclatures at different councils.  The list of measurement names that I call from `r agency` is `r paste(Measurements,collapse=', ')`. It would be great to know whether this list is correct, if some could be removed, or others should be added.
+We hope to report on BDISC, TURB, NH4, PH, TON, TN, DRP, TP, ECOLI, DIN and NO3N and these go by various nomenclatures at different councils.  The list of measurement names that I call from `r agency` is `r paste(Measurements,collapse=', ')`. It would be great to know whether this list is correct, if some could be removed, or others should be added.
+
+Do we have your DIN and NO3N measurement names?  These indicators are new in this year.
 
 # WFS sites announced
 
@@ -446,8 +448,8 @@ knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/
 
 The following plots are for this council only, comparing sites against one another, then timeseries per site.
 ```{r echo=F,fig.width=10,fig.height=10,warning=F,results='asis'}
-toLog=data.frame(msms=c("PH", "TP", "TN", "NH4", "TON", "BDISC", "TURB", "ECOLI", "DRP","TURBFNU"),
-                 logy=c("","y","y","y","y","y","y","y","y","y"),stringsAsFactors=F)
+toLog=data.frame(msms=c("PH", "TP", "TN", "NH4", "TON","NO3N","DIN", "BDISC", "TURB", "ECOLI", "DRP","TURBFNU"),
+                 logy=c("","y","y","y","y","y","y","y","y","y","y","y"),stringsAsFactors=F)
 agencyWQdata=wqdata%>%dplyr::filter(Agency==agency)
 agencyWQdata$Date=lubridate::dmy(agencyWQdata$Date)
 for(msm in unique(agencyWQdata$Measurement)){
@@ -461,14 +463,14 @@ for(msm in unique(agencyWQdata$Measurement)){
       bpDat <- bpDat%>%filter(Value>0)
     }
   }
-if(agency=='wrc'){
-      boxplot(data=bpDat,
-          Value~factor(SiteID),
-          main=msm,log=yLog,las=2)
-}else{
+  if(agency=='wrc'){
     boxplot(data=bpDat,
-          Value~factor(CouncilSiteID),
-          main=msm,log=yLog,las=2)
+            Value~factor(SiteID),
+            main=msm,log=yLog,las=2)
+  }else{
+    boxplot(data=bpDat,
+            Value~factor(CouncilSiteID),
+            main=msm,log=yLog,las=2)
   }
   yrng=range(bpDat$Value[bpDat$Value>0],na.rm=T)
   xrng=range(bpDat$Date,na.rm=T)

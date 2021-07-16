@@ -1,4 +1,5 @@
 rm(list=ls())
+gc()
 library(parallel)
 library(doParallel)
 source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
@@ -17,24 +18,24 @@ rownames(siteTable)=NULL
 scriptsToRun = c(
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNIWA.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadAC.R",
+  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadAC_list.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadBOP.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadECAN.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadES.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadGDC.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadGWRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHBRC.R",
+  # "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHBRC.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHRC.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadMDC.R",
-  # "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNCC.R",
+   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNCC.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNRC.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadORC.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadTDC.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadTRC.R",
   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWCRC.R")
-
+source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHBRC_list.R") #Contains parallel, so dont run in parallel
 startTime=Sys.time()
-workers <- makeCluster(7)
+workers <- makeCluster(5)
 registerDoParallel(workers)
  clusterCall(workers,function(){
    source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
@@ -48,7 +49,7 @@ foreach(i = 1:length(scriptsToRun),.errorhandling = "stop")%dopar%{
 stopCluster(workers)
 rm(workers)
 cat("Done load\n")
-Sys.time()-startTime #22 minutes
+Sys.time()-startTime #30 minutes
 
 
 doneload=T
@@ -76,7 +77,7 @@ transfers=read.table("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/transfer
 ##############################################################################
 # agencies=c("ac","boprc","gdc","gwrc","hbrc")
 
-agencies=c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc") 
+agencies=c("boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc") 
 lawaset=c("NH4", "TURB","TURBFNU", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
 transfers=read.table("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/transfers_plain_english_view.txt",
                      sep=',',header = T,stringsAsFactors = F)
@@ -87,13 +88,13 @@ registerDoParallel(workersB)
 cc=clusterCall(workersB,function(){
   library(tidyverse)
   source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
-  agencies=c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc") 
+  agencies=c("boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc") 
   lawaset=c("NH4", "TURB", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
   })
 startTime=Sys.time()
 # for(i in 1:length(agencies)){
 foreach(i = 1:length(agencies),.errorhandling="stop")%dopar%{
-  xml2csvRiver(agency=agencies[i],quiet=T,reportCensor=F,reportVars=F,ageCheck=F,maxHistory=20)
+  xml2csvRiver(agency=agencies[i],quiet=F,reportCensor=F,reportVars=F,ageCheck=F,maxHistory=20)
   return(NULL)
   }
 stopCluster(workersB)
@@ -144,15 +145,15 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
 #                          COMBINE CSVs to COMBO
 ##############################################################################
 #Build the combo ####
+library(parallel)
+library(doParallel)
   siteTable=loadLatestSiteTableRiver()
 if(exists('wqdata'))rm(wqdata)
   lawaset=c("NH4", "TURB", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
   rownames(siteTable)=NULL
   suppressWarnings(rm(wqdata,"ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc"))
   agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
-library(parallel)
-library(doParallel)
-  backfill=T
+  backfill=F
 workers=makeCluster(7)
 registerDoParallel(workers)
 clusterCall(workers,function(){
@@ -161,7 +162,7 @@ clusterCall(workers,function(){
   library(dplyr)
 })
 startTime=Sys.time()
-foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'pass')%dopar%{
+foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'stop')%dopar%{
   mfl=loadLatestCSVRiver(agencies[agency],maxHistory = 30)
   if('centype'%in%names(mfl)){
     names(mfl)[names(mfl)=='centype'] <- 'CenType'
@@ -321,6 +322,7 @@ Sys.time()-startTime  #7s
 #29/6/2020   1066742
 #1/7/2021    1180278
 #8/7/2021    1174823
+#16/7/2021   1322226
 donecombine=T
 
 
@@ -448,7 +450,7 @@ wqdata$Agency=tolower(wqdata$Agency)
 wqdata$CenType[wqdata$CenType%in%c("L","Left")] <- "Left"
 wqdata$CenType[wqdata$CenType%in%c("R","Right")] <- "Right"
 
-wqdata=unique(wqdata)  #1178772 -> 1178528
+wqdata=unique(wqdata)  #1322226 -> 1321880
 
 
 #Find sites handled by more than one agency with the same LawaSiteID
@@ -501,6 +503,7 @@ wqdata$LawaSiteID[wqdata$LawaSiteID%in%dupSites&wqdata$Agency=='niwa'] <-
 #1068009 29June 2021
 #1178528 2July2021
 #1183566  8/7/21
+#1321880  16/7/2021
 
 table(unique(tolower(wqdata$LawaSiteID))%in%tolower(siteTable$LawaSiteID))
 table(unique(tolower(wqdata$CouncilSiteID))%in%tolower(siteTable$CouncilSiteID))

@@ -5,6 +5,8 @@ ac,pH (pH units),PH
 ac,Dis Rx P (mg/l),DRP
 ac,Tot N (mg/l),TN
 ac,NO3+NO2 (mg/l),TON
+ac,NO3-N (mg/l),NO3N
+ac,Dissolved Inorganic Nitrogen,DIN
 ac,Tot P (mg/l),TP
 ac,Black Disk (m),BDISC
 ac,Turb,TURB
@@ -27,7 +29,9 @@ ecan,E. coli,ECOLI
 ecan,Nitrate-N Nitrite-N,TON
 ecan,pH,PH
 ecan,Total Nitrogen,TN
+ecan,Nitrate Nitrogen,NO3N
 ecan,Total Phosphorus,TP
+ecan,Dissolved Inorganic Nitrogen,DIN
 ecan,Turbidity,TURB
 ,,
 es,Clarity (Black Disc Field),BDISC
@@ -35,6 +39,7 @@ es,E-Coli <CFU>,ECOLI
 es,Nitrogen (Nitrate Nitrite),TON
 es,Nitrogen (Total Ammoniacal),NH4
 es,Nitrogen (Total),TN
+es,Nitrogen (Nitrate),NO3N
 es,pH (Lab),PH
 es,Phosphorus (Dissolved Reactive),DRP
 es,Phosphorus (Total),TP
@@ -63,8 +68,10 @@ gwrc,Turbidity (Lab),TURB
 ,,
 hbrc,Total Ammoniacal-N,NH4
 hbrc,Black Disc,BDISC
+hbrc,Reported DIN,DIN
 hbrc,Dissolved Reactive Phosphorus,DRP
 hbrc,E. Coli,ECOLI
+hbrc,Nitrate Nitrogen,NO3N
 hbrc,Nitrate + Nitrite Nitrogen,TON
 hbrc,pH (Field),PH
 hbrc,pH (Lab),PH
@@ -83,7 +90,9 @@ hrc,TN (HRC),TN
 hrc,TON (HRC),TON
 hrc,Total Nitrogen (HRC),TN
 hrc,TP (HRC),TP
+hrc,Soluble Inorganic Nitrogen (HRC),DIN
 hrc,Turbidity EPA (HRC),TURB
+hrc,Turbidity ISO (HRC),TURB
 hrc,WQ Sample,WQ Sample
 ,,
 mdc,Ammonia - Nitrogen,NH4
@@ -91,6 +100,7 @@ mdc,Black Disc,BDISC
 mdc,Dissolved Reactive Phosphorus,DRP
 mdc,E. coli,ECOLI
 mdc,Nitrite/Nitrate - Nitrogen,TON
+mdc,Nitrate - Nitrogen,NO3N
 mdc,pH (Lab),PH
 mdc,Total Nitrogen,TN
 mdc,Total Phosphorus,TP
@@ -151,11 +161,13 @@ tdc,Turbidity,TURB
 tdc,Water Clarity,BDISC
 ,,
 trc,BDISC,BDISC
+trc,BDISC-1,BDISC
 trc,DRP,DRP
 trc,ECOL,ECOLI
 trc,NH4,NH4
 trc,NNN,TON
 trc,TON,TON
+trc,NO3-5,NO3N
 trc,PH,PH
 trc,TN,TN
 trc,TP,TP
@@ -168,7 +180,6 @@ wcrc,E.coli (Mem Filtration),ECOLI
 wcrc,Nitrate + Nitrite,TON
 wcrc,Nitrogen (Total),TN
 wcrc,pH,PH
-Xwcrc,Phosphorous Total,TP
 wcrc,Phosphorous (Total),TP
 wcrc,Turbidity,TURB
 wcrc,Water Clarity (Black Disc),BDISC

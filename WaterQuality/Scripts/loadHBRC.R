@@ -27,11 +27,19 @@ if(exists("Data"))rm(Data)
 for(i in 1:length(sites)){
   cat('\n',sites[i],i,'out of ',length(sites),'\t')
   for(j in 1:length(Measurements)){
-    url <- paste0("https://data.hbrc.govt.nz/Envirodata/WQForTrend.hts?service=Hilltop&request=GetData",
+    if(Measurements[j]=="Reported DIN"){
+      url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMAR.hts?service=Hilltop&request=GetData",
+                    "&Site=",sites[i],
+                    "&Measurement=",Measurements[j],
+                    "&From=2004-01-01",
+                    "&To=2021-01-01")
+    }else{
+    url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMARDiscreteGood.hts?service=Hilltop&request=GetData",
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
                  "&From=2004-01-01",
                  "&To=2021-01-01")
+    }
     url <- URLencode(url)
     xmlback <- ldWQ(url,agency,method='wininet',QC=F)
     if(!is.null(xmlback)){
@@ -106,7 +114,7 @@ for(i in 1:length(sites)){
           
           # loop through TVP nodes and only use records where quality code greater than 500
           for(N in 1:xmlSize(m[['Data']])){  ## Number of Time series values
-            if(x_df$qualValue[N]>=500){  
+            # if(x_df$qualValue[N]>=500){  
               # loop through all Children - T, Value, Parameters ..    
               addChildren(DataNode, newXMLNode(name = "E",parent = DataNode))
               addChildren(DataNode[[xmlSize(DataNode)]], newXMLNode(name = "T",x_df$ansTime[N]))
@@ -136,7 +144,7 @@ for(i in 1:length(sites)){
               }
               item2 <- paste(item2,"$QC",tab,x_df$qualValue[N],tab,sep="")
               addChildren(DataNode[[xmlSize(DataNode)]], newXMLNode(name = "I2",item2))
-            } 
+            # } #End QC check filter
           }
           rm(m_df,q_df,x_df)
           oldNode <- m[['Data']]
@@ -145,10 +153,10 @@ for(i in 1:length(sites)){
           con$addNode(m) 
         }
       }else{
-        cat("No",Measurements[j])
+        cat("No",Measurements[j],'\t')
         }
     }else{
-      cat("No",Measurements[j])
+      cat("No",Measurements[j],'\t')
     }
   }
 }
@@ -156,4 +164,6 @@ for(i in 1:length(sites)){
 # saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
 saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
 file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
+                    format(Sys.Date(),"%Y-%m-%d"),
+                    "/",agency,"SWQ.xml"),overwrite = T)

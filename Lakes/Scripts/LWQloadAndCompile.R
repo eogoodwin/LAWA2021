@@ -20,7 +20,7 @@ siteTable$Agency=tolower(siteTable$Agency)
 
 scriptsToRun = c("H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadAC.R", #1
                  "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadBOP.R",
-                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadECAN.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadECAN_list.R",
                  "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadES.R",
                  # "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadGDC.R", #5
                  "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadGW.R",
@@ -60,11 +60,12 @@ for(ag in agencies){
 ##############################################################################
 #                                 XML to CSV
 ##############################################################################
-lawaset=c("TN","NH4N","TP","CHLA","pH","Secchi","ECOLI","Total Cyanobacteria Bio Volume","Potentially Toxic Cyanobacteria Biovol")
+lawaset=c("TN","NH4N","TP","CHLA","pH","Secchi","ECOLI","CYANOTOT","CYANOTOX")
 
 
 for(agency in sort(unique(siteTable$Agency))){
    suppressWarnings({rm(forcsv)})
+  if(agency%in%c('ac','ecan')){next} #data is already in CSV
   forcsv=xml2csvLake(agency=agency,maxHistory = 40,quiet=F)
   cat(length(unique(forcsv$Measurement)),paste(unique(forcsv$Measurement),collapse=', '),'\n')
   if(is.null(forcsv)){next}
@@ -81,8 +82,11 @@ for(agency in sort(unique(siteTable$Agency))){
   forcsv$Measurement[grepl(pattern = 'Ammonia|NH4',x = forcsv$Measurement,ignore.case = T)] <- "NH4N"
   forcsv$Measurement[grepl(pattern = 'TN..HRC.|total nitrogen|totalnitrogen|Nitrogen..Total.|N _Tot|Tot N',
                             x = forcsv$Measurement,ignore.case = T)] <- "TN" #Note, might be nitrate nitrogen
-  forcsv$Measurement[grepl(pattern = 'ph \\(field\\)|ph \\(lab\\)|pH_Lab|pH \\(pH|pH \\(Disc',x = forcsv$Measurement,ignore.case = T)] <- "pH"
-
+  forcsv$Measurement[grepl(pattern = 'field ph|ph \\(field\\)|ph \\(lab\\)|pH_Lab|pH \\(pH|pH \\(Disc',
+                           x = forcsv$Measurement,ignore.case = T)] <- "pH"
+  forcsv$Measurement[grepl(pattern = 'Cyanobacteria BioVolume (mm3/L)',
+                           x = forcsv$Measurement,ignore.case = T)] <- "CYANOTOT"
+  
   cat(length(unique(forcsv$Measurement)),paste(unique(forcsv$Measurement),collapse='\t'),'\n')
   cat(agency,'\tmissing\t',lawaset[!lawaset%in%unique(forcsv$Measurement)],'\n') #Missing Measurements
   excess=unique(forcsv$Measurement)[!unique(forcsv$Measurement)%in%lawaset] #Surplus Measurements
@@ -101,22 +105,21 @@ for(agency in sort(unique(siteTable$Agency))){
   suppressWarnings({rm(forcsv)})
 }
 
-
 ##############################################################################
 #                                 COMBO
 ##############################################################################
 #Build the combo ####
-siteTable=loadLatestSiteTableLakes()
-lawaset=c("TN","NH4N","TP","CHLA","pH","Secchi","ECOLI")
-rownames(siteTable)=NULL
-suppressWarnings(rm(lakedata,"ac","boprc","ecan","es","gwrc","hbrc","hrc","nrc","orc","trc","wcrc","wrc" ))
-agencies= sort(unique(siteTable$Agency))
 library(parallel)
 library(doParallel)
-workers=makeCluster(7)
+lawaset=c("TN","NH4N","TP","CHLA","pH","Secchi","ECOLI","CYANOTOT","CYANOTOX")
+siteTable=loadLatestSiteTableLakes()
+rownames(siteTable)=NULL
+suppressWarnings(rm(lakeData,"ac","boprc","ecan","es","gwrc","hbrc","hrc","nrc","orc","trc","wcrc","wrc" ))
+agencies= sort(unique(siteTable$Agency))
+workers=makeCluster(3)
 registerDoParallel(workers)
 startTime=Sys.time()
-foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'remove')%dopar%{
+foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'stop')%dopar%{
   mfl=loadLatestCSVLake(agencies[agency],maxHistory = 30)
   if(!is.null(mfl)&&dim(mfl)[1]>0){
     if(agencies[agency]=='boprc'){
@@ -181,7 +184,7 @@ foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'remove')%d
     
    }
   return(mfl)
-}->lakedata 
+}->lakeData 
 stopCluster(workers)
 rm(workers)
 Sys.time()-startTime #0.3s
@@ -197,49 +200,51 @@ Sys.time()-startTime #0.3s
 # 23/9/2020 72983
 # 2/7/2021 60039
 # 7/7 2021 60484
+# 12/7/21  63224
+# 16/7/2021 69909
 
 #September 2020 TRC had a bunch of lake sites with the same LAWAID. Simplify those.
-lakedata <- lakedata%>%filter(!CouncilSiteID%in%c('lrt00h450','lrt00h300'))
-lakedata <- lakedata%>%filter(!(CouncilSiteID%in%c('lrt00s450','lrt00s300')&Measurement=='pH'))
-lakedata$CouncilSiteID[grepl(pattern = 'lrt00.300',lakedata$CouncilSiteID)] = 'lrt00x300'
-lakedata$CouncilSiteID[grepl(pattern = 'lrt00.450',lakedata$CouncilSiteID)] = 'lrt00x450'
+lakeData <- lakeData%>%filter(!CouncilSiteID%in%c('lrt00h450','lrt00h300'))
+lakeData <- lakeData%>%filter(!(CouncilSiteID%in%c('lrt00s450','lrt00s300')&Measurement=='pH'))
+lakeData$CouncilSiteID[grepl(pattern = 'lrt00.300',lakeData$CouncilSiteID)] = 'lrt00x300'
+lakeData$CouncilSiteID[grepl(pattern = 'lrt00.450',lakeData$CouncilSiteID)] = 'lrt00x450'
 
 if('lrt00h300'%in%tolower(siteTable$CouncilSiteID)){
-siteTableRep=siteTable%>%filter(!grepl('lrt00.300',CouncilSiteID,T))
-lrt300rep = siteTable%>%filter(grepl('lrt00.300',CouncilSiteID,T))%>%mutate(CouncilSiteID='lrt00x300',Lat=mean(Lat),Long=mean(Long))
-siteTableRep=siteTableRep%>%filter(!grepl('lrt00.450',CouncilSiteID,T))
-lrt450rep = siteTable%>%filter(grepl('lrt00.450',CouncilSiteID,T))%>%mutate(CouncilSiteID='lrt00x450',Lat=mean(Lat),Long=mean(Long))
-siteTableRep=rbind(siteTableRep,lrt300rep[1,],lrt450rep[1,])
-write.csv(x = siteTableRep,file = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
-                                      format(Sys.Date(),'%Y-%m-%d'),
-                                      "/SiteTable_Lakes",format(Sys.Date(),'%d%b%y'),".csv"),row.names=F)
-siteTable=siteTableRep
-rm(siteTableRep,lrt450rep,lrt300rep)
+  siteTableRep=siteTable%>%filter(!grepl('lrt00.300',CouncilSiteID,T))
+  lrt300rep = siteTable%>%filter(grepl('lrt00.300',CouncilSiteID,T))%>%mutate(CouncilSiteID='lrt00x300',Lat=mean(Lat),Long=mean(Long))
+  siteTableRep=siteTableRep%>%filter(!grepl('lrt00.450',CouncilSiteID,T))
+  lrt450rep = siteTable%>%filter(grepl('lrt00.450',CouncilSiteID,T))%>%mutate(CouncilSiteID='lrt00x450',Lat=mean(Lat),Long=mean(Long))
+  siteTableRep=rbind(siteTableRep,lrt300rep[1,],lrt450rep[1,])
+  write.csv(x = siteTableRep,file = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
+                                           format(Sys.Date(),'%Y-%m-%d'),
+                                           "/SiteTable_Lakes",format(Sys.Date(),'%d%b%y'),".csv"),row.names=F)
+  siteTable=siteTableRep
+  rm(siteTableRep,lrt450rep,lrt300rep)
 }
-#59834
+#69259
 
-write.csv(lakedata,paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesCombined.csv'),row.names = F)
-# lakedata=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',pattern='LakesCombined',recursive=T,full.names = T,ignore.case = T),1),stringsAsFactors=F)
-lakedata$LawaSiteID = siteTable$LawaSiteID[match(tolower(lakedata$CouncilSiteID),tolower(siteTable$CouncilSiteID))]
-lakedata$LawaSiteID[which(is.na(lakedata$LawaSiteID))]=siteTable$LawaSiteID[match(tolower(lakedata$CouncilSiteID[is.na(lakedata$LawaSiteID)]),
+write.csv(lakeData,paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesCombined.csv'),row.names = F)
+# lakeData=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',pattern='LakesCombined',recursive=T,full.names = T,ignore.case = T),1),stringsAsFactors=F)
+lakeData$LawaSiteID = siteTable$LawaSiteID[match(tolower(lakeData$CouncilSiteID),tolower(siteTable$CouncilSiteID))]
+lakeData$LawaSiteID[which(is.na(lakeData$LawaSiteID))]=siteTable$LawaSiteID[match(tolower(lakeData$CouncilSiteID[is.na(lakeData$LawaSiteID)]),
                                                                      tolower(siteTable$SiteID))]
 
-lakedata%>%group_by(LawaSiteID)%>%
+lakeData%>%group_by(LawaSiteID)%>%
   dplyr::summarise(agCount=length(unique(agency)),
                    ags=paste(unique(agency),collapse=' '),
                    cid=paste(unique(CouncilSiteID),collapse=', '))%>%
   ungroup%>%
   filter(agCount>1)%>%dplyr::select(-agCount)
 
-lakedata <- lakedata%>%drop_na(LawaSiteID)
+lakeData <- lakeData%>%drop_na(LawaSiteID)
 
-#59864
+#69259
 
-# lakedata$LawaSiteID[tolower(lakedata$CouncilSiteID) =="omanuka lagoon (composite)"] = siteTable$LawaSiteID[tolower(siteTable$CouncilSiteID) =="omanuka lagoon (composite)"]
+# lakeData$LawaSiteID[tolower(lakeData$CouncilSiteID) =="omanuka lagoon (composite)"] = siteTable$LawaSiteID[tolower(siteTable$CouncilSiteID) =="omanuka lagoon (composite)"]
 
-lakedata$CouncilSiteID=tolower(lakedata$CouncilSiteID)
+lakeData$CouncilSiteID=tolower(lakeData$CouncilSiteID)
 siteTable$CouncilSiteID=tolower(siteTable$CouncilSiteID)
-lakesWithMetadata=merge(lakedata,siteTable,by="CouncilSiteID",all.x=T,all.y=F)
+lakesWithMetadata=merge(lakeData,siteTable,by="CouncilSiteID",all.x=T,all.y=F)
 
 missingCouncilSiteIDs=unique(lakesWithMetadata$CouncilSiteID.x[is.na(lakesWithMetadata$LawaSiteID)])
 missingCouncilSiteIDs%in%siteTable$CouncilSiteID
@@ -260,6 +265,7 @@ table(lakesWithMetadata$Agency,lakesWithMetadata$GeomorphicLType)
 table(factor(lakesWithMetadata$Agency,levels=c('ac','boprc','ecan','es','gdc','gwrc','hbrc','hrc','mdc','ncc','nrc','orc','tdc','trc','wcrc','wrc')))
 
 # ac   boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc   nrc   orc   tdc   trc  wcrc   wrc 
+# 2685 11040 24118  10403       1997  3946  2129     0     0     0  7601     0   859  1678  8008
 #    0 11040 16883  9844     0  1997     0  1479     0     0     0  7601     0   859  1678  8008 
 # 6580 22513 15939  9194     0  1997  3514  1794     0     0  8927  6829     0  1461  1563  7186 
 # 3050 9704  15939  9194     0  1997  3513  1794     0     0  8927  7023     0  1461  1556  7186
@@ -271,23 +277,5 @@ suppressWarnings(try(dir.create(paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/'
 write.csv(lakesWithMetadata,paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesWithMetadata.csv'),row.names = F)
 save(lakesWithMetadata,file = paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesWithMetadata.rData'))
 
-table(lakedata$agency)
+table(lakeData$agency)
 
-# boprc  ecan    es  gwrc   hrc   orc   trc  wcrc   wrc 
-# 11040 17132  9565  1997  2009  7601   859  1678  8008
-
-#    ac boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc   nrc   orc   tdc   trc  wcrc   wrc 
-# 10145 17501 15967  8244     0  1897  2336  1026     0     0  5627  6629     0  1461  1563  7186 
-# 3526  25567 15939  9194        1997  3514  1794              8927  6829        1461  1563  7186  
-#    ac boprc  ecan    es        gwrc  hbrc   hrc               nrc   orc         trc  wcrc   wrc 
-#  3050 10965 15939  9194        1997  3513  1794              8927  7372        831  1556  7186 
-#  3050 10965 15939  9194        1997  3513  1794              8927  7401        831  1556  7186 
-# 
-# for(agency in c("ac","boprc","ecan","es","gwrc","hbrc","hrc","nrc","orc","trc","wcrc","wrc")){
-#   forcsv=loadLatestCSVLake(agency,quiet=T,maxHistory = 100)
-#   if(!is.null(forcsv)){
-#     if(any(missingCouncilSiteIDs%in%forcsv$CouncilSiteID)){
-#       cat(agency,'\t')
-#     }
-#   }
-# }

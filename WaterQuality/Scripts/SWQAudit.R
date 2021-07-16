@@ -12,6 +12,7 @@ EndYear <- lubridate::year(Sys.Date())-1    #2020
 urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
 wqdata=loadLatestDataRiver()
+wqdata$Date[wqdata$Agency=='ac']=as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency=='ac']),'%d-%b-%y'))
 #Overall audit xmlAge, start, stop, n, nSite, mean, max, min audit ####
 wqAudit=data.frame(agency=NULL,xmlAge=NULL,var=NULL,nMeas=NULL,nSite=NULL,earliest=NULL,latest=NULL,minMeas=NULL,meanMeas=NULL,maxMeas=NULL,nNA=NULL)
 for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
@@ -115,6 +116,7 @@ for(param in 1:length(params)){
 
 #And the ubercool html summary audit report doncuments per council!
 wqdata=loadLatestDataRiver()
+wqdata$Date[wqdata$Agency=='ac']=as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency=='ac']),'%d-%b-%y'))
 urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 startTime=Sys.time()
  for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){#
@@ -130,7 +132,7 @@ startTime=Sys.time()
           # }
 }
 Sys.time()-startTime
-#22 minutes 2/7/2021
+#20 minutes 16/7/2021
 
 # Audit the presence of measurements between config files and transfer table file, to allow the transfer table
 # to be used as the source of names to call variables for from

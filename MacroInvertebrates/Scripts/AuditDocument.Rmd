@@ -106,6 +106,9 @@ macroLIDs= unique(tolower(macroData$LawaSiteID[which(macroData$Agency==agency)])
 
 agencyRep=read.csv('h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepMacroWFS.csv',check.names = F)
 
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
+Measurements <- subset(df,df$Type=="Measurement")[,1]
+
 ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Analysis",
                         pattern = 'Macro_*State',
                         full.names = T,recursive=T,ignore.case = T),
@@ -141,6 +144,13 @@ macroTrend=macroTrend%>%distinct%>%
 # ,'period'
 ```
 `r Hmisc::hidingTOC(tocSide='right')`
+# Measurement names
+
+We hope to report on MCI, QMCI, Taxon Richness, Percent EPT taxa, and ASPM (average score per metric).  These go by various nomenclatures at different councils.  The list of measurement names that I call from `r agency` is `r paste(Measurements,collapse=', ')`. It would be great to know whether this list is correct, if some could be removed, or others should be added. 
+
+Do we have your QMCI and ASPM measurement names?  These indicators are new in this year.
+
+
 # WFS sites announced
 
 The council WFS site `r I(print(urls$URL[tolower(urls$Agency)==agency]))` announces the following `r I(print(length(siteTableLIDs)))` sites:
@@ -289,7 +299,7 @@ The following plots show data relative to other councils from whom data has been
 ```{r echo=F,results='asis'}
 cat('  \n\n### MCI\n')
 knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Audit",
-                                 pattern="MCI.*png",
+                                 pattern="^MCI.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### PercentageEPTtaxa\n')
 knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinvertebrates/Audit",
@@ -313,14 +323,14 @@ knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Macroinverteb
 
 The following plots are for this council only, comparing sites against one another, then timeseries per site.
 ```{r echo=F,fig.width=10,fig.height=10,warning=F,results='asis'}
-toLog=data.frame(msms=c("TaxaRichness","PercentageEPTTaxa","MCI","% EPT Richness","Total Richness","QMCI","ASPM"),
+toLog=data.frame(msms=c("TaxaRichness","PercentageEPTTaxa","MCI","%EPTRichness","TotalRichness","QMCI","ASPM"),
                  logy=c("","","","","","",""),stringsAsFactors=F)
 agencymacroData=macroData%>%dplyr::filter(Agency==agency)
 agencymacroData$Date=lubridate::dmy(agencymacroData$Date)
 for(msm in unique(agencymacroData$Measurement)){
   cat('  \n  \n###',toupper(msm),' within',agency,'\n')
   par(mfrow=c(1,1),mar=c(20,4,4,2))
-  bpDat=agencymacroData%>%filter(Measurement==msm)
+  bpDat=agencymacroData%>%filter(Measurement==msm)%>%drop_na(Value)
   yLog=toLog$logy[which(toLog$msms==msm)]
   if(yLog=='y'){
     if(any(bpDat$Value<=0,na.rm=T)){
@@ -330,7 +340,7 @@ for(msm in unique(agencymacroData$Measurement)){
   }
   boxplot(data=bpDat,
           Value~factor(CouncilSiteID),
-          main=msm,log=yLog,las=2)
+          main=msm,log=yLog,las=2,xlab='')
   yrng=range(bpDat$Value[bpDat$Value>0],na.rm=T)
   xrng=range(bpDat$Date,na.rm=T)
   par(mfrow=c(3,3),mar=c(3,4,2,1))

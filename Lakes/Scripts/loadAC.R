@@ -5,234 +5,94 @@ source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
 
 agency='ac'
-# df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/MetaData/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
-# Measurements <- subset(df,df$Type=="Measurement")[,1]
-Measurements <- unique(readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/AC200626_LakeWQ LAWA KiQS Calls_v2.xlsx",col_types = c(rep('skip',4),'text',rep('skip',3)))%>%as.data.frame)
-Measurements <- as.vector(Measurements[,1])
+
+Measurements=c("Chloro a (mg/l)", "Cyanobacteria BioVolume (mm3/L)", "E. coli (CFU/100ml)", 
+               "NH3+NH4 as N (mg/l)", "pH (pH units)", "Tot N (mg/l)", "Tot P (mg/l)", 
+               "Transpar.-secchi (m)")
+
 siteTable=loadLatestSiteTableLakes(maxHistory = 30)
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
-# http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&service=kisters&
-#   type=queryServices&request=getWqmSampleValues&format=csv
-# &station_no=7605
-# &parametertype_name=NH3%2BNH4%20as%20N%20(mg/l)
-# &period=P25Y&method_name=Ammonia%20as%20N%20-%20total%20(mg/L)%20(NH3%2BNH4)&returnfields=station_no,station_name,timestamp,sample_depth,parametertype_name,value_sign,value,unit_name&orderby1=timestamp&orderby2=sample_depth
-
-#http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&service=kisters&
-#  type=queryServices&request=getWqmSampleValues&format=csv
-#  &station_no=7605
-#  &parametertype_name=Tot%20N%20(mg/l)
-#  &period=P25Y&method_name=Total%20Nitrogen%20(Total%20Nitrogen%20-%20lab%20(total%20dissolved%20N%20by%20membr%filtration)&returnfields=station_no,station_name,timestamp,sample_depth,parametertype_name,value_sign,value,unit_name&orderby1=timestamp&orderby2=sample_depth
-                                                                                                                                                                                                                                  
+acLWQ=NULL
 setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 if(exists('Data'))rm(Data)
-# for(i in 1:length(sites)){
-#   cat('\n',sites[i],i,'out of',length(sites),'\n')
-#   for(j in 1:length(Measurements)){
-#     url <- paste0("http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&service=Kisters&",
-#                   "type=queryServices&request=getWqmSampleValues&format=csv", #correct as to 04/08/2021 email VP
-#                   "&station_no=",sites[i],
-#                   "&parametertype_name=",Measurements[j],
-#                   "&period=P25Y&returnfields=station_no,station_name,timestamp,sample_depth,parametertype_name,value_sign,value,unit_name,value_quality")
-#     url <- URLencode(url)
-#     url <- gsub(pattern = '\\+',replacement = '%2B',x = url)
-#     dl=try(download.file(url,destfile="D:/LAWA/2021/tmpLac.csv",method='curl',quiet=T),silent = T)
-#     
-#     csvfile <- read.csv("D:/LAWA/2021/tmpLac.csv",stringsAsFactors = F,sep=';')
-#     if(dim(csvfile)[1]>0){
-#       cat(Measurements[j],'\t')
-#       if(!exists("Data")){
-#         Data <- csvfile
-#       } else{
-#         Data <- rbind.data.frame(Data, csvfile)
-#       }
-#     }
-#   }
-# }
+for(i in 1:length(sites)){
+  cat('\n',sites[i],i,'out of',length(sites),'\n')
+  siteDat=NULL
+  for(j in 1:length(Measurements)){
+    url <- paste0("http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&Procedure=Sample.Results.LAWA&",
+                  "Service=SOS&version=2.0.0&request=getObservation&", #correct as to 08/07/2021 email VP
+                  "&observedProperty=",Measurements[j],
+                  "&featureOfInterest=",sites[i],
+                  "&temporalfilter=om:phenomenonTime,P25Y/2020-12-31")
+    url <- URLencode(url)
+    url <- gsub(pattern = '\\+',replacement = '%2B',x = url)
+    dl=try(download.file(url,destfile="D:/LAWA/2021/tmpLac.xml",method='curl',quiet=T),silent = T)
+    Data=xml2::read_xml("D:/LAWA/2021/tmpLac.xml")
+    Data = xml2::as_list(Data)[[1]]
+    if(length(Data)>0){
+      Data=Data$observationData$OM_Observation$result$MeasurementTimeseries
+      
+      Data=do.call(rbind, unname(sapply(Data,FUN=function(listItem){
+        if("MeasurementTVP"%in%names(listItem)){
+          retVal=data.frame(time=listItem$MeasurementTVP$time[[1]],value=listItem$MeasurementTVP$value[[1]])
+          if("metadata"%in%names(listItem$MeasurementTVP)){
+            retVal$Censored=attr(listItem$MeasurementTVP$metadata$TVPMeasurementMetadata$qualifier,'title')
+          }else{
+            retVal$Censored=F
+          }
+          return(retVal)
+        }
+      })))
+      if(!is.null(Data)){
+      Data$measurement=Measurements[j]
+      siteDat=rbind(siteDat,Data)
+      }
+    }
+      rm(Data)
+  }
+  siteDat$CouncilSiteID = sites[i]
+  acLWQ=rbind(acLWQ,siteDat)
+}
+acLWQ=data.frame(CouncilSiteID=acLWQ$CouncilSiteID,
+                 Date=format(lubridate::ymd_hms(acLWQ$time),'%d-%b-%y'),
+                 Value=acLWQ$value,
+                 Method=NA,
+                 Measurement=acLWQ$measurement,
+                 Censored=acLWQ$Censored,
+                 centype=F,
+                 QC=NA)
 
-Data = read.csv("./Data/Revised Lakes data sent to LAWA_2021.xlsx.csv",stringsAsFactors = F,encoding='UTF-8-BOM')
-names(Data)[1]='station_no'
+acLWQ$centype=sapply(as.numeric(acLWQ$Censored),FUN=function(cenCode){
+  retVal=""
+  if(is.na(cenCode)){return(retVal)}
+  if(bitwAnd(2^13,cenCode)==2^13){
+    retVal=paste0(retVal,'>')
+  }
+  if(bitwAnd(2^14,cenCode)==2^14){
+    retVal=paste0(retVal,'<')
+  }
+  return(retVal)
+})
 
-Data <- Data%>%filter(Value_quality!=42)
+acLWQ$Censored=FALSE
+acLWQ$Censored[acLWQ$centype!=""] <- TRUE
 
-Data <- Data%>%transmute(CouncilSiteID = station_no,
-                         # SiteID=Station_name,
-                         Date = format(as_date(lubridate::dmy(Timestamp),tz='Pacific/Auckland'),format='%d-%b-%y'),
-                         Value = Value,
-                         Method='',
-                         Measurement = Parametertype_name,
-                         Censored = grepl('<|>',value_sign),
-                         centype = as.character(factor(value_sign,levels = c('<','','>'),labels=c('Left','FALSE','Right'))),
-                         QC = Value_quality)
-table(Data$Measurement)
-Data$Measurement[Data$Measurement == "Transparency (secchi depth)"] <- "Secchi"
-Data$Measurement[Data$Measurement == 'Chloro a (mg/l)'] <- "CHLA"
-Data$Measurement[Data$Measurement == 'E. coli (CFU/100ml)'] <- "ECOLI"
-Data$Measurement[Data$Measurement == 'Tot P (mg/l)'] <- "TP"
-Data$Measurement[Data$Measurement == 'NH3+NH4 as N (mg/l)'] <- "NH4N"
-Data$Measurement[Data$Measurement == 'Tot N (mg/l)'] <- "TN" 
-Data$Measurement[Data$Measurement == 'pH (pH units)'] <- "pH"
-table(Data$Measurement)
+acLWQ$centype=as.character(factor(acLWQ$centype,
+                                  levels = c('<','','>'),
+                                  labels=c('Left','FALSE','Right')))
 
-
+table(acLWQ$Measurement)
+acLWQ$Measurement[acLWQ$Measurement == "Transpar.-secchi (m)"] <- "Secchi"
+acLWQ$Measurement[acLWQ$Measurement == 'E. coli (CFU/100ml)'] <- "ECOLI"
+acLWQ$Measurement[acLWQ$Measurement == 'Tot P (mg/l)'] <- "TP"
+acLWQ$Measurement[acLWQ$Measurement == 'NH3+NH4 as N (mg/l)'] <- "NH4N"
+acLWQ$Measurement[acLWQ$Measurement == 'Tot N (mg/l)'] <- "TN" 
+acLWQ$Measurement[acLWQ$Measurement == 'pH (pH units)'] <- "pH"
+acLWQ$Measurement[acLWQ$Measurement == 'Cyanobacteria BioVolume (mm3/L)'] <- "CYANOTOT"
+table(acLWQ$Measurement)
 
 # By this point, we have all the data downloaded from the council, in a data frame called Data.
-write.csv(Data,file = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names = F)
+write.csv(acLWQ,file = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names = F)
 
-
-
-if(0){
-  agency='ac'
-  # readxl::excel_sheets("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx")
-  ACdeliveredSecchi=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Secchi")
-  ACdeliveredPH=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "pH")
-  ACdeliveredNH4=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Ammonical Nitrogen")
-  ACdeliveredTN=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Total Nitrogen")
-  ACdeliveredTP=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Total Phosphorus")
-  ACdeliveredCHL=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Cholorophyll")
-  ACdeliveredECOLI=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "E.Coli")
-  # ACdeliveredCYANO=readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/ARCLakes Data - measurement data LAWA 2019.xlsx",sheet = "Cyanoall")
-  
-  ACdeliveredSecchi$Measurement = "Secchi"
-  ACdeliveredPH$Measurement = "pH"
-  ACdeliveredNH4$Measurement = "NH4N"
-  ACdeliveredTN$Measurement = "TN"
-  ACdeliveredTP$Measurement = "TP"
-  ACdeliveredCHL$Measurement = "CHLA"
-  ACdeliveredECOLI$Measurement = "ECOLI"
-  
-  ACdelivered = do.call("rbind",list(ACdeliveredCHL,  ACdeliveredECOLI, #ACdeliveredCYANO,
-                                      ACdeliveredNH4, ACdeliveredPH, ACdeliveredSecchi, ACdeliveredTN, ACdeliveredTP))
-  rm(list=ls(pattern="ACdelivered.+"))
-  ACdelivered <- ACdelivered%>%select(-`Smaple Number`,-`Quality Code`,-SampleType,-SampleFrequency)
-  # head(ACdelivered)
-  
-  ARCtoSave <- ACdelivered%>%transmute(CouncilSiteID=`Council Site id`,
-                                        Date = format(lubridate::ymd(Date),'%d-%m-%Y'),
-                                        Value = ReportLabValue,
-                                        Method=Method,
-                                        Measurement=Measurement,
-                                        Censored=!is.na(`Detection Limit`),
-                                        centype=ifelse(test = {!is.na(`Detection Limit`)&`Detection Limit`=="<"},
-                                                       yes = "Left",no = "FALSE"))
-  write.csv(ARCtoSave,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names=F)
-  
-  cat("AC delivered by csv, has been assimilated\n")
-}
-
-
-
-# The remainder here formats and saves XML. For why. Processes censoring, adds sample metadata from WQ Sample
-
-
-# ----------------
-  # tm<-Sys.time()
-  # cat("Building XML\n")
-  # cat("Creating:",Sys.time()-tm,"\n")
-  # 
-  # con <- xmlOutputDOM("Hilltop")
-  # con$addTag("Agency", "AC")
-  # #saveXML(con$value(), file="out.xml")
-  # 
-  # #-------
-# if(length(t)==0){
-#   next
-# } else{
-#   max<-nrow(Data)
-#   #max<-nrows(datatbl)
-# 
-#   i<-1
-#   #for each site
-#   while(i<=max){
-#     s<-Data$Site[i]
-#     # store first counter going into while loop to use later in writing out sample values
-#     start<-i
-# 
-#     cat(i,Data$Site[i],"\n")   ### Monitoring progress as code runs
-# 
-#     while(Data$Site[i]==s){
-#       #for each measurement
-#       con$addTag("Measurement",  attrs=c(CouncilSiteID=Data$Site[i]), close=FALSE)
-#       con$addTag("DataSource",  attrs=c(Name=Data$Measurement[i],NumItems="2"), close=FALSE)
-#       con$addTag("TSType", "StdSeries")
-#       con$addTag("DataType", "WQData")
-#       con$addTag("Interpolation", "Discrete")
-#       con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
-#       con$addTag("ItemName", Data$Measurement[i])
-#       con$addTag("ItemFormat", "F")
-#       con$addTag("Divisor", "1")
-#       con$addTag("Units", Data$Units[i])
-#       con$addTag("Format", "#.###")
-#       con$closeTag() # ItemInfo
-#       con$closeTag() # DataSource
-# 
-#       # for the TVP and associated measurement water quality parameters
-#       con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="2"),close=FALSE)
-#       d<- Data$Measurement[i]
-# 
-#       cat("       - ",Data$Measurement[i],"\n")   ### Monitoring progress as code runs
-# 
-#       while(Data$Measurement[i]==d){
-#         # for each tvp
-#         con$addTag("E",close=FALSE)
-#         con$addTag("T",Data$time[i])
-#         con$addTag("I1", Data$value[i])
-#         con$addTag("I2", paste("Units", Data$Units[i], sep="\t"))
-# 
-#         con$closeTag() # E
-#         i<-i+1 # incrementing overall for loop counter
-#         if(i>max){break}
-#       }
-#       # next
-#       con$closeTag() # Data
-#       con$closeTag() # Measurement
-# 
-#       if(i>max){break}
-#       # Next
-#     }
-#     # store last counter going out of while loop to use later in writing out sample values
-#     end<-i-1
-# 
-#     # Adding WQ Sample Datasource to finish off this Site
-#     # along with Sample parameters
-#     con$addTag("Measurement",  attrs=c(CouncilSiteID=Data$Site[start]), close=FALSE)
-#     con$addTag("DataSource",  attrs=c(Name="WQ Sample", NumItems="1"), close=FALSE)
-#     con$addTag("TSType", "StdSeries")
-#     con$addTag("DataType", "WQSample")
-#     con$addTag("Interpolation", "Discrete")
-#     con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
-#     con$addTag("ItemName", "WQ Sample")
-#     con$addTag("ItemFormat", "S")
-#     con$addTag("Divisor", "1")
-#     con$addTag("Units")
-#     con$addTag("Format", "$$$")
-#     con$closeTag() # ItemInfo
-#     con$closeTag() # DataSource
-# 
-#     # for the TVP and associated measurement water quality parameters
-#     con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="1"),close=FALSE)
-#     # for each tvp
-#     ## LOAD SAMPLE PARAMETERS
-#     ## SampleID, ProjectName, SourceType, SamplingMethod and mowsecs
-#     sample<-Data[start:end,3]
-#     sample<-unique(sample)
-#     sample<-sample[order(sample)]
-#     ## THIS NEEDS SOME WORK.....
-#     for(a in 1:length(sample)){
-#       con$addTag("E",close=FALSE)
-#       con$addTag("T",sample[a])
-#       #put metadata in here when it arrives
-#       # con$addTag("I2", paste("QC", QC, sep="\t"))
-#       con$closeTag() # E
-#     }
-#     con$closeTag() # Data
-#     con$closeTag() # Measurement
-#   }
-# }
-# 
-# # saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
-# saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
-# file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
-#           to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"),overwrite = T)
-#           
 
