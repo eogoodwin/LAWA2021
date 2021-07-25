@@ -54,7 +54,7 @@ for(nms in 1:(dim(NIWAmacroSites)[1])){
   NIWAmacroSites$lidname[nms]=lawaIDs$SiteName[which.min(dists)]
 }
 NIWAmacroSites$dist=minDists
-#This hand correction was identified 24/9/2021
+#This hand correction was identified 24/9/2020
 NIWAmacroSites$LawaSiteID[NIWAmacroSites$LawaSiteID=='ECAN-10028'] <- 'NRWQN-00054'
 
 # NIWAmacroSites[,c(8,15)]%>%as.data.frame

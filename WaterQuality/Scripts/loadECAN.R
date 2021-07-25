@@ -1,10 +1,9 @@
 ## Load libraries ------------------------------------------------
 require(dplyr)   ### dply library to manipulate table joins on dataframes
-require(XML)     ### XML library to write hilltop XML
+require(xml2)     ### XML library to write hilltop XML
 require(RCurl)
 
 agency='ecan'
-tab="\t"
 setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
@@ -13,24 +12,84 @@ Measurements=c(Measurements,'WQ Sample')
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
-suppressWarnings(rm(Data))
 
-con <- xmlOutputDOM("Hilltop")
-con$addTag("Agency", agency)
 if(exists("Data"))rm(Data)
-
+ecanSWQ=NULL
 for(i in 1:length(sites)){
-  cat(sites[i],i,'out of ',length(sites),'\n')
+  cat('\n',sites[i],i,'out of ',length(sites))
+  siteDat=NULL
   for(j in 1:length(Measurements)){
     url <- paste0("http://wateruse.ecan.govt.nz/wqlawa.hts?service=Hilltop&Agency=LAWA&request=GetData",
-      # "http://data.ecan.govt.nz/wqlawa.hts?service=Hilltop&Agency=LAWA&request=GetData",
-                 "&Site=",sites[i],
-                 "&Measurement=",Measurements[j],
-                 "&From=2004-01-01",
-                 "&To=2021-01-01")
+                  "&Site=",sites[i],
+                  "&Measurement=",Measurements[j],
+                  "&From=2004-01-01",
+                  "&To=2021-01-01")
     url <- URLencode(url)
+    
+    
+    dl=try(download.file(url,destfile="D:/LAWA/2021/tmpWQecan.xml",method='curl',quiet=T),silent = T)
+    if(dl>0){
+      cat('.')
+      Data=xml2::read_xml("D:/LAWA/2021/tmpWQecan.xml")
+      Data = xml2::as_list(Data)[[1]]
+      dataSource = unlist(Data$Measurement$DataSource)
+      Data = Data$Measurement$Data
+      if(length(Data)>0){
+        cat('.')
+        Data=lapply(seq_along(Data),function(listIndex){
+          liout <- unlist(Data[[listIndex]][c("T","Value")])
+          liout=data.frame(Name=names(liout),Value=unname(liout))
+          if(length(Data[[listIndex]])>2){
+            attrs=sapply(seq_along(Data[[listIndex]])[-c(1,2)],
+                         FUN=function(inListIndex){
+                           as.data.frame(attributes(Data[[listIndex]][inListIndex]$Parameter))
+                         })
+            if(class(attrs)=="list"&&any(lengths(attrs)==0)){
+              attrs[[which(lengths(attrs)==0)]] <- NULL
+              liout=rbind(liout,bind_rows(attrs))
+            }else{
+              attrs=t(attrs)
+              liout=rbind(liout,attrs)
+            }
+          }
+          return(liout)
+        })
+        
+        allNames = unique(unlist(t(sapply(Data,function(li)li$Name))))
+        
+        eval(parse(text=paste0("Datab=data.frame(`",paste(allNames,collapse='`=NA,`'),"`=NA)")))
+        for(dd in seq_along(Data)){
+          newrow=Data[[dd]]
+          newrow=pivot_wider(newrow,names_from = 'Name',values_from = 'Value')%>%as.data.frame
+          newrow=apply(newrow,2,unlist)%>%as.list%>%data.frame
+          Datab <- merge(Datab,newrow,all=T)
+          rm(newrow)
+        }
+        rm(dd)
+        
+        mtRows=which(apply(Datab,1,FUN=function(r)all(is.na(r))))
+        if(length(mtRows)>0){Datab=Datab[-mtRows,]}
+        Data=Datab
+        rm(Datab,mtRows)
+        
+        Data$Units=dataSource[grep('unit',names(dataSource),ignore.case=T)]
+        Data$Measurement=Measurements[j]
+        siteDat=bind_rows(siteDat,Data)
+      }
+      rm(Data)
+    }
+  }
+  if(!is.null(siteDat)){
+    siteDat$CouncilSiteID = sites[i]
+    ecanSWQ=bind_rows(ecanSWQ,siteDat)
+  }
+  rm(siteDat)
+}
 
-    xmlfile <- ldWQ(url,agency,QC=T)
+
+
+
+        xmlfile <- ldWQ(url,agency,QC=T)
     if(!is.null(xmlfile)){
       xmltop<-xmlRoot(xmlfile)
       m<-xmltop[['Measurement']]

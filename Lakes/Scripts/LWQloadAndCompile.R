@@ -19,7 +19,7 @@ siteTable$Agency=tolower(siteTable$Agency)
 
 
 scriptsToRun = c("H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadAC.R", #1
-                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadBOP.R",
+                 "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadBOP.R", #slow - next to xml2
                  "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadECAN_list.R",
                  "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadES.R",
                  # "H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/loadGDC.R", #5
@@ -223,6 +223,9 @@ if('lrt00h300'%in%tolower(siteTable$CouncilSiteID)){
 }
 #69259
 
+table(LWQdata$Agency,LWQdata$Measurement)/table(LWQdata$Agency,LWQdata$Measurement)
+
+
 write.csv(lakeData,paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',format(Sys.Date(),"%Y-%m-%d"),'/LakesCombined.csv'),row.names = F)
 # lakeData=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',pattern='LakesCombined',recursive=T,full.names = T,ignore.case = T),1),stringsAsFactors=F)
 lakeData$LawaSiteID = siteTable$LawaSiteID[match(tolower(lakeData$CouncilSiteID),tolower(siteTable$CouncilSiteID))]
@@ -265,6 +268,7 @@ table(lakesWithMetadata$Agency,lakesWithMetadata$GeomorphicLType)
 table(factor(lakesWithMetadata$Agency,levels=c('ac','boprc','ecan','es','gdc','gwrc','hbrc','hrc','mdc','ncc','nrc','orc','tdc','trc','wcrc','wrc')))
 
 # ac   boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc   nrc   orc   tdc   trc  wcrc   wrc 
+# 2685 11040 18913  10403   0   1997  4070   2128  0     0     0    7601     0   859   1678  8008 
 # 2685 11040 24118  10403       1997  3946  2129     0     0     0  7601     0   859  1678  8008
 #    0 11040 16883  9844     0  1997     0  1479     0     0     0  7601     0   859  1678  8008 
 # 6580 22513 15939  9194     0  1997  3514  1794     0     0  8927  6829     0  1461  1563  7186 
@@ -279,3 +283,4 @@ save(lakesWithMetadata,file = paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/',f
 
 table(lakeData$agency)
 
+table(lakeData$agency,lakeData$Measurement)/table(lakeData$agency,lakeData$Measurement)

@@ -1,14 +1,17 @@
 require(dplyr)   ### dply library to manipulate table joins on dataframes
-require(XML)     ### XML library to write hilltop XML
+require(xml2)     ### XML library to write hilltop XML
 require(RCurl)
 source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
 
 agency='ac'
 
-Measurements=c("Chloro a (mg/l)", "Cyanobacteria BioVolume (mm3/L)", "E. coli (CFU/100ml)", 
-               "NH3+NH4 as N (mg/l)", "pH (pH units)", "Tot N (mg/l)", "Tot P (mg/l)", 
-               "Transpar.-secchi (m)")
+
+Measurements = read_csv("H:/ericg/16666LAWA/LAWA2021/Lakes/MetaData/acLWQ_Config.csv")%>%
+  as.data.frame%>%`[`('Value')%>%unlist%>%unname
+# Measurements%in%c("Chlorophyll", "Cyanobacteria BioVolume (mm3/L)", "E. coli (CFU/100ml)", 
+#                "NH3+NH4 as N (mg/l)", "pH (pH units)", "Tot N (mg/l)", "Tot P (mg/l)", 
+#                "Transpar.-secchi (m)")
 
 siteTable=loadLatestSiteTableLakes(maxHistory = 30)
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
@@ -25,6 +28,12 @@ for(i in 1:length(sites)){
                   "&observedProperty=",Measurements[j],
                   "&featureOfInterest=",sites[i],
                   "&temporalfilter=om:phenomenonTime,P25Y/2020-12-31")
+    'http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&Procedure=Sample.Results.LAWA&
+      Service=SOS&version=2.0.0&request=GetObservation&
+      observedProperty=Cyanobacteria%20BioVolume%20(mm3/L)&
+      featureOfInterest=44616&
+      temporalfilter=om:phenomenonTime,P25Y/2020-12-31'
+    
     url <- URLencode(url)
     url <- gsub(pattern = '\\+',replacement = '%2B',x = url)
     dl=try(download.file(url,destfile="D:/LAWA/2021/tmpLac.xml",method='curl',quiet=T),silent = T)

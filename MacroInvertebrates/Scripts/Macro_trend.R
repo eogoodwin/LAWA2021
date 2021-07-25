@@ -1,8 +1,8 @@
 rm(list=ls())
 gc()
 library(tidyverse)
-source("h:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R")
 source("h:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R")
+source("h:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R")
 # source("h:/ericg/16666LAWA/LAWA2021/WaterQuality/scripts/SWQ_state_functions.R")
 dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d")),recursive = T,showWarnings = F)
 
@@ -43,16 +43,18 @@ if(!exists('macroData')){
 
 
 
-
+uMeasures=c('MCI','QMCI','ASPM')
 
 #15 year trend ####
-datafor15=macroData%>%filter(sYear>=startYear15 & sYear <= EndYear)
+library(parallel)
+library(doParallel)
+
+
+datafor15=macroData%>%filter(sYear>=startYear15 & sYear <= EndYear, Measurement%in%uMeasures)
 usites=unique(datafor15$LawaSiteID)
 cat(length(usites),'\n')
 usite=1
-library(parallel)
-library(doParallel)
-workers <- makeCluster(3)
+workers <- makeCluster(5)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   library(magrittr)
@@ -63,60 +65,58 @@ clusterCall(workers,function(){
 })
 startTime=Sys.time()
 foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar%{
-  siteTrendTable15=data.frame(LawaSiteID=usites[usite],Measurement='MCI',nMeasures = NA_integer_,
-                              nFirstYear=NA_real_,nLastYear=NA_real_,numMonths=NA_real_,numQuarters=NA_real_,numYears=NA_real_,
-                              Observations=NA_real_,KWstat = NA_real_,pvalue = NA_real_,
-                              nObs = NA_integer_, S = NA_real_, VarS = NA_real_,D = NA_real_, tau = NA_real_,
-                              Z = NA_real_, p = NA_real_,MKProbability=NA_real_,AnalysisNote=NA_real_,prop.censored=NA_real_,
-                              prop.unique=NA_real_,no.censorlevels=NA_real_,Median = NA_real_, Sen_VarS = NA_real_,
-                              AnnualSenSlope = NA_real_,Intercept = NA_real_, Lci = NA_real_, Uci = NA_real_,
-                              AnalysisNoteSS=NA_real_, Sen_Probability = NA_real_,Probabilitymax = NA_real_,
-                              Probabilitymin = NA_real_, Percent.annual.change = NA_real_,standard=NA_real_,
-                              ConfCat=NA_real_,period=15,frequency=NA_real_)
-  subDat=datafor15%>%dplyr::filter(LawaSiteID==usites[usite],Measurement=='MCI')
-    siteTrendTable15$nMeasures=dim(subDat)[1]
-    if(dim(subDat)[1]>0){
-      SSD_med <- subDat#%>%
-        # dplyr::group_by(LawaSiteID,sYear)%>%
-        # dplyr::summarise(Value = quantile(Value,prob=c(0.5),type=5,na.rm=T),
-        #                  myDate = mean(myDate,na.rm=T),
-        #                  Censored = any(Censored),
-        #                  CenType = ifelse(any(CenType=='lt'),'lt',ifelse(any(CenType=='gt'),'gt','not'))
-        # )%>%ungroup%>%as.data.frame
-      SSD_med$Value=signif(SSD_med$Value,6)#Censoring fails with tiny machine rounding errors
-      SSD_med$Season = paste0('y',SSD_med$sYear)
+  # trendTable15=NULL
+  # for(usite in 1:length(usites)){
+  siteTrendTable15=data.frame(LawaSiteID=usites[usite], Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
+                              nLastYear=NA,numMonths=NA, numQuarters=NA, numYears=NA,
+                              Observations=NA,KWstat=NA,pvalue=NA, SeasNote=NA,
+                              nObs=NA, S=NA, VarS=NA, D=NA,tau=NA, Z=NA, p=NA, C=NA,Cd=NA, MKAnalysisNote=NA,
+                              prop.censored=NA, prop.unique=NA, no.censorlevels=NA,
+                              Median=NA, Sen_VarS=NA,AnnualSenSlope=NA, Intercept=NA, Sen_Lci=NA,
+                              Sen_Uci=NA, SSAnalysisNote=NA,Sen_Probability=NA, Sen_Probabilitymax=NA,
+                              Sen_Probabilitymin=NA, Percent.annual.change=NA,
+                              standard=NA,ConfCat=NA, period=15, frequency=NA)
+  subDat=datafor15%>%dplyr::filter(LawaSiteID==usites[usite])
+  for(uParam in 1:length(uMeasures)){
+    subSubDat=subDat%>%filter(subDat$Measurement==uMeasures[uParam])%>%as.data.frame
+    siteTrendTable15$nMeasures[uParam]=dim(subSubDat)[1]
+    if(dim(subSubDat)[1]>0){
+      subSubDat$Value=signif(subSubDat$Value,6)#Censoring fails with tiny machine rounding errors
+      subSubDat$Season = paste0('y',subSubDat$sYear)
       SeasonString = sort(unique(sapply(startYear15:EndYear,function(x)paste0('y',x))))
-      siteTrendTable15$nFirstYear=length(which(SSD_med$sYear==startYear15&!is.na(SSD_med$Value)))
-      siteTrendTable15$nLastYear=length(which(SSD_med$sYear==EndYear&!is.na(SSD_med$Value)))
-      siteTrendTable15$numYears=length(unique(SSD_med$sYear[!is.na(SSD_med$Value)]))
+      siteTrendTable15$nFirstYear[uParam]=length(which(subSubDat$sYear==startYear15&!is.na(subSubDat$Value)))
+      siteTrendTable15$nLastYear[uParam]=length(which(subSubDat$sYear==EndYear&!is.na(subSubDat$Value)))
+      siteTrendTable15$numYears[uParam]=length(unique(subSubDat$sYear[!is.na(subSubDat$Value)]))
       
       #For 15 year we want 13 years out of 15
-      if(siteTrendTable15$numYears >= 13){
-        siteTrendTable15$frequency='yearly'
+      if(siteTrendTable15$numYears[uParam] >= 13){
+        siteTrendTable15$frequency[uParam]='yearly'
       }else{
-          siteTrendTable15$frequency='unassessed'
+          siteTrendTable15$frequency[uParam] ='unassessed'
       }
-      if(siteTrendTable15$frequency!='unassessed'){
-        st <- SeasonalityTest(x = SSD_med,main='MCI',ValuesToUse = "Value",do.plot =F)
-        siteTrendTable15[names(st)] <- st
+      if(siteTrendTable15$frequency[uParam] != 'unassessed'){
+        st <- SeasonalityTest(x = subSubDat,main=uMeasures[uParam],ValuesToUse = "Value",do.plot =F)
+        siteTrendTable15[uParam,names(st)] <- st
         if(!is.na(st$pvalue)&&st$pvalue<0.05){
-          sk <- SeasonalKendall(x = SSD_med,ValuesToUse = "Value",Year='sYear',HiCensor = T,doPlot = F)
-          sss <- SeasonalSenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
-          siteTrendTable15[names(sk)] <- sk
-          siteTrendTable15[names(sss)] <- sss
+          sk <- SeasonalKendall(x = subSubDat,ValuesToUse = "Value",Year='sYear',HiCensor = T,doPlot = F)
+          sss <- SeasonalSenSlope(HiCensor=T,x = subSubDat,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
+          siteTrendTable15[uParam,names(sk)] <- sk
+          siteTrendTable15[uParam,names(sss)] <- sss
           rm(sk,sss)
         }else{
-          mk <- MannKendall(x = SSD_med,ValuesToUse = "Value",Year='sYear',HiCensor = T,doPlot=F)
-          ss <- SenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",Year='sYear',ValuesToUseforMedian="Value",doPlot = F)
-          siteTrendTable15[names(mk)] <- mk
-          siteTrendTable15[names(ss)] <- ss
+          mk <- MannKendall(x = subSubDat,ValuesToUse = "Value",Year='sYear',HiCensor = T,doPlot=F)
+          ss <- SenSlope(HiCensor=T,x = subSubDat,ValuesToUse = "Value",Year='sYear',ValuesToUseforMedian="Value",doPlot = F)
+          siteTrendTable15[uParam,names(mk)] <- mk
+          siteTrendTable15[uParam,names(ss)] <- ss
           rm(mk,ss)
         }
         rm(st)
       }
-      rm(SSD_med)
     }
+      rm(subSubDat)
+  }
     rm(subDat)
+    #trendTable15 =  rbind(trendTable15,siteTrendTable15)}
   return(siteTrendTable15)
 }-> trendTable15
 stopCluster(workers)
@@ -124,20 +124,18 @@ rm(workers,usites,usite,datafor15)
 Sys.time()-startTime
 #17 Jul 11s
 rownames(trendTable15) <- NULL
-trendTable15$Agency=siteTable$Agency[match(trendTable15$LawaSiteID,siteTable$LawaSiteID)]
-trendTable15$SWQAltitude =  siteTable$SWQAltitude[match(trendTable15$LawaSiteID,siteTable$LawaSiteID)]
-trendTable15$SWQLanduse =   siteTable$SWQLanduse[match(trendTable15$LawaSiteID,siteTable$LawaSiteID)]
-trendTable15$Region =    siteTable$Region[match(trendTable15$LawaSiteID,siteTable$LawaSiteID)]
+trendTable15$Agency=siteTable$Agency[match(trendTable15$LawaSiteID,tolower(siteTable$LawaSiteID))]
+trendTable15$SWQAltitude =  siteTable$SWQAltitude[match(trendTable15$LawaSiteID,tolower(siteTable$LawaSiteID))]
+trendTable15$SWQLanduse =   siteTable$SWQLanduse[match(trendTable15$LawaSiteID,tolower(siteTable$LawaSiteID))]
+trendTable15$Region =    siteTable$Region[match(trendTable15$LawaSiteID,tolower(siteTable$LawaSiteID))]
 
-trendTable15$ConfCat <- cut(trendTable15$MKProbability, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
+trendTable15$ConfCat <- cut(trendTable15$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
                             labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
 trendTable15$ConfCat=factor(trendTable15$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
 trendTable15$TrendScore=as.numeric(trendTable15$ConfCat)-3
 trendTable15$TrendScore[is.na(trendTable15$TrendScore)]<-(NA)
 save(trendTable15,file=paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend15Year.rData"))
 rm(trendTable15)
-
-
 
 
 
@@ -159,32 +157,26 @@ clusterCall(workers,function(){
 })
 startTime=Sys.time()
 foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar%{
-  siteTrendTable10=data.frame(LawaSiteID=usites[usite],Measurement='MCI',nMeasures = NA_integer_,
-                              nFirstYear=NA_real_,nLastYear=NA_real_,numMonths=NA_real_,numQuarters=NA_real_,numYears=NA_real_,
-                              Observations=NA_real_,KWstat = NA_real_,pvalue = NA_real_,
-                              nObs = NA_integer_, S = NA_real_, VarS = NA_real_,D = NA_real_, tau = NA_real_,
-                              Z = NA_real_, p = NA_real_,MKProbability=NA_real_,AnalysisNote=NA_real_,prop.censored=NA_real_,
-                              prop.unique=NA_real_,no.censorlevels=NA_real_,Median = NA_real_, Sen_VarS = NA_real_,
-                              AnnualSenSlope = NA_real_,Intercept = NA_real_, Lci = NA_real_, Uci = NA_real_,
-                              AnalysisNoteSS=NA_real_, Sen_Probability = NA_real_,Probabilitymax = NA_real_,
-                              Probabilitymin = NA_real_, Percent.annual.change = NA_real_,standard=NA_real_,
-                              ConfCat=NA_real_,period=10,frequency=NA_real_)
-  subDat=datafor10%>%dplyr::filter(LawaSiteID==usites[usite],Measurement=='MCI')
-  siteTrendTable10$nMeasures=dim(subDat)[1]
-  if(dim(subDat)[1]>0){
-    SSD_med <- subDat#%>%
-      # dplyr::group_by(LawaSiteID,sYear)%>%
-      # dplyr::summarise(Value = quantile(Value,prob=c(0.5),type=5,na.rm=T),
-      #                  myDate = mean(myDate,na.rm=T),
-      #                  Censored = any(Censored),
-      #                  CenType = ifelse(any(CenType=='lt'),'lt',ifelse(any(CenType=='gt'),'gt','not'))
-      # )%>%ungroup%>%as.data.frame
-    SSD_med$Value=signif(SSD_med$Value,6)#Censoring fails with tiny machine rounding errors
-    SSD_med$Season = paste0('y',SSD_med$sYear)
+  siteTrendTable10=data.frame(LawaSiteID=usites[usite], Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
+                              nLastYear=NA,numMonths=NA, numQuarters=NA, numYears=NA,
+                              Observations=NA,KWstat=NA,pvalue=NA, SeasNote=NA,
+                              nObs=NA, S=NA, VarS=NA, D=NA,tau=NA, Z=NA, p=NA, C=NA,Cd=NA, MKAnalysisNote=NA,
+                              prop.censored=NA, prop.unique=NA, no.censorlevels=NA,
+                              Median=NA, Sen_VarS=NA,AnnualSenSlope=NA, Intercept=NA, Sen_Lci=NA,
+                              Sen_Uci=NA, SSAnalysisNote=NA,Sen_Probability=NA, Sen_Probabilitymax=NA,
+                              Sen_Probabilitymin=NA, Percent.annual.change=NA,
+                              standard=NA,ConfCat=NA, period=15, frequency=NA)
+  subDat=datafor10%>%dplyr::filter(LawaSiteID==usites[usite])
+  for(uParam in 1:length(uMeasures)){
+    subSubDat=subDat%>%filter(subDat$Measurement==uMeasures[uParam])%>%as.data.frame
+    siteTrendTable10$nMeasures[uParam]=dim(subSubDat)[1]
+    if(dim(subSubDat)[1]>0){
+    subSubDat$Value=signif(subSubDat$Value,6)#Censoring fails with tiny machine rounding errors
+    subSubDat$Season = paste0('y',subSubDat$sYear)
     SeasonString = sort(unique(sapply(startYear10:EndYear,function(x)paste0('y',x))))
-    siteTrendTable10$nFirstYear=length(which(SSD_med$sYear==startYear10&!is.na(SSD_med$Value)))
-    siteTrendTable10$nLastYear=length(which(SSD_med$sYear==EndYear&!is.na(SSD_med$Value)))
-    siteTrendTable10$numYears=length(unique(SSD_med$sYear[!is.na(SSD_med$Value)]))
+    siteTrendTable10$nFirstYear[uParam]=length(which(subSubDat$sYear==startYear10&!is.na(subSubDat$Value)))
+    siteTrendTable10$nLastYear[uParam]=length(which(subSubDat$sYear==EndYear&!is.na(subSubDat$Value)))
+    siteTrendTable10$numYears[uParam]=length(unique(subSubDat$sYear[!is.na(subSubDat$Value)]))
     
     #For 10 year we want 8 years out of 10
     if(siteTrendTable10$numYears >= 8){
@@ -193,24 +185,25 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
       siteTrendTable10$frequency='unassessed'
     }
     if(siteTrendTable10$frequency!='unassessed'){
-      st <- SeasonalityTest(x = SSD_med,main='MCI',ValuesToUse = "Value",do.plot =F)
-      siteTrendTable10[names(st)] <- st
+      st <- SeasonalityTest(x = subSubDat,main=uMeasures[uParam],ValuesToUse = "Value",do.plot =F)
+      siteTrendTable10[uParam,names(st)] <- st
       if(!is.na(st$pvalue)&&st$pvalue<0.05){
-        sk <- SeasonalKendall(x = SSD_med,ValuesToUse = "Value",HiCensor = T,doPlot = F)
-        sss <- SeasonalSenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
-        siteTrendTable10[names(sk)] <- sk
-        siteTrendTable10[names(sss)] <- sss
+        sk <- SeasonalKendall(x = subSubDat,ValuesToUse = "Value",HiCensor = T,doPlot = F)
+        sss <- SeasonalSenSlope(HiCensor=T,x = subSubDat,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
+        siteTrendTable10[uParam,names(sk)] <- sk
+        siteTrendTable10[uParam,names(sss)] <- sss
         rm(sk,sss)
       }else{
-        mk <- MannKendall(x = SSD_med,ValuesToUse = "Value",Year='sYear',HiCensor = T,doPlot=F)
-        ss <- SenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",Year='sYear',ValuesToUseforMedian="Value",doPlot = F)
-        siteTrendTable10[names(mk)] <- mk
-        siteTrendTable10[names(ss)] <- ss
+        mk <- MannKendall(x = subSubDat,ValuesToUse = "Value",Year='sYear',HiCensor = T,doPlot=F)
+        ss <- SenSlope(HiCensor=T,x = subSubDat,ValuesToUse = "Value",Year='sYear',ValuesToUseforMedian="Value",doPlot = F)
+        siteTrendTable10[uParam,names(mk)] <- mk
+        siteTrendTable10[uParam,names(ss)] <- ss
         rm(mk,ss)
       }
       rm(st)
     }
-    rm(SSD_med)
+    }
+    rm(subSubDat)
   }
   rm(subDat)
   return(siteTrendTable10)
@@ -220,12 +213,12 @@ rm(workers,usites,usite,datafor10)
 Sys.time()-startTime
 #23 Jun 3.7s
 rownames(trendTable10) <- NULL
-trendTable10$Agency=siteTable$Agency[match(trendTable10$LawaSiteID,siteTable$LawaSiteID)]
-trendTable10$SWQAltitude =  siteTable$SWQAltitude[match(trendTable10$LawaSiteID,siteTable$LawaSiteID)]
-trendTable10$SWQLanduse =   siteTable$SWQLanduse[match(trendTable10$LawaSiteID,siteTable$LawaSiteID)]
-trendTable10$Region =    siteTable$Region[match(trendTable10$LawaSiteID,siteTable$LawaSiteID)]
+trendTable10$Agency=siteTable$Agency[match(trendTable10$LawaSiteID,tolower(siteTable$LawaSiteID))]
+trendTable10$SWQAltitude =  siteTable$SWQAltitude[match(trendTable10$LawaSiteID,tolower(siteTable$LawaSiteID))]
+trendTable10$SWQLanduse =   siteTable$SWQLanduse[match(trendTable10$LawaSiteID,tolower(siteTable$LawaSiteID))]
+trendTable10$Region =    siteTable$Region[match(trendTable10$LawaSiteID,tolower(siteTable$LawaSiteID))]
 
-trendTable10$ConfCat <- cut(trendTable10$MKProbability, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
+trendTable10$ConfCat <- cut(trendTable10$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
                             labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
 trendTable10$ConfCat=factor(trendTable10$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
 trendTable10$TrendScore=as.numeric(trendTable10$ConfCat)-3
@@ -234,116 +227,15 @@ save(trendTable10,file=paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/An
 rm(trendTable10)
 
 
-# 
-# 
-# #max year trend ####
-# dataformax=macroData%>%filter(Year <= EndYear)
-# usites=unique(dataformax$LawaSiteID)
-# cat(length(usites),'\n')
-# usite=1
-# library(parallel)
-# library(doParallel)
-# workers <- makeCluster(7)
-# registerDoParallel(workers)
-# clusterCall(workers,function(){
-#   library(magrittr)
-#   #library(doBy)
-#   library(plyr)
-#   library(dplyr)
-#   
-# })
-# startTime=Sys.time()
-# foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar%{
-#   siteTrendTablemax=data.frame(LawaSiteID=usites[usite],Measurement='MCI',nMeasures = NA_integer_,
-#                               nFirstYear=NA_real_,nLastYear=NA_real_,numMonths=NA_real_,numQuarters=NA_real_,numYears=NA_real_,
-#                               Observations=NA_real_,KWstat = NA_real_,pvalue = NA_real_,
-#                               nObs = NA_integer_, S = NA_real_, VarS = NA_real_,D = NA_real_, tau = NA_real_,
-#                               Z = NA_real_, p = NA_real_,MKProbability=NA_real_,AnalysisNote=NA_real_,prop.censored=NA_real_,
-#                               prop.unique=NA_real_,no.censorlevels=NA_real_,Median = NA_real_, Sen_VarS = NA_real_,
-#                               AnnualSenSlope = NA_real_,Intercept = NA_real_, Lci = NA_real_, Uci = NA_real_,
-#                               AnalysisNoteSS=NA_real_, Sen_Probability = NA_real_,Probabilitymax = NA_real_,
-#                               Probabilitymin = NA_real_, Percent.annual.change = NA_real_,standard=NA_real_,
-#                               ConfCat=NA_real_,period='max',frequency=NA_real_)
-#   subDat=dataformax%>%dplyr::filter(LawaSiteID==usites[usite],Measurement=='MCI')
-#   siteTrendTablemax$nMeasures=dim(subDat)[1]
-#   if(dim(subDat)[1]>0){
-#     SSD_med <- subDat%>%
-#       dplyr::group_by(LawaSiteID,Year)%>%
-#       dplyr::summarise(Value = quantile(Value,prob=c(0.5),type=5,na.rm=T),
-#                        myDate = mean(myDate,na.rm=T),
-#                        Censored = any(Censored),
-#                        CenType = ifelse(any(CenType=='lt'),'lt',ifelse(any(CenType=='gt'),'gt','not'))
-#       )%>%ungroup%>%as.data.frame
-#     SSD_med$Value=signif(SSD_med$Value,6)#Censoring fails with tiny machine rounding errors
-#     SSD_med$Season = paste0('y',SSD_med$Year)
-#     SeasonString = sapply(sort(unique(SSD_med$Year)),function(x)paste0('y',x))
-#     siteTrendTablemax$nFirstYear=length(which(SSD_med$Year==min(SSD_med$Year)))
-#     siteTrendTablemax$nLastYear=length(which(SSD_med$Year==EndYear))
-#     siteTrendTablemax$numYears=length(unique(SSD_med$Year[!is.na(SSD_med$Value)]))
-#     siteTrendTablemax$period=EndYear-min(SSD_med$Year,na.rm=T)+1
-#     
-#     #For max period monthly we want 90% of measures 
-#     if(siteTrendTablemax$numYears >= 0.9*siteTrendTablemax$period){
-#       siteTrendTablemax$frequency='yearly'
-#     }else{
-#       siteTrendTablemax$frequency='unassessed'
-#     }
-#     if(siteTrendTablemax$frequency!='unassessed'){
-#       st <- SeasonalityTest(x = SSD_med,main='MCI',ValuesToUse = "Value",do.plot =F)
-#       siteTrendTablemax[names(st)] <- st
-#       if(!is.na(st$pvalue)&&st$pvalue<0.05){
-#         sk <- SeasonalKendall(x = SSD_med,ValuesToUse = "Value",HiCensor = T,doPlot = F)
-#         sss <- SeasonalSenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
-#         siteTrendTablemax[names(sk)] <- sk
-#         siteTrendTablemax[names(sss)] <- sss
-#         rm(sk,sss)
-#       }else{
-#         mk <- MannKendall(x = SSD_med,ValuesToUse = "Value",HiCensor = T,doPlot=F)
-#         ss <- SenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
-#         siteTrendTablemax[names(mk)] <- mk
-#         siteTrendTablemax[names(ss)] <- ss
-#         rm(mk,ss)
-#       }
-#       rm(st)
-#     }
-#     rm(SSD_med)
-#   }
-#   rm(subDat)
-#   return(siteTrendTablemax)
-# }-> trendTablemax
-# stopCluster(workers)
-# rm(workers,usites,usite,dataformax)
-# Sys.time()-startTime
-# rownames(trendTablemax) <- NULL
-# trendTablemax$Agency=siteTable$Agency[match(trendTablemax$LawaSiteID,siteTable$LawaSiteID)]
-# trendTablemax$SWQAltitude =  siteTable$SWQAltitude[match(trendTablemax$LawaSiteID,siteTable$LawaSiteID)]
-# trendTablemax$SWQLanduse =   siteTable$SWQLanduse[match(trendTablemax$LawaSiteID,siteTable$LawaSiteID)]
-# trendTablemax$Region =    siteTable$Region[match(trendTablemax$LawaSiteID,siteTable$LawaSiteID)]
-# 
-# trendTablemax$ConfCat <- cut(trendTablemax$MKProbability, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
-#                             labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
-# trendTablemax$ConfCat=factor(trendTablemax$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
-# trendTablemax$TrendScore=as.numeric(trendTablemax$ConfCat)-3
-# trendTablemax$TrendScore[is.na(trendTablemax$TrendScore)]<-(NA)
-# trendTablemax$period=as.numeric(trendTablemax$period)
-# save(trendTablemax,file=paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/TrendmaxYear.rData"))
-# rm(trendTablemax)
-
-
 
 
 load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="Trend15Year.rData",recursive = T,full.names = T),1),verbose=T)
 load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="Trend10Year.rData",recursive = T,full.names = T),1),verbose=T)
-# load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="TrendmaxYear.rData",recursive = T,full.names = T),1),verbose=T)
-# trendTablemax$period=as.numeric(trendTablemax$period)
 
 trendTable15 <- trendTable15%>%drop_na(LawaSiteID)
 trendTable10 <- trendTable10%>%drop_na(LawaSiteID)
-# trendTablemax <- trendTablemax%>%drop_na(LawaSiteID)%>%filter(period>15)
 
 combTrend <- rbind(trendTable15,trendTable10)
-# combTrend <- rbind(rbind(trendTable15,trendTable10),trendTablemax)
-# %>%dplyr::select(LawaSiteID,Agency,Region,Altitude,Landcover,Measurement,TrendScore,nMeasures,frequency,period,ConfCat,AnalysisNote,AnalysisNoteSS)
 
 combTrend$CouncilSiteID = siteTable$CouncilSiteID[match(tolower(combTrend$LawaSiteID),tolower(siteTable$LawaSiteID))]
 
@@ -380,23 +272,23 @@ write.csv(trendTable15%>%
 savePlott=F
 usites=unique(trendTable10$LawaSiteID)
 uMeasures=unique(trendTable10$Measurement)
-for(uparam in seq_along(uMeasures)){
-  subTrend=trendTable10[which(trendTable10$Measurement==uMeasures[uparam]),]
-  worstDeg <- which.max(subTrend$MKProbability) 
-  bestImp <- which.min(subTrend$MKProbability)
-  cat(subTrend$MKProbability[worstDeg],'\t')
-  cat(subTrend$MKProbability[bestImp],'\n')
+for(uParam in seq_along(uMeasures)){
+  subTrend=trendTable10[which(trendTable10$Measurement==uMeasures[uParam]),]
+  worstDeg <- which.max(subTrend$Cd) 
+  bestImp <- which.min(subTrend$Cd)
+  cat(subTrend$Cd[worstDeg],'\t')
+  cat(subTrend$Cd[bestImp],'\n')
   if(savePlott){
-    tiff(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/BestWorstTenYear",uMeasures[uparam],".tif"),
+    tiff(paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/BestWorstTenYear",uMeasures[uParam],".tif"),
          width = 8,height=8,units='in',res=300,compression='lzw',type='cairo')
   }else{
     windows()
   }
     par(mfrow=c(2,1),mar=c(2,4,1,2))
     theseDeg <- which(macroData$LawaSiteID==subTrend$LawaSiteID[worstDeg] &
-                        macroData$Measurement==uMeasures[uparam] & dmy(macroData$Date)>dmy("1-1-2009"))
+                        macroData$Measurement==uMeasures[uParam] & dmy(macroData$Date)>dmy("1-1-2009"))
     theseImp <- which(macroData$LawaSiteID==subTrend$LawaSiteID[bestImp] &
-                        macroData$Measurement==uMeasures[uparam] & dmy(macroData$Date)>dmy("1-1-2009"))
+                        macroData$Measurement==uMeasures[uParam] & dmy(macroData$Date)>dmy("1-1-2009"))
     
       MannKendall(x = macroData[theseDeg,],ValuesToUse = "Value",doPlot=F)
       SenSlope(x = macroData[theseDeg,],ValuesToUse = "Value",ValuesToUseforMedian = "Value",doPlot = T)
@@ -424,7 +316,7 @@ if(savePlott){
 par(mfrow=c(1,1),mar=c(5,10,4,2))
 barplot(tbp,main="Ten year trends",las=2,
         col=c("#dd1111FF","#ee4411FF","#bbbbbbFF","#11cc11FF","#008800FF"),yaxt='n')
-axis(side = 2,at = mbp,labels = colnames(tb),las=2,lty = 0)
+axis(side = 2,at = mbp[,1],labels = colnames(tb),las=2,lty = 0)
 text(0.75,mbp,tb)
 
 if(names(dev.cur())=='tiff'){dev.off()}

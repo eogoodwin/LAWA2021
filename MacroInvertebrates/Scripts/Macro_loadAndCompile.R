@@ -12,10 +12,10 @@ dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
 
 
 scriptsToRun = c(
-  # "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadAC.R", #1
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadAC.R", #1
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNIWA.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadBOP.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadECAN.R",
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadBOP.R", #slow - next to xml2
+  # "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadECAN.R",
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadES.R",
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadGDC.R",              #5
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadGWRC.R",
@@ -29,7 +29,7 @@ scriptsToRun = c(
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadTRC.R",         #15
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWCRC.R",
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWRC.R")
-agencies = c('ac','niwa','boprc','ecan','es',
+agencies = c('ac','niwa','boprc','es',
              'gdc','gwrc','hbrc','hrc','mdc',
              'ncc','nrc','orc','tdc','trc',
              'wcrc','wrc')
@@ -61,9 +61,9 @@ for(agency in agencies){
 
 #XML 2 CSV for MACROS ####
 lawaset=c("TaxaRichness","MCI","PercentageEPTTaxa","QMCI","ASPM")
-agencies=c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")
+agencies=c("ac","boprc","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")
 startTime=Sys.time()
-for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
+for(agency in c("ac","boprc","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
 # foreach(agency = 1:length(agencies))
   forcsv=xml2csvMacro(agency,maxHistory = 60,quiet=T)
   if(is.null(forcsv))next
@@ -202,10 +202,16 @@ Sys.time()-startTime #2.03
 #8/7/21   53375
 #15/7/21  56792
 #16/7/21  57235
+#23/7/21 57375
 
 
 macroData$LawaSiteID = siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID),tolower(siteTable$CouncilSiteID))]
-table(is.na(macroData$LawaSiteID))
+table(is.na(macroData$LawaSiteID),macroData$Agency)
+macroData$LawaSiteID[which(is.na(macroData$LawaSiteID))] = 
+  siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID[which(is.na(macroData$LawaSiteID))]),
+                             tolower(siteTable$SiteID))]
+table(is.na(macroData$LawaSiteID),macroData$Agency)
+
 
 #Add CSV-delivered datasets
 niwamac = loadLatestCSVmacro(agency='niwa')
@@ -219,6 +225,7 @@ macroData=bind_rows(macroData,niwamac)
 #58838 8/7/21
 #62258 15/7/21
 #62701 16/7/21
+#62841 23/7/21
  
 rm(niwamac)
 
@@ -257,10 +264,13 @@ macroData$LawaSiteID[macroData$LawaSiteID%in%dupSites&macroData$Agency=='niwa'] 
 # ebop223=macroData%>%filter(grepl("ebop-00223",LawaSiteID,T))
 # plot(dmy(ebop223$Date),ebop223$Value,pch=as.numeric(factor(ebop223$Measurement)),col=as.numeric(factor(ebop223$Agency)))
 
+table(macroData$Agency,macroData$Measurement)/table(macroData$Agency,macroData$Measurement)
+
+
 write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/MacrosCombined.csv'),row.names = F)
 # macroData=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',pattern='MacrosCombined.csv',recursive = T,full.names = T),1),stringsAsFactors = F)
 
-#43804
+#62841
 
 
 # #audit presence of CouncilSiteIDs in sitetable
@@ -291,11 +301,11 @@ agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa
 table(factor(macroData$Agency,levels=agencies))
 table(macroData$Agency)
 # ac   boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc  niwa   nrc   orc   tdc   trc  wcrc   wrc 
-# 2736 3762  17180  2997  1083  1568  3428  4702  1099  1105  5464  1701  1102   726  7799  2586  3441
+# 2736 3762  17180  2997  1083  1568  3580  4702  1099  1105  5464  1701  1102   726  7787  2586  3441
 write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),
                        '/MacrosWithMetadata.csv'),row.names = F)
 
-
+table(macroData$Agency,macroData$Measurement)/table(macroData$Agency,macroData$Measurement)
 
 #Some sites are under the purview of both a local agency and a NIWA
 # macroData%>%group_by(LawaSiteID=gsub(pattern = '_NIWA','',LawaSiteID))%>%
@@ -307,12 +317,12 @@ write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/
 #   dplyr::select(LawaSiteID)%>%
 #   drop_na->dupSites
 
-
-macroData%>%filter(gsub(pattern = '_NIWA','',LawaSiteID)%in%dupSites)%>%select(LawaSiteID,SiteID,CouncilSiteID,Agency)%>%distinct
-
-macroData%>%filter(gsub(pattern = '_NIWA','',LawaSiteID)%in%dupSites)->dupData
-dupData$Date=lubridate::dmy(dupData$Date)
-dupData <- dupData%>%filter(Date>dmy('1-12-2004'))
+# 
+# macroData%>%filter(gsub(pattern = '_NIWA','',LawaSiteID)%in%dupSites)%>%select(LawaSiteID,SiteID,CouncilSiteID,Agency)%>%distinct
+# 
+# macroData%>%filter(gsub(pattern = '_NIWA','',LawaSiteID)%in%dupSites)->dupData
+# dupData$Date=lubridate::dmy(dupData$Date)
+# dupData <- dupData%>%filter(Date>dmy('1-12-2004'))
 # windows()
 # par(mfrow=c(5,4))
 # for(sss in dupSites){

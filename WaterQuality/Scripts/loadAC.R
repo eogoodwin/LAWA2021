@@ -126,8 +126,9 @@ Data = Data%>%filter(!bitwAnd(as.numeric(qualifier),255)%in%c(42,151))
 acSWQ=data.frame(CouncilSiteID=Data$CouncilSiteID,
                  Date=format(lubridate::ymd_hms(Data$time)),
                  Value=Data$value,
-                 Method=NA,
+                 # Method=NA,
                  Measurement=Data$Measurement,
+                 Units=Data$Units,
                  Censored=Data$qualifier,
                  centype=F,
                  QC=NA)
@@ -159,8 +160,10 @@ table(acSWQ$Measurement)
 acSWQ$Measurement = factor(acSWQ$Measurement,levels=transfers$CallName,labels = transfers$LAWAName)
 table(acSWQ$Measurement)
 
+acSWQ = merge(acSWQ,siteTable,by='CouncilSiteID')
+
 # By this point, we have all the data downloaded from the council, in a data frame called Data.
-write.csv(acSWQ,file = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names = F)
+write.csv(acSWQ,file = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/ac.csv"),row.names = F)
 
 # 
 # con <- xmlOutputDOM("Hilltop")

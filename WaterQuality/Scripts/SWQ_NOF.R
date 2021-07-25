@@ -58,7 +58,7 @@ if(!exists('wqdata')){
   cat(combowqdata)
   wqdata=readr::read_csv(combowqdata,guess_max=200000)%>%as.data.frame
   rm(combowqdata)
-  wqdata$Date[wqdata$Agency=='ac']=as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency=='ac']),'%d-%b-%y'))
+  # wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')] = as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')]),'%d-%b-%y'))
   
   wqdYear=lubridate::year(dmy(wqdata$Date))
 
@@ -78,9 +78,7 @@ wqparam <- c("BDISC","TURB","NH4",
 workers <- makeCluster(7)
 registerDoParallel(workers)
 clusterCall(workers,function(){
-  library(magrittr)
-  library(plyr)
-  library(dplyr)
+library(tidyverse)
   source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
 startTime=Sys.time()
@@ -205,10 +203,7 @@ if(exists("NOFSummaryTable")) { rm("NOFSummaryTable") }
 workers <- makeCluster(6)
 registerDoParallel(workers)
 clusterCall(workers,function(){
-  library(magrittr)
-  # library(doBy)
-  library(plyr)
-  library(dplyr)
+library(tidyverse)
   source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
 startTime=Sys.time()
@@ -256,8 +251,19 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   # stop("Check n requirements from NPSFM per attribute")
   ###################### Nitrate  ########################################
   
-  # 14/7/2021 use NO3N by preference if available
-    tonsite <- rightSite%>%dplyr::filter(Measurement=="TON")
+    tonsite <- rightSite%>%
+    dplyr::filter(Measurement%in%c("NO3N","TON"))%>%
+    pivot_wider(names_from = 'Measurement',values_from = Value)
+  if(dim(tonsite)[1]>0){
+    if(all(c("NO3N","TON")%in%names(tonsite))){
+      tonsite <- tonsite%>%mutate(Value=ifelse(is.na(NO3N),TON,NO3N))
+    }else{
+      if('NO3N'%in%names(tonsite)){
+        tonsite <- tonsite%>%dplyr::rename(Value=NO3N)
+      }else{
+        tonsite <- tonsite%>%dplyr::rename(Value=TON)
+      }
+    }  
   #Median Nitrate
   annualMedian <- tonsite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.5,type=5))
   if(dim(annualMedian)[1]!=0){
@@ -270,8 +276,8 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     Com_NOF$NitrateAnalysisNote[rollyrs[rollFails]] <- paste0(' Need 54 values for 5yr median, have ',rollingMeds[rollFails])
     #find the band which each value belong to
     Com_NOF$NitrateMed_Band <- sapply(Com_NOF$NitrateMed,NOF_FindBand,bandColumn = NOFbandDefinitions$`Median Nitrate`)
-    Com_NOF$NitrateMed_Band[!is.na(Com_NOF$NitrateMed_Band)] <- 
-      sapply(Com_NOF$NitrateMed_Band[!is.na(Com_NOF$NitrateMed_Band)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
+    Com_NOF$NitrateMed_Band[!is.na(Com_NOF$NitrateMed)] <- 
+      sapply(Com_NOF$NitrateMed_Band[!is.na(Com_NOF$NitrateMed)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
     rm(annualMedian,rollingMeds,rollFails,rollSucc)
     
     #95th percentile Nitrate
@@ -283,11 +289,11 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     rollSucc = grepl(pattern='^[[:digit:]]',rolling95)
     Com_NOF$Nitrate95[yr%in%names(rolling95)[rollSucc]] <- readr::parse_number(rolling95[rollSucc])
     Com_NOF$NitrateAnalysisNote[rollyrs[rollFails]] <- paste0(Com_NOF$NitrateAnalysisNote[rollyrs[rollFails]],
-                                                                          ' Need 54 values for 5yr 95%ile, have ',rolling95[rollFails])
+                                                                          ' Need 54 values and 20 quarters for 5yr 95%ile, have ',rolling95[rollFails])
     #find the band which each value belong to
     Com_NOF$Nitrate95_Band <- sapply(Com_NOF$Nitrate95,NOF_FindBand,bandColumn = NOFbandDefinitions$`95th Percentile Nitrate`)
-    Com_NOF$Nitrate95_Band[!is.na(Com_NOF$Nitrate95_Band)] <- 
-      sapply(Com_NOF$Nitrate95_Band[!is.na(Com_NOF$Nitrate95_Band)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
+    Com_NOF$Nitrate95_Band[!is.na(Com_NOF$Nitrate95)] <- 
+      sapply(Com_NOF$Nitrate95_Band[!is.na(Com_NOF$Nitrate95)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
     
     #Nitrate Toxicity
     #The worse of the two nitrate bands
@@ -295,7 +301,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     rm(annual95,rolling95,rollFails,rollSucc)
   }else{
     Com_NOF$NitrateAnalysisNote = paste0('n = ',sum(!is.na(tonsite$Value)),' Insufficient to calculate annual medians ')
-  }
+  }}
   rm(tonsite)
   
   ###################### Ammonia  ############################
@@ -446,7 +452,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   annualMedian <- suspsedsite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.5,type=5))
   if(dim(annualMedian)[1]!=0){
     sedimentClass = unique(riverSiteTable$SedimentClass[which(tolower(riverSiteTable$LawaSiteID) == tolower(uLAWAids[i]) & riverSiteTable$Agency!='niwa')])
-    if(length(sedimentClass)==0){
+    if(length(sedimentClass)==0||is.na(sedimentClass)){
       sedimentClass = unique(riverSiteTable$SedimentClass[which(tolower(riverSiteTable$LawaSiteID)==tolower(gsub('_NIWA','',uLAWAids[i])) & riverSiteTable$Agency=='niwa')])
       }
     Com_NOF$SusSedMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
@@ -472,6 +478,7 @@ cat(Sys.time()-startTime)
 #19s  29 June2021
 #30s 14.7.2021
 #26s  16/7/2021
+#29  23/7/2021  31320
 
 NOFSummaryTable$EcoliMed_Band <- sapply(NOFSummaryTable$EcoliMed,NOF_FindBand,bandColumn=NOFbandDefinitions$`E. coli`)
 

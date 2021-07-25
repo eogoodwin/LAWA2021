@@ -132,7 +132,10 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
   }
 }
 
-ssm = readxl::read_xlsx('h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/SwimSiteMonitoringResults-2021-07-15.xlsx.xlsx',sheet=1)
+ssm = readxl::read_xlsx(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/',
+                                 pattern='SwimSiteMonitoringResults.*.xlsx',
+                                 recursive = T,full.names = T),1),
+                        sheet=1)
 ssm$callID =  NA
 ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
                                                          FUN = function(x)unlist(strsplit(x,split='&')))))%>%

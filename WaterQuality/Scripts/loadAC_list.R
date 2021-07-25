@@ -1,6 +1,6 @@
 ## Load libraries ------------------------------------------------
 require(dplyr)   ### dply library to manipulate table joins on dataframes
-require(XML)     ### XML library to write hilltop XML
+require(xml2)     ### XML library to write hilltop XML
 # require(RCurl)
 setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 
@@ -8,17 +8,28 @@ setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 agency='ac'
 Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
-Measurements=c(Measurements,'WQ Sample')
+# Measurements=c(Measurements,'WQ Sample')
 
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
+workers = makeCluster(8)
+registerDoParallel(workers)
 
+clusterCall(workers,function(){
+  library(magrittr)  
+  library(dplyr)
+  library(tidyr)
+})
+
+
+if(exists("Data"))rm(Data)
 acSWQ=NULL
 if(exists('Data'))rm(Data)
 for(i in 1:length(sites)){
   cat('\n',sites[i],i,'out of',length(sites),'\t')
   siteDat=NULL
-  for(j in 1:length(Measurements)){
+  foreach(j = 1:length(Measurements),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
+    for(j in 1:length(Measurements)){
     url <- paste0("http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3",
                   "&Procedure=Sample.Results.LAWA&service=SOS&version=2.0.0&request=GetObservation",
                   "&observedProperty=",Measurements[j],
@@ -26,11 +37,14 @@ for(i in 1:length(sites)){
                   "&temporalfilter=om:phenomenonTime,P25Y/2021-01-01")
     url <- URLencode(url)
     url <- gsub(pattern = '\\+',replacement = '%2B',x = url)
-    dl=try(download.file(url,destfile="D:/LAWA/2021/tmpWQac.xml",method='curl',quiet=T),silent = T)
-    Data=xml2::read_xml("D:/LAWA/2021/tmpWQac.xml")
-    Data = xml2::as_list(Data)[[1]]
-    if(length(Data)>0){
-      Data=Data$observationData$OM_Observation$result$MeasurementTimeseries
+    destFile=paste0("D:/LAWA/2021/tmp",make.names(Measurements[j]),"WQac.xml")
+    
+    dl=try(download.file(url,destfile=destFile,method='curl',quiet=T),silent = T)
+    if(!'try-error'%in%attr(dl,'class')){
+      Data=xml2::read_xml(destFile)
+      Data = xml2::as_list(Data)[[1]]
+      if(length(Data)>0){
+        Data=Data$observationData$OM_Observation$result$MeasurementTimeseries
         Data=do.call(rbind, unname(sapply(Data,FUN=function(listItem){
           if("MeasurementTVP"%in%names(listItem)){
             retVal=data.frame(time=listItem$MeasurementTVP$time[[1]],value=listItem$MeasurementTVP$value[[1]])
@@ -42,24 +56,32 @@ for(i in 1:length(sites)){
             return(retVal)
           }
         })))
-      if(!is.null(Data)){
-        cat(Measurements[j],'\t')
-        Data$measurement=Measurements[j]
-        siteDat=rbind(siteDat,Data)
+        if(!is.null(Data)){
+          cat(Measurements[j],'\t')
+          Data$measurement=Measurements[j]
+          # siteDat=rbind(siteDat,Data)
+        }
       }
+      rm(Data)
     }
-    rm(Data)
+    # siteDat$CouncilSiteID = sites[i]
+    file.remove(destFile)
+    rm(destFile)
+    return(Data)
+  }->siteDat
+  if(!is.null(siteDat)){
+    siteDat$CouncilSiteID = sites[i]
+    acSWQ=bind_rows(acSWQ,siteDat)
   }
-  siteDat$CouncilSiteID = sites[i]
-  acSWQ=rbind(acSWQ,siteDat)
   rm(siteDat)
 }
+
 
 qualifiers_added <- unique(acSWQ$Censored)
 
 acSWQ$time=as.character(acSWQ$time)
 acSWQ$CouncilSiteID=as.character(acSWQ$CouncilSiteID)
-acSWQ$Measurement=as.character(acSWQ$Measurement)
+acSWQ$Measurement=as.character(acSWQ$measurement)
 acSWQ$value=as.character(acSWQ$value)
 # acSWQ$Units=as.character(acSWQ$Units)
 
@@ -88,17 +110,16 @@ acSWQ = acSWQ%>%filter(!bitwAnd(as.numeric(Censored),255)%in%c(42,151))
 #65435 to 64588
 
 
-
 acSWQ=data.frame(CouncilSiteID=acSWQ$CouncilSiteID,
-                 Date=format(lubridate::ymd_hms(acSWQ$time),'%d-%b-%y'),
+                 Date=as.character(format(lubridate::ymd_hms(acSWQ$time),'%d-%b-%y')),
                  Value=acSWQ$value,
-                 Measurement=acSWQ$measurement,
+                 Measurement=acSWQ$Measurement,
                  Units=NA,
                  Censored=acSWQ$Censored,
-                 centype=F,
+                 CenType=F,
                  QC=NA)
 
-acSWQ$centype=sapply(as.numeric(acSWQ$Censored),FUN=function(cenCode){
+acSWQ$CenType=sapply(as.numeric(acSWQ$Censored),FUN=function(cenCode){
   retVal=""
   if(is.na(cenCode)){return(retVal)}
   if(bitwAnd(2^13,cenCode)==2^13){
@@ -111,9 +132,9 @@ acSWQ$centype=sapply(as.numeric(acSWQ$Censored),FUN=function(cenCode){
 })
 
 acSWQ$Censored=FALSE
-acSWQ$Censored[acSWQ$centype!=""] <- TRUE
+acSWQ$Censored[acSWQ$CenType!=""] <- TRUE
 
-acSWQ$centype=as.character(factor(acSWQ$centype,
+acSWQ$CenType=as.character(factor(acSWQ$CenType,
                                   levels = c('<','','>'),
                                   labels=c('Left','FALSE','Right')))
 

@@ -78,6 +78,7 @@ for(i in 1:length(sites)){
       }
     }
     rm(Data)
+    file.remove('D:/LAWA/2021/tmpLecan.xml')
   }
   if(!is.null(siteDat)){
     siteDat$CouncilSiteID = sites[i]

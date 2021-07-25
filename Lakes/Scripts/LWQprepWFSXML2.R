@@ -214,23 +214,23 @@ colnames(AgencyRep)[dim(AgencyRep)[2]]=format(Sys.Date(),'%d%b%y')
 rm(LakeWFSsiteFiles)
 write.csv(AgencyRep,'h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepLakeWFS.csv')
 
-#       02Jul21 07Jul21 08Jul21 16Jul21
-# ac          4       4       4  4
-# boprc      13      13      13  13
-# ecan       43      43      44  44
-# es         18      18      18  18
-# gdc         0       0       0 0
-# gwrc        5       5       5  5
-# hbrc        7       7       7  7
-# hrc        15      15      15  15
-# mdc         0       0       0 0
-# ncc         0       0       0 0
-# nrc        25      25      25  25
-# orc        14      14      14  14
-# tdc         0       0       0 0
-# trc         3       3       9  9
-# wcrc        3       3       3  3
-# wrc        12      12      12  12
+#      02Jul21 07Jul21 08Jul21 09Jul21 16Jul21 23Jul21
+# ac          4       4       4       4       4       4
+# boprc      13      13      13      13      13      13
+# ecan       43      43      43      44      44      44
+# es         18      18      18      18      18      18
+# gdc         0       0       0       0       0       0
+# gwrc        5       5       5       5       5       5
+# hbrc        7       7       7       7       7       7
+# hrc        15      15      15      15      15      15
+# mdc         0       0       0       0       0       0
+# ncc         0       0       0       0       0       0
+# nrc        25      25      25      25      25      25
+# orc        14      14      14      14      14      14
+# tdc         0       0       0       0       0       0
+# trc         3       3       3       3       3       9
+# wcrc        3       3       3       3       3       3
+# wrc        12      12      12      12      12      12
 
 
 # st14apr=read.csv('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/2020-04-14/SiteTable_Lakes14Apr20.csv',stringsAsFactors = F)

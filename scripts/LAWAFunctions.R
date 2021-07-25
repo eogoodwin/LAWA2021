@@ -2,20 +2,18 @@ library(lubridate)
 library(XML)
 
 #Is the core of the trend funcgorithm
-source('h:/ericg/16666LAWA/LAWA2021/scripts/LWPTrends_Dec18/LWPTrends_v1811.R')
+source('h:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R')
+
 trendCore <- function(subDat,periodYrs,proportionNeeded=0.5){
-  siteTrendTable=data.frame(LawaSiteID=unique(subDat$LawaSiteID),Measurement=unique(subDat$Measurement),
-                            nMeasures = NA_integer_,nFirstYear=NA_real_,nLastYear=NA_real_,numMonths=NA_real_,
-                            numQuarters=NA_real_,numYears=NA_real_,proportionNeeded=proportionNeeded,
-                            Observations=NA_real_,KWstat = NA_real_,pvalue = NA_real_, #from seasonality test
-                            nObs = NA_integer_, S = NA_real_, VarS = NA_real_,
-                            D = NA_real_, tau = NA_real_,Z = NA_real_, p = NA_real_,
-                            MKProbability=NA_real_,AnalysisNote="Insufficient data",prop.censored=NA_real_,
-                            prop.unique=NA_real_,no.censorlevels=NA_real_,Median = NA_real_, Sen_VarS = NA_real_,
-                            AnnualSenSlope = NA_real_,Intercept = NA_real_, Lci = NA_real_, Uci = NA_real_,
-                            AnalysisNoteSS=NA_real_, Sen_Probability = NA_real_,Probabilitymax = NA_real_,
-                            Probabilitymin = NA_real_, Percent.annual.change = NA_real_,standard=NA_real_,
-                            ConfCat=NA_real_,period=periodYrs,frequency=NA_real_)
+  siteTrendTable=data.frame(LawaSiteID=unique(subDat$LawaSiteID),Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
+                            nLastYear=NA,numMonths=NA, numQuarters=NA, numYears=NA,
+                            Observations=NA,KWstat=NA,pvalue=NA, SeasNote=NA,
+                            nObs=NA, S=NA, VarS=NA, D=NA,tau=NA, Z=NA, p=NA, C=NA,Cd=NA, MKAnalysisNote=NA,
+                            prop.censored=NA, prop.unique=NA, no.censorlevels=NA,
+                            Median=NA, Sen_VarS=NA,AnnualSenSlope=NA, Intercept=NA, Sen_Lci=NA,
+                            Sen_Uci=NA, SSAnalysisNote=NA,Sen_Probability=NA, Sen_Probabilitymax=NA,
+                            Sen_Probabilitymin=NA, Percent.annual.change=NA,
+                            standard=NA,ConfCat=NA, period=15, frequency=NA)
   subDat <- subDat%>%dplyr::filter(lubridate::year(myDate)>=(EndYear-periodYrs+1)&lubridate::year(myDate)<=EndYear)
   subDat <- subDat%>%tidyr::drop_na(Value)
   if(dim(subDat)[1]==0){return(siteTrendTable)}
@@ -1066,8 +1064,11 @@ checkXMLageLakes <- function(agency,maxHistory=100){
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
       if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"lwq.xml"))){
+        if(file.info(paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
+                            format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,"lwq.xml"))$size>100){
         cat(agency,"XML from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
         return(stepBack)
+          }
       }
     }
     stepBack=stepBack+1

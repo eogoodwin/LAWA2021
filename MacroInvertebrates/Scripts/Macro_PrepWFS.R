@@ -23,7 +23,7 @@ method[8]='wininet'
 if(exists('siteTable')){
   rm(siteTable)
 }
-#For each council, find the "emar:LWQuality" sites that are switched on, and get their details
+#For each council, find the "emar:Macro" sites that are switched on, and get their details
 startTime=Sys.time()
 workers <- makeCluster(6)
 registerDoParallel(workers)
@@ -356,21 +356,21 @@ AgencyRep=AgencyRep[,-2]
 rm(MacroWFSsiteFiles)
 write.csv(AgencyRep,'h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepMacroWFS.csv',row.names=F)
 
-#      agency 02Jul21 07Jul21 08Jul21 16Jul21
-# 1      ac      60      60      60  60
-# 2   boprc     126     126     126  126
-# 3    ecan     162     162     163  163
-# 4      es      87      87      87  87
-# 5     gdc      80      80      80  80
-# 6    gwrc      53      53      53  53
-# 7    hbrc      88      87      83  86
-# 8     hrc       0      87      87  87
-# 9     mdc      31      31      31  31
-# 10    ncc      26       0      26  26
-# 11   niwa      77      77      77  77
-# 12    nrc      32      32      32  32
-# 13    orc      31      31      31  31
-# 14    tdc      24      24      24  24
-# 15    trc      60      60      60  60 
-# 16   wcrc      34      34      34  34
-# 17    wrc      75      75      75  75
+#      agency 02Jul21 07Jul21 08Jul21 16Jul21 23Jul
+# 1      ac      60      60      60  60         61
+# 2   boprc     126     126     126  126       126
+# 3    ecan     162     162     163  163                263
+# 4      es      87      87      87  87         87
+# 5     gdc      80      80      80  80           80
+# 6    gwrc      53      53      53  53            53
+# 7    hbrc      88      87      83  86         85
+# 8     hrc       0      87      87  87           87
+# 9     mdc      31      31      31  31          31
+# 10    ncc      26       0      26  26          26
+# 11   niwa      77      77      77  77          77
+# 12    nrc      32      32      32  32          32
+# 13    orc      31      31      31  31           31
+# 14    tdc      24      24      24  24           24
+# 15    trc      60      60      60  60           60
+# 16   wcrc      34      34      34  34        34 
+# 17    wrc      75      75      75  75          75

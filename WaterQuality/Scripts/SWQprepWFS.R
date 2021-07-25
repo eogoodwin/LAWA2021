@@ -350,6 +350,7 @@ rec2$Lat=latLong[,1]
 rm(latLong)
 
 siteTable$NZReach=as.numeric(siteTable$NZReach)
+siteTable$NZSegment=as.numeric(siteTable$NZSegment)
 # siteTable$NZReach[which(siteTable$NZReach<min(rec$NZREACH)|siteTable$NZReach>max(rec$NZREACH))] <- NA
 
 
@@ -372,7 +373,7 @@ st=1
 for(st in st:dim(siteTable)[1]){
   #REC (1)
   #Assign an NZREACH number if its missing
-  if(is.na(siteTable$NZReach[st])){
+  if(is.na(siteTable$NZReach[st])||tolower(siteTable$NZReach[st])=='unstated'){
     cat(st,'No NZREACH number\t')
     if(!is.na(siteTable$NZSegment[st])&siteTable$NZSegment[st]%in%rec2$nzsegment){
       siteTable$NZReach[st]=rec2$nzreach_re[match(siteTable$NZSegment[st],rec2$nzsegment)]
@@ -400,7 +401,7 @@ for(st in st:dim(siteTable)[1]){
   
   #REC2
   #Assign an NZSegment number if its missing
-  if(is.na(siteTable$NZSegment[st])){
+  if(is.na(siteTable$NZSegment[st])||tolower(siteTable$NZSegment[st])=='unstated'){
     cat(st,'No NZSegment number\t')
     if(siteTable$NZReach[st]%in%rec2$nzreach_re){
       siteTable$NZSegment[st] = rec2$nzsegment[match(siteTable$NZReach[st],rec2$nzreach_re)]
@@ -453,7 +454,6 @@ siteTable$rawRecLandcover=siteTable$Landcover
 siteTable$Landcover[siteTable$Landcover%in%c('if','ef','s','t','w','b')] <- 'Forest' #indigenous forest, exotic forest, scrub, tussock, wetland
 siteTable$Landcover[siteTable$Landcover%in%c('p','m')] <- 'Rural'            #pastoral, miscellaneous
 siteTable$Landcover[siteTable$Landcover%in%c('u')] <- 'Urban'                    #urban
-
 table(siteTable$SWQLanduse,siteTable$Landcover)
 
 
@@ -541,24 +541,24 @@ for(wsf in WQWFSsiteFiles){
 AgencyRep=AgencyRep[,-2]
 rm(WQWFSsiteFiles)
 
-#     agency 29Jun21 01Jul21    08Jul21  16Jul21
-# 1      ac      35      35      35 35    35
-# 2   boprc      50      50      50 50    50
-# 3    ecan     184     191     191 190   190
-# 4      es      60      60      60 60   60
-# 5     gdc      39      39      39 39   39
-# 6    gwrc      43      43      43 43   43
-# 7    hbrc      96      96      91 94   94
-# 8     hrc     137     136     136 136   136
-# 9     mdc      32      32      32 32   32
-# 10    ncc      25      25      25 25   25
-# 11   niwa      77      77      77 77   77
-# 12    nrc      32      32      32 32   32
-# 13    orc      50      50      50 50   50
-# 14    tdc      26      26      26 26   26
-# 15    trc      22      22      22 22   22
-# 16   wcrc      38      38      38 38   38
-# 17    wrc     108     108     108 108   108
+#     agency 29Jun21 01Jul21 08Jul21 14Jul21 16Jul21 23Jul21
+# 1      ac      35      35      35      35      35      35
+# 2   boprc      50      50      50      50      50      50
+# 3    ecan     184     191     191     190     190     190
+# 4      es      60      60      60      60      60      60
+# 5     gdc      39      39      39      39      39      39
+# 6    gwrc      43      43      43      43      43      43
+# 7    hbrc      96      96      91      94      94      94
+# 8     hrc     137     136     136     136     136     136
+# 9     mdc      32      32      32      32      32      32
+# 10    ncc      25      25      25      25      25      25
+# 11   niwa      77      77      77      77      77      77
+# 12    nrc      32      32      32      32      32      32
+# 13    orc      50      50      50      50      50      50
+# 14    tdc      26      26      26      26      26      26
+# 15    trc      22      22      22      22      22      22
+# 16   wcrc      38      38      38      38      38      38
+# 17    wrc     108     108     108     108     108     108
    
 
 plot(x=as.numeric(AgencyRep[1,-1]),type='l',ylim=c(20,200),log='y')

@@ -107,14 +107,6 @@ while(sum(!ssm$LAWA2021comment%in%c("","NoTimeSeriesURL"))>90){
       
       if(grepl(pattern = 'observedProperty',x = urlToTry,ignore.case = T)){
         urlToTry=paste0(urlToTry,"&temporalfilter=om:phenomenonTime,P15Y/2021-07-01")
-        # urlToTry=paste0(urlToTry,"&temporalfilter=om:phenomenonTime,2015-06-01T00:00:00/2021-07-01T00:00:00")
-      #BOP example from SWQ
-          # http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?
-          # service=SOS&version=2.0.0&request=GetObservation&
-          # observedProperty=",Measurements[j],
-          # &featureOfInterest=",sites[i],
-          # &temporalfilter=om:phenomenonTime,P15Y/2021-01-01
-        
       }
       cat('v')
       dlTry=try(curl::curl_fetch_disk(gsub(x = urlToTry,pattern = ' ',replacement = '%20'),
@@ -152,6 +144,31 @@ while(sum(!ssm$LAWA2021comment%in%c("","NoTimeSeriesURL"))>90){
     #Here we've got good data
     cat('+')
     if('wml2'%in%names(xml_ns(xmlfile))){
+      if(0){
+        #From AC WQ code
+        Data = xml2::as_list(xmlfile)[[1]]
+        if(length(Data)>0){
+          Data=Data$observationMember$OM_Observation$result$MeasurementTimeseries
+          Data=do.call(rbind, unname(sapply(Data,FUN=function(listItem){
+            if("MeasurementTVP"%in%names(listItem)){
+              retVal=data.frame(time=listItem$MeasurementTVP$time[[1]],value=listItem$MeasurementTVP$value[[1]])
+              if("metadata"%in%names(listItem$MeasurementTVP)){
+                retVal$Censored=attr(listItem$MeasurementTVP$metadata$TVPMeasurementMetadata$qualifier,'title')
+              }else{
+                retVal$Censored=F
+              }
+              return(retVal)
+            }
+          })))
+          if(!is.null(Data)){
+            cat(Measurements[j],'\t')
+            Data$measurement=Measurements[j]
+            siteDat=rbind(siteDat,Data)
+          }
+        }
+        rm(Data)
+      }
+
       mvals <- xml_find_all(xmlfile,'//wml2:value')
       if(length(mvals)>0){
         cat('*')
@@ -183,6 +200,7 @@ while(sum(!ssm$LAWA2021comment%in%c("","NoTimeSeriesURL"))>90){
                        YW=paste0(year,week))
         
         #Get metadata to include/exclude test/retest
+        #Some regions provide this through the WQSample metadata
         if(latestAgency=="Gisborne region"){ #Grab WQSample
           if(!file.exists(paste0('./data/dataCache/site',siteNum,'_MD.xml')) || 
              (file.exists(paste0('./data/dataCache/site',siteNum,'_MD.xml'))&
@@ -319,15 +337,15 @@ while(sum(!ssm$LAWA2021comment%in%c("","NoTimeSeriesURL"))>90){
               testRetest$ts[tt]=as.character(strptime(xml_text(sampTime),"%Y-%m-%dT%H:%M:%S"))
             }
             sampParams=xml_find_all(wqsamp,"Parameter")
-            tr=sampParams[xml_attr(sampParams,"Name")=="Sample Type"]
+            tr=sampParams[xml_attr(sampParams,"Name")=="Retest"]
             if(length(tr)==1){
               testRetest$TR[tt]=xml_attr(tr,"Value")
             }
           }
           # cat(unique(testRetest$TR))
           siteDat$testRetest=testRetest$TR[match(as.character(siteDat$dateCollected),testRetest$ts)]
-          if(any(siteDat$testRetest=="Followup",na.rm=T)){
-            siteDat=siteDat[-which(siteDat$testRetest=="Followup"),]
+          if(any(siteDat$testRetest!="No",na.rm=T)){
+            siteDat=siteDat[-which(siteDat$testRetest!="No"),]
           }
         }
         if(latestAgency=="Hawke's Bay region"){#Grab WQSample
@@ -458,6 +476,10 @@ rm(listToCombine)
 #        124456 x 13 14/7/2021
 #        124438 x 13 16/7/2021
 
+#GDC, MDC, NRC, TRC, HBRC, GWRC by server metadata
+#TDC, WRC, ORC by info file
+#7 more? BOPRC, ECAN, HRC, NCC, ES, WCRC, NIWA?
+
 #Drop retests as indicated by councils
 # TDCtestRetest=read.csv('h:/ericg/16666LAWA/LAWA2020/CanISwimHere/Metadata/TDCTestIndication.csv',stringsAsFactors = F)[,1:17]
 # TDCtestRetest=TDCtestRetest%>%filter(X=="")
@@ -544,7 +566,7 @@ save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",form
 
 
 
-test <- recData%>%
+graphData <- recData%>%
   dplyr::filter(LawaSiteID!='')%>%drop_na(LawaSiteID)%>%
   dplyr::filter(property!='Cyanobacteria')%>%
   # dplyr::filter(year>2014&(month>10|month<4))%>% #bathign season months only
@@ -552,12 +574,12 @@ test <- recData%>%
   dplyr::group_by(LawaSiteID,YW,property)%>%
   dplyr::arrange(YW)%>%                    #Count number of weeks recorded per season
   dplyr::summarise(.groups='keep',
-    dateCollected=first(dateCollected),
-            region=unique(region),
-            n=length(fVal),
-            fVal=first(fVal),
-            bathingSeason=unique(bathingSeason))%>%
-  ungroup->graphData
+                   dateCollected=first(dateCollected),
+                   region=unique(region),
+                   n=length(fVal),
+                   fVal=first(fVal),
+                   bathingSeason=unique(bathingSeason))%>%
+  ungroup
 write.csv(graphData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                                   format(Sys.Date(),'%Y-%m-%d'),
                                   "/CISHgraph",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F)
@@ -568,11 +590,11 @@ graphData%>%
   group_by(LawaSiteID,property)%>%            #For each site
   dplyr::summarise(.groups='keep',
                    region=unique(region),nBS=length(unique(bathingSeason)),
-            nPbs=paste(as.numeric(table(bathingSeason)),collapse=','),
-            min=min(fVal,na.rm=T),
-            max=max(fVal,na.rm=T),
-            haz95=quantile(fVal,probs = 0.95,type = 5,na.rm = T),
-            haz50=quantile(fVal,probs = 0.5,type = 5,na.rm = T))%>%ungroup->CISHsiteSummary
+                   nPbs=paste(as.numeric(table(bathingSeason)),collapse=','),
+                   min=min(fVal,na.rm=T),
+                   max=max(fVal,na.rm=T),
+                   haz95=quantile(fVal,probs = 0.95,type = 5,na.rm = T),
+                   haz50=quantile(fVal,probs = 0.5,type = 5,na.rm = T))%>%ungroup->CISHsiteSummary
 
 #582 at 14/7/2021
 

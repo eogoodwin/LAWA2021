@@ -10,8 +10,6 @@ setwd("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/")
 
 df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
 
-#configsites <- subset(df,df$Type=="Site")[,2]
-#configsites <- as.vector(configsites)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 siteTable=loadLatestSiteTableMacro()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
