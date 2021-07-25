@@ -66,15 +66,18 @@ macroData=macroData[which(macroData$sYear>=firstYear & macroData$sYear<=EndYear)
 
 #63163 to 59417 for firstYear==2000 16/7/2021
 macroData$Date=lubridate::dmy(macroData$Date)
+
 lawaMacroData = macroData%>%group_by(LawaSiteID,
                                      sYear,
-                                     Measurement,
-                                     LandcoverGroup=Landcover,
-                                     AltitudeGroup=Altitude)%>%
+                                     Measurement)%>%
   dplyr::summarise(.groups='keep',
-    count=n(),Value= quantile(Value,type=5,prob=0.5,na.rm=T),
-                   SiteID=unique(SiteID),Agency=unique(Agency),date=mean(Date))%>%ungroup
-
+                   count=n(),
+                   Value= quantile(Value,type=5,prob=0.5,na.rm=T),
+                   SiteID=unique(SiteID),
+                   Agency=unique(Agency),
+                   LandcoverGroup=unique(Landcover),
+                   AltitudeGroup=unique(Altitude),
+                   date=mean(Date))%>%ungroup
 
 lawaMacroData%>%
   dplyr::filter(sYear>=startYear5)%>%

@@ -18,7 +18,7 @@ if(!exists('wqdata')){
   wqdata=readr::read_csv(wqDataFileName,guess_max=150000)%>%as.data.frame
   rm(wqDataFileName)
 
-  # wqdata$Date[wqdata$Agency=='ac']=as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency=='ac']),'%d-%b-%y'))
+   # wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')] = as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')]),'%d-%b-%y'))
   
   #Write out for ITEffect
   wqdata$DetectionLimit=1
@@ -40,7 +40,7 @@ if(!exists('wqdata')){
   wqdYear=lubridate::year(dmy(wqdata$Date))
   wqdata <- wqdata[which((wqdYear>=(StartYear5) & wqdYear<=EndYear)),]
   rm(wqdYear)
-  #150852
+  #532181
 }
 
 
@@ -115,7 +115,7 @@ foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
 }->sa
 stopCluster(workers)
 rm(workers)
-cat(Sys.time()-startTime)  #14.3 seconds 29June
+cat(Sys.time()-startTime)  #16 seconds 23July2021
 
 # State Analysis output contains quantiles for each Measurement by site.
 names(sa) <-   c("LawaSiteID", "Measurement", "Q0", "Q25", "Q50","Q75", "Q100",
