@@ -11,6 +11,38 @@ editor_options:
   chunk_output_type: console
 ---
 
+```{r, echo=FALSE}
+    beginStyleFmt <- function(textstyle, type = "span") {
+  outputFormat <- knitr:::pandoc_to()
+  if (outputFormat %in% c('latex', 'beamer')) {
+    if (type %in% c("div", "p")) {
+      paste0("\\nopandoc{\\begin{", textstyle, "}}\n")
+    } else {
+      paste0("\\nopandoc{\\", textstyle, "{")
+    }
+  } else if (outputFormat == 'html') {
+      paste0("<", type, " class='", textstyle, "'>")
+  } else {
+    ""
+  }
+}
+
+endStyleFmt <- function(textstyle, type = "span") {
+  outputFormat <- knitr:::pandoc_to()
+  if (outputFormat %in% c('latex', 'beamer')) {
+    if (type %in% c("div", "p")) {
+      paste0("\n\\nopandoc{\\end{", textstyle, "}}")
+    } else {
+      paste0("}}")
+    }
+  } else if (outputFormat == 'html') {
+      paste0("</", type, ">")
+  } else {
+    ""
+  }
+}
+```
+
 ```{r setup, include=FALSE,echo=FALSE}
 library(tidyverse)
 library(DT) #All the data table cleverness
@@ -18,7 +50,7 @@ require(Hmisc)#For hiding TOC
 source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableLakes(maxHistory = 400)
 lawaset=c("TN","NH4N","TP","CHLA","pH","Secchi","ECOLI","CYANOTOT","CYANOTOX")
-agency=params$agency
+if(!exists('agency')){ agency=params$agency}
 urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
 siteTableLIDs=unique(tolower(siteTable$LawaSiteID[which(siteTable$Agency==agency)]))
@@ -174,6 +206,10 @@ if(dim(lwqtrend)[1]>0){
 We hope to report on TN, NH4N, TP, CHLA, pH, Secchi, ECOLI, Total Cyanobacteria Biovolume, and Potentially Toxic Cyanobacteria Biovolume, and these go by various nomenclatures at different councils.  The list of measurement names that I call from `r agency` is `r paste(Measurements,collapse=', ')`. It would be great to know whether this list is correct, if some could be removed, or others should be added. 
 
 Do we have your Total Cyanobacteria Biovolume, and Potentially Toxic Cyanobacteria Biovolume measurement names?  These indicators are new in this year.
+
+```{r measurementAudit,echo=F,results='asis'}
+knitr::kable(table(LWQdata$Agency,LWQdata$Measurement)/table(LWQdata$Agency,LWQdata$Measurement),)
+```
 
 # WFS sites announced
 

@@ -195,18 +195,17 @@ if(any(wqtrend$Agency=='niwa')){
 }
 wqtrend <- wqtrend%>%select(CouncilSiteID,SiteID,LawaSiteID,Measurement,nMeasures,frequency,period,numMonths,TrendScore,ConfCat)
 wqtrend$frequency[is.na(wqtrend$frequency)] <- 'unassessed'
-
+wqtrend <- unique(wqtrend%>%select(-frequency))
 wqtrend$nReq = wqtrend$period*12*0.9
 wqtrend$note = paste0("NA n=",wqtrend$numMonths,'/',wqtrend$nReq)
-wqtrend$note[!is.na(wqtrend$ConfCat)] = wqtrend$frequency[!is.na(wqtrend$ConfCat)]
+# wqtrend$note[!is.na(wqtrend$ConfCat)] = wqtrend$frequency[!is.na(wqtrend$ConfCat)]
 wqtrend$TrendScore[is.na(wqtrend$ConfCat)] = wqtrend$note[is.na(wqtrend$ConfCat)]
 wqtrend$TrendScore[!is.na(wqtrend$ConfCat)] = paste0(wqtrend$ConfCat,' (',wqtrend$note,')')[!is.na(wqtrend$ConfCat)]
 wqtrend=wqtrend%>%
-  select(-ConfCat,-frequency,-nMeasures,-note,-nReq,-ConfCat)%>%
-  tidyr::spread(key = c('Measurement'),value="TrendScore")
+  select(-ConfCat,-nMeasures,-note,-nReq)%>%
+  pivot_wider(names_from =  'Measurement',values_from = "TrendScore")
 wqtrend$Catchment=siteTable$Catchment[match(wqtrend$LawaSiteID,siteTable$LawaSiteID)]
 wqtrend <- wqtrend%>%select(CouncilSiteID,SiteID,LawaSiteID,Catchment,everything())
-
 ```
 `r Hmisc::hidingTOC(tocSide='right')`
 # Measurement names
@@ -214,6 +213,10 @@ wqtrend <- wqtrend%>%select(CouncilSiteID,SiteID,LawaSiteID,Catchment,everything
 We hope to report on BDISC, TURB, NH4, PH, TON, TN, DRP, TP, ECOLI, DIN and NO3N and these go by various nomenclatures at different councils.  The list of measurement names that I call from `r agency` is `r paste(Measurements,collapse=', ')`. It would be great to know whether this list is correct, if some could be removed, or others should be added.
 
 Do we have your DIN and NO3N measurement names?  These indicators are new in this year.
+
+```{r measurementAudit,echo=F,results='asis'}
+knitr::kable(table(wqdata$Agency,wqdata$Measurement)/table(wqdata$Agency,wqdata$Measurement))
+```
 
 # WFS sites announced
 

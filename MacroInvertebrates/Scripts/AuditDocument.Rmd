@@ -139,8 +139,8 @@ macroTrend$TrendScore[!is.na(macroTrend$ConfCat)] = paste0(macroTrend$TrendScore
                                                            ' (',macroTrend$note[!is.na(macroTrend$ConfCat)],')')
 macroTrend$Catchment = siteTable$Catchment[match(macroTrend$CouncilSiteID,siteTable$CouncilSiteID)]
 macroTrend=macroTrend%>%distinct%>%
-	select(-ConfCat,-LawaSiteID,-frequency,-nMeasures,-note,-nReq)%>%
-	tidyr::spread(key = c('period'),value="TrendScore")
+	select(-ConfCat,-frequency,-nMeasures,-note,-nReq)%>%
+  pivot_wider(names_from =  'Measurement',values_from = "TrendScore")
 # ,'period'
 ```
 `r Hmisc::hidingTOC(tocSide='right')`
@@ -149,6 +149,10 @@ macroTrend=macroTrend%>%distinct%>%
 We hope to report on MCI, QMCI, Taxon Richness, Percent EPT taxa, and ASPM (average score per metric).  These go by various nomenclatures at different councils.  The list of measurement names that I call from `r agency` is `r paste(Measurements,collapse=', ')`. It would be great to know whether this list is correct, if some could be removed, or others should be added. 
 
 Do we have your QMCI and ASPM measurement names?  These indicators are new in this year.
+
+```{r measurementAudit,echo=F,results='asis'}
+knitr::kable(table(macroData$Agency,macroData$Measurement)/table(macroData$Agency,macroData$Measurement))
+```
 
 
 # WFS sites announced
@@ -361,8 +365,7 @@ for(msm in unique(agencymacroData$Measurement)){
 ## Median values per site
 
 ```{r echo=F,results='asis'}
-DT::datatable(ss%>%
-                            dplyr::select(CouncilSiteID,Catchment,Parameter,Median)%>%
+DT::datatable(ss%>%dplyr::select(CouncilSiteID,Catchment,Parameter,Median)%>%
                             dplyr::mutate(Median=signif(Median,4))%>%spread(Parameter,Median),
 rownames = F,extensions='Buttons',options=list(dom='Bfpl',buttons=c('copy','csv','excel')))
 ```
