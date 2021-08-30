@@ -41,13 +41,22 @@ dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Da
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F,recursive = T)
 
 
-#Simply reload existing dataset ####
 
+
+#Load existing dataset ####
 
 load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data",pattern="RecData2021",recursive = T,full.names = T,ignore.case=T),1),verbose=T)  
 recData <- recData%>%filter(property!="WQ sample")
 recData$regionName = RegionTable$wfs[match(tolower(recData$region),tolower(RegionTable$ssm))]
 recData$regionName[is.na(recData$regionName)] <- tolower(recData$region[is.na(recData$regionName)])
+
+#Make all yearweeks six characters
+recData$wday = wday(recData$dateCollected)
+recData$week = lubridate::week(recData$dateCollected)
+recData$week=as.character(recData$week)
+recData$week[nchar(recData$week)==1]=paste0('0',recData$week[nchar(recData$week)==1])
+recData$year = lubridate::year(recData$dateCollected)
+recData$YWD=as.numeric(paste0(recData$year,recData$week,recData$wday))
 
 
 load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data",pattern="RecMetaData2021",recursive = T,full.names = T,ignore.case=T),1),verbose=T)
@@ -69,10 +78,22 @@ if(length(prettyBung)>0){
 }
 rm(prettyBung)
 
-recMetaData <- recMetaData%>%plyr::mutate(week=lubridate::week(dateCollected),
+recMetaData <- recMetaData%>%plyr::mutate(wday=wday(dateCollected),
+                                          week=as.character(lubridate::week(dateCollected)),
                                           month=lubridate::month(dateCollected),
-                                          year=lubridate::year(dateCollected),
-                                          YW=paste0(year,week))
+                                          year=lubridate::year(dateCollected))
+#Make all yearweeks six characters
+recMetaData$week[nchar(recMetaData$week)==1]=paste0('0',recMetaData$week[nchar(recMetaData$week)==1])
+recMetaData$YWD=as.numeric(paste0(recMetaData$year,recMetaData$week,recMetaData$wday))
+
+
+
+recData <- recData%>%filter(YWD>as.numeric(paste0(StartYear5-1,"251")))
+recMetaData <- recMetaData%>%filter(YWD>as.numeric(paste0(StartYear5-1,"251")))
+
+
+
+
 
 if(0){
   #8/10/2020 survey where councils have hteir resample metadata ####
@@ -119,8 +140,8 @@ Otago                replacement file'
   #End investigation
 }
 
-
-routineResample = recMetaData%>%select(regionName,siteName,dateCollected,YW,
+# GWRC - WQSample measurement has field "Sample type" Value="R"
+routineResample = recMetaData%>%select(regionName,siteName,dateCollected,YWD,
                                        Project, `Project ID`, `Analysts Comments`,
                                        `Sample Type`,
                                        `Sample Comment`,`SampleComment`,
@@ -129,12 +150,16 @@ routineResample = recMetaData%>%select(regionName,siteName,dateCollected,YW,
 )%>%unique
 routineResample$region = recData$region[match(routineResample$regionName,recData$regionName)]
 
+routineResample$`Sample Comment`[routineResample$regionName=='canterbury'] <- ''
+
 routineResample$resample = apply(routineResample[,-c(1,2,3)],1,
                                  FUN=function(r)any(grepl('re-sampl|resampl|follow[^ing|ed]|BB-Ex',r,ignore.case = T)))
+incliptions = which(routineResample$`Sample type`=="F")
+routineResample$resample[incliptions]=T
 exceptions = apply(routineResample[,-c(1,2,3,dim(routineResample)[2])],1,
                   FUN=function(r)any(grepl('follow up not needed|no re-*sample|not re-*sam',r,ignore.case=T)))
 routineResample$resample[exceptions]=F
-rm(exceptions)
+rm(exceptions,incliptions)
 
 
 #Which column gave the followup info?
@@ -145,7 +170,7 @@ clue = apply(routineResample[routineResample$resample,-c(1,2,3)],1,
              FUN=function(s)paste0(grep('re-sampl|resampl|follow[^ing|ed]|BB-Ex',s,ignore.case = T,value = T),collapse='&'))
 
 table(routineResample$regionName[routineResample$resample],clueSource)
-table(clue,routineResample$regionName[routineResample$resample])
+# table(clue,routineResample$regionName[routineResample$resample])
 
 
 routineResample$clue = ""
@@ -160,7 +185,8 @@ unique(recData$region)[unique(recData$region) %in% unique(routineResample$region
 #8  councils have followup clues.  This leaves the following councils unIDed.
 
 unique(recData$region)[!unique(recData$region) %in% unique(routineResample$region[routineResample$resample])] -> knownMissingRegions
-"Bay of Plenty region     Nelson region   Southland region    Tasman region   Waikato region   West Coast region"  
+"Bay of Plenty region     Nelson region   Northland region    Southland region
+Tasman region   Waikato region   West Coast region"  
 #BoP  -  already filtered out, during load
 # Lisa Naysmith emailed 8/10/2020              Max McKay responded with an xl file now in h:/ericg/16666Lawa/LAWA2021/CISH/Data/BOPRC 
 #Max MacKay updated this 4/8/2021 at h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/BOPRC Recreational Repeats List 2021 - LAWA.xlsx
@@ -174,34 +200,35 @@ unique(recData$region)[!unique(recData$region) %in% unique(routineResample$regio
 #West Coast  emailed Millie Taylor 8/10/2020      she says they don't do followups!
 
 
-recData$rsy = paste0(recData$regionName,recData$siteName,recData$YW)
-routineResample$rsy = paste0(routineResample$regionName,routineResample$siteName,routineResample$YW)
+recData$rsy = paste0(recData$regionName,recData$siteName,recData$YWD)
+routineResample$rsy = paste0(routineResample$regionName,routineResample$siteName,routineResample$YWD)
 
 recData$resample = routineResample$resample[match(recData$rsy,routineResample$rsy)]
 
 # recDataB <- merge(all.x=T,x=recData,
-#                  all.y=F,y=routineResample%>%select(regionName,siteName,YW,resample,clue)%>%distinct,
-#                  by=c('regionName','siteName','YW'))
+#                  all.y=F,y=routineResample%>%select(regionName,siteName,YWD,resample,clue)%>%distinct,
+#                  by=c('regionName','siteName','YWD'))
 # recDataB$resample[recDataB$region%in%knownMissingRegions] <- FALSE
 
 rm(routineResample)
 table(recData$region,recData$resample,useNA = 'if')%>%addmargins
-#                             FALSE  TRUE  <NA>   Sum
-#   Bay of Plenty region          0     0  6472  6472
-#   Canterbury region         11887   419     2 12308
-#   Gisborne region            4301    36   229  4566
-#   Hawke's Bay region         5257   226    30  5513
-#   Manawatū-Whanganui region 13991     1   191 14183
-#   Marlborough region         2424   103     1  2528
-#   Nelson region               245     0  1674  1919
-#   Otago region               2496    14  1251  3761
-#   Southland region           2651     0     3  2654
-#   Taranaki                   5154   173     0  5327
-#   Tasman region                 0     0  1082  1082
-#   Waikato region                0     0  2544  2544
-#   Wellington region         12026    20   402 12448
-#   West Coast region             0     0  1514  1514
-#   Sum                       60432   992 15395 76819
+#                           FALSE  TRUE  <NA>   Sum
+# Bay of Plenty region          0     0  6341  6341
+# Canterbury region         11768   533     7 12308
+# Gisborne region            4286    51   220  4557
+# Hawkes Bay region         5193   279    41  5513
+# Manawatū-Whanganui region 13966     1   216 14183
+# Marlborough region         2353   174     1  2528
+# Nelson region               214     0  1705  1919
+# Northland region              0     0  5285  5285
+# Otago region               2471    10  1280  3761
+# Southland region           2649     0     5  2654
+# Taranaki                   5099   228     0  5327
+# Tasman region                 0     0  1082  1082
+# Waikato region                0     0  2542  2542
+# Wellington region         11285   947   155 12387
+# West Coast region             0     0  1513  1513
+# Sum                       59240  2267 20393 81900
 
 
 
@@ -236,6 +263,9 @@ sum(recData$resample,na.rm=T)
 #02/07/2021  221
 #29/7/2021  1073
 #3/8/2021 1349
+#9/8/2021 2250
+#13/8/2021 2267
+#19/8/21   2223
 recData$clue[is.na(recData$resample)] <- ""
 recData$clue[!recData$resample] <- ""
 
@@ -245,17 +275,8 @@ recData$siteType = ssm$SiteType[match(tolower(recData$LawaSiteID),tolower(ssm$La
 recData$SiteID = ssm$SiteName[match(recData$siteName,make.names(ssm$callID))]
 recData$SiteID = ssm$SiteName[match(recData$siteName,make.names(ssm$callID))]
 
-table(recData$region,recData$resample,useNA='a')
 
 
-#Make all yearweeks six characters
-recData$week = lubridate::week(recData$dateCollected)
-recData$week=as.character(recData$week)
-recData$week[nchar(recData$week)==1]=paste0('0',recData$week[nchar(recData$week)==1])
-
-recData$year = lubridate::year(recData$dateCollected)
-
-recData$YW=as.numeric(paste0(recData$year,recData$week))
 
 #Create bathing seasons
 bs=strTo(recData$dateCollected,'-')
@@ -265,9 +286,14 @@ recData$bathingSeason=bs
 table(recData$bathingSeason)
 
 
+#Save unfiltered data
+save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+                            "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
+
 #Write individual regional files: data from recData prior to removing followups 
 uReg=unique(recData$region)
 for(reg in seq_along(uReg)){
+  cat(reg,'\n')
   toExport=recData%>%dplyr::filter(region==uReg[reg],dateCollected>(Sys.time()-lubridate::years(5)))
   write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recData_",
@@ -276,46 +302,9 @@ for(reg in seq_along(uReg)){
 }
 rm(reg,uReg,toExport)
 
-if(0){
-  downloadData = recData%>%filter(YW>paste0(StartYear5-1,"25"))%>%
-    dplyr::filter(LawaSiteID!='')%>%drop_na(LawaSiteID)%>%
-    dplyr::filter((lubridate::yday(dateCollected)>297|month<4))%>% #bathign season months only plus the last week of October. To catch labour weeknd.
-    mutate(bathingSeason = factor(bathingSeason))%>%
-    select(region,siteName,SiteID,LawaSiteID,siteType,property,dateCollected,resample,value=val)
-  downloadData$resample[is.na(downloadData$resample)] <- FALSE
-  
-  downloadData$SwimIcon = "NA"
-  downloadData$SwimIcon[downloadData$property=="E-coli"] <- 
-    as.character(cut(downloadData$value[downloadData$property=="E-coli"],
-                     breaks = c(0,260,550,Inf),
-                     labels = c('green','amber','red')))
-  downloadData$SwimIcon[downloadData$property=="Enterococci"] <- 
-    as.character(cut(downloadData$value[downloadData$property=="Enterococci"],
-                     breaks = c(0,140,280,Inf),
-                     labels = c('green','amber','red')))
-  downloadData$SwimIcon[downloadData$property=='Cyanobacteria'] <- 
-    as.character(factor(downloadData$value[downloadData$property=='Cyanobacteria'],
-                        levels=c(0,1,2,3),
-                        labels=c("No Data","green","amber","red")))
-  table(downloadData$SwimIcon,downloadData$property)
-  
-  downloadData$siteType[downloadData$siteType=="Site"] <- "River"
-  downloadData$siteType[downloadData$siteType=="LakeSite"] <- "Lake"
-  downloadData$siteType[downloadData$siteType=="Beach"] <- "Coastal"
-  
-  downloadData$Latitude = lmsl$Latitude[match(tolower(downloadData$LawaSiteID),tolower(lmsl$LAWAID))]
-  downloadData$Longitude = lmsl$Longitude[match(tolower(downloadData$LawaSiteID),tolower(lmsl$LAWAID))]
-  
-  write.csv(downloadData%>%select(region:siteType,Latitude,Longitude,property:SwimIcon)%>%
-              arrange(region,siteName,dateCollected),
-            file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
-                          format(Sys.Date(),'%Y-%m-%d'),
-                          "/CISHdownloadWeekly",format(Sys.time(),'%Y-%b-%d'),".csv"),row.names = F) #"weekly" because that's the name of the sheet it'll go into
-}
-
 table(recData$resample,useNA = 'a')
 #   FALSE  TRUE  <NA> 
-#   60432   992 15395 
+#   59284  2223 20393 
 
 recDataF <- recData%>%filter(!resample|is.na(resample))%>%select(-resample,-clue)
 #85483 to 84684 13/10/2020
@@ -329,6 +318,10 @@ recDataF <- recData%>%filter(!resample|is.na(resample))%>%select(-resample,-clue
 #101846 to 101625 2/7/2021
 #77666 to 76593  29/7/2021
 #76819 to 75827 05/08/2021
+#81971 to 79721 09/08/2021
+#81900 to 79633 13/8/21
+#65232 to 63481
+#65649 to 63864 26/8/21
 
 
 save(recDataF,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),

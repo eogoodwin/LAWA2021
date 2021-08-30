@@ -9,16 +9,16 @@ agency='es'
 tab="\t"
 Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%dplyr::select(CallName)%>%unname%>%unlist
-Measurements=c(Measurements,'WQ Sample')
+# Measurements=c(Measurements,'WQ Sample')
 
-Measurements[Measurements=="Clarity (Black Disc Field)"] <- "Black%20Disc%20(Field)%20[Clarity%20(Black%20Disc,%20Field)]"#"Clarity (Black Disc, Field)"
+Measurements[1] <- "Black%20Disc%20(Field)%20[Clarity%20(Black%20Disc,%20Field)]"#"Clarity (Black Disc, Field)"
 
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
-sites = gsub(pattern = 'Wairaki River at',replacement = "Wairaki River ds",x = sites)
-sites = gsub(pattern = 'Dipton Rd',replacement = "Dipton Road",x = sites)
-sites = gsub(pattern = 'Makarewa Confluence',replacement = "Makarewa Confl",x = sites)
+# sites = gsub(pattern = 'Wairaki River at',replacement = "Wairaki River ds",x = sites)
+# sites = gsub(pattern = 'Dipton Rd',replacement = "Dipton Road",x = sites)
+# sites = gsub(pattern = 'Makarewa Confluence',replacement = "Makarewa Confl",x = sites)
 
 suppressWarnings({rm(Data)})
 for(i in 1:length(sites)){
@@ -95,6 +95,8 @@ for(i in 1:length(sites)){
 
 
 Data$Measurement[Data$Measurement=="Black%20Disc%20(Field)%20[Clarity%20(Black%20Disc,%20Field)]"] <- "Clarity (Black Disc Field)"
+
+#Save it here as csv!
 
 con <- xmlOutputDOM("Hilltop")
 con$addTag("Agency", "ES")
@@ -228,4 +230,5 @@ while(i<=max){
 # saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
 saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
 file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"),
+          overwrite=T)

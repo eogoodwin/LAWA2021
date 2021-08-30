@@ -2,128 +2,48 @@ rm(list=ls())
 gc()
 library(parallel)
 library(doParallel)
+library(tidyverse)
 source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
-source('K:/R_functions/nzmg2WGS.r')
-source('K:/R_functions/nztm2WGS.r')
+# source('K:/R_functions/nzmg2WGS.r')
+# source('K:/R_functions/nztm2WGS.r')
 
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 
 siteTable=loadLatestSiteTableRiver()
-rownames(siteTable)=NULL
+agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
+lawaset=c("NH4", "TURB","TURBFNU", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
 
-
-
-#Comment these out as councils indicate their data is done.
-scriptsToRun = c(
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNIWA.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWRC.R",
-  # "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadAC_list.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadBOP.R", #slow - next to xml2
-  # "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadECAN.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadES.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadGDC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadGWRC.R",
-  # "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHBRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadMDC.R",
-   "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNCC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadORC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadTDC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadTRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWCRC.R")
-source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadAC_list.R") #Contains parallel, so dont run in parallel
-source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadECAN_list.R") #Contains parallel, so dont run in parallel
-source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHBRC_list.R") #Contains parallel, so dont run in parallel
-startTime=Sys.time()
-workers <- makeCluster(5)
-registerDoParallel(workers)
- clusterCall(workers,function(){
-   source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
- })
-foreach(i = 1:length(scriptsToRun),.errorhandling = "stop")%dopar%{
-  source(scriptsToRun[i])
-  rm(con)
-  gc()
-  return(NULL)
-}
-stopCluster(workers)
-rm(workers)
+if(0){
+  
+startTime=Sys.time()                                                                    #seconds / site
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadAC_list.R")})      #40 / 35
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadBOP_list.R")})     #169 / 49
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadECAN_list.R")})    #123 / 190
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadES_list.R")})      #117 / 60
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadGDC_list.R")})     #26 / 39
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadGWRC_list.R")})    #41 / 46
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHBRC_list.R")})    # 
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadHRC_list.R")})     #180 / 136
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadMDC_list.R")})     #34 / 32
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNCC_list.R")}) #25  X
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNIWA_list.R")})    #58 / 77
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNRC_list.R")})     #40 / 41
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadORC_list.R")})     #219   / 50
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadTDC_list.R")}) #
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadTRC_list.R")})   #221 / 13
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWCRC_list.R")}) #
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWRC_list.R")}) #
 cat("Done load\n")
 Sys.time()-startTime #23 minutes
 
-
 doneload=T
 
-
-
-##############################################################################
-#Check all the measurement names are in the transfers table
-##############################################################################
-transfers=read.table("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/transfers_plain_english_view.txt",
-                     sep=',',header = T,stringsAsFactors = F)
-
-
-##############################################################################
-#                                 XML to CSV
-##############################################################################
-# "ac",ecan","hbrc","hrc",
-agencies=c("boprc","es","gdc","gwrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc") 
-lawaset=c("NH4", "TURB","TURBFNU", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
-transfers=read.table("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/transfers_plain_english_view.txt",
-                     sep=',',header = T,stringsAsFactors = F)
-# "ecan","hbrc",
-workersB <- makeCluster(7)
-registerDoParallel(workersB)
-cc=clusterCall(workersB,function(){
-  library(tidyverse)
-  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
-  agencies=c("boprc","es","gdc","gwrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc") 
-  lawaset=c("NH4", "TURB", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
-  })
-startTime=Sys.time()
-foreach(i = 1:length(agencies),.errorhandling="stop")%dopar%{
-  xml2csvRiver(agency=agencies[i],quiet=F,reportCensor=F,reportVars=F,ageCheck=T,maxHistory=20)
-  return(NULL)
-  }
-stopCluster(workersB)
-rm(workersB)
-Sys.time()-startTime
-rm(startTime)
-#12 minutes
-##############################################################################
-#                                 *****
-##############################################################################
-cat("Done to CSV")
-donexmltocsv=T
-
-
-
-
-#19 June 2020
-#Check agency and region count per file
-for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")){
-  checkXMLageRiver(agency)
-  checkCSVageRiver(agency = agency)
 }
 
-   
-# #This could checks whether previous downloads pulled datas missing from current download.
-# for (agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")){
-  # agencyFiles = data.frame(name=dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
-  #                   pattern = paste0('^',agency,'.csv'),
-  #                   full.names = T,recursive = T,ignore.case = T),
-  #                   nCol = 0,nRow=0,nsite=0,stringsAsFactors = F)
-  # for(af in seq_along(agencyFiles$name)){
-  #   agencyCSV = read.csv(agencyFiles[af,1],stringsAsFactors=F)
-  #   agencyFiles$nCol[af]=dim(agencyCSV)[2]
-  #   agencyFiles$nRow[af]=dim(agencyCSV)[1]
-  #   agencyFiles$nsite[af]=length(unique(agencyCSV$CouncilSiteID))
-  # }
-
-
-
+for(agency in agencies){
+  checkCSVageRiver(agency = agency)
+}
 
 
 ##############################################################################
@@ -132,172 +52,90 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
 #Build the combo ####
 library(parallel)
 library(doParallel)
-  siteTable=loadLatestSiteTableRiver()
-if(exists('wqdata'))rm(wqdata)
-  lawaset=c("NH4", "TURB","TURBFNU", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
-  rownames(siteTable)=NULL
-  suppressWarnings(rm(wqdata,"ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc"))
-  agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
-  backfill=F
-workers=makeCluster(7)
+
+  if(exists('wqdata'))rm(wqdata)
+  rm(list=ls(pattern='mfl'))
+  backfill=T
+workers=makeCluster(6)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   library(magrittr)
-  library(plyr)
+  library(readr)
   library(dplyr)
 })
 startTime=Sys.time()
-foreach(agency =1:length(agencies),.combine = rbind,.errorhandling = 'stop')%dopar%{
-  # for(agency in 1:length(agencies)){
-  mfl=loadLatestCSVRiver(agencies[agency],maxHistory = 30)
-  if('centype'%in%names(mfl)){
-    names(mfl)[names(mfl)=='centype'] <- 'CenType'
-  }
-  if('CouncilSiteID.1'%in%names(mfl)){
-    browser
-    mfl <- mfl%>%select(-CouncilSiteID.1)
-  }
-  
-  # eval(parse(text=paste0(agencies[agency],'mfl=mfl')))
-  # wqdata=rbind(wqdata,mfl)}
-  if(!is.null(mfl)&&dim(mfl)[1]>0){
-    if(sum(!tolower(mfl$CouncilSiteID)%in%tolower(siteTable$CouncilSiteID))>0){
-      cat('\t',sum(!unique(tolower(mfl$CouncilSiteID))%in%tolower(siteTable$CouncilSiteID)),'CouncilSiteIDs not in site table\n')
-      cat('\t',sum(!unique(tolower(mfl$LawaSiteID))%in%tolower(siteTable$LawaSiteID)),'LawaSiteIDs not in site table\n')
-    }
-    if(!agency%in%c(3)){
-    targetSites=tolower(siteTable$CouncilSiteID[siteTable$Agency==agencies[agency]])
-    targetCombos=apply(expand.grid(targetSites,tolower(lawaset)),MARGIN = 1,FUN=paste,collapse='')
-    currentSiteMeasCombos=unique(paste0(tolower(mfl$CouncilSiteID),tolower(mfl$Measurement)))
-    missingCombos=targetCombos[!targetCombos%in%currentSiteMeasCombos]
-
-    #BACKFILL except canterbury
-    if(backfill){
-    if(length(missingCombos)>0){
-      agencyFiles = rev(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
-                                        pattern = paste0('^',agencies[agency],'.csv'),
-                            full.names = T,recursive = T,ignore.case = T))[-1]
-      for(af in seq_along(agencyFiles)){
-        agencyCSV = read.csv(agencyFiles[af],stringsAsFactors=F)
-        if("Measurement"%in%names(agencyCSV)){
-          agencyCSVsiteMeasCombo=paste0(tolower(agencyCSV$CouncilSiteID),tolower(agencyCSV$Measurement))
-          if(any(missingCombos%in%unique(agencyCSVsiteMeasCombo))){
-            these=agencyCSVsiteMeasCombo%in%missingCombos
-            agencyCSV=agencyCSV[these,]
-            agencyCSV$Altitude=mfl$Altitude[match(agencyCSV$CouncilSiteID,mfl$CouncilSiteID)]
-            agencyCSV$AltitudeCl=mfl$AltitudeCl[match(agencyCSV$CouncilSiteID,mfl$CouncilSiteID)]
-            if('SWQLandcover'%in%names(agencyCSV)){
-              agencyCSV <- agencyCSV%>%select(-SWQLandcover)
-              agencyCSV$SWQLanduse=mfl$SWQLanduse[match(agencyCSV$CouncilSiteID,mfl$CouncilSiteID)]
-              agencyCSV$Landcover=mfl$Landcover[match(agencyCSV$CouncilSiteID,mfl$CouncilSiteID)]
-            }
-            if(!"CouncilSiteID.1"%in%names(agencyCSV)){
-              agencyCSV$CouncilSiteID.1 = mfl$CouncilSiteID.1[match(tolower(agencyCSV$CouncilSiteID),tolower(mfl$CouncilSiteID))]
-            }
-            agencyCSV$LawaSiteID=tolower(agencyCSV$LawaSiteID)
-            if("Units"%in%names(mfl))agencyCSV$Units=""
-            cat(agency,dim(agencyCSV)[1],'\n')
-            if(!"rawSWQLanduse"%in%names(agencyCSV)){
-              agencyCSV$rawSWQLanduse = siteTable$rawSWQLanduse[match(agencyCSV$LawaSiteID,siteTable$LawaSiteID)]
-            }
-            if(!"rawRecLandcover"%in%names(agencyCSV)){
-              agencyCSV$rawRecLandcover = siteTable$rawRecLandcover[match(agencyCSV$LawaSiteID,siteTable$LawaSiteID)]
-            }
-            mfl=rbind(mfl,agencyCSV[,names(mfl)])
-            rm(agencyCSV,these)
-            currentSiteMeasCombos=unique(paste0(tolower(mfl$CouncilSiteID),tolower(mfl$Measurement)))
-            missingCombos=targetCombos[!targetCombos%in%currentSiteMeasCombos]
-            if(length(missingCombos)==0){
-              break
-            }            
-          }
-        }
-        suppressWarnings(rm(agencyCSV))
-      }
-    }
-    rm(missingCombos,targetCombos,currentSiteMeasCombos,targetSites)
-    }
-    }
-    if(agencies[agency]=='niwa'){
-      mfl$Value[mfl$Measurement%in%c("DRP","NH4","TN","TP")]=mfl$Value[mfl$Measurement%in%c("DRP","NH4","TN","TP")]/1000
-    }
-    if(agencies[agency]=='boprc'){
+foreach(agencyi =1:length(agencies),.combine = rbind,.errorhandling = 'stop')%dopar%{
+  mfl=loadLatestCSVRiver(agencies[agencyi],maxHistory = 30)
+    #BACKFILL except canterbury, hbrc, hrc
+    if(backfill & !agencies[agencyi]%in%c('ecan','hbrc','hrc')){
+      targetSites=tolower(siteTable$CouncilSiteID[siteTable$Agency==agencies[agencyi]])
+      targetCombos=apply(expand.grid(targetSites,tolower(lawaset)),MARGIN = 1,FUN=paste,collapse='')
+      currentSiteMeasCombos=unique(paste0(tolower(mfl$CouncilSiteID),tolower(mfl$Measurement)))
+      missingCombos=targetCombos[!targetCombos%in%currentSiteMeasCombos]
       
-      #Censor the data there that came in.
-      # Datasource or Parameter Type	Measurement or Timeseries Name	Units	AQUARIUS Parameter	              Detection Limit
-      # Total Oxidised Nitrogen	      Total Oxidised Nitrogen	        g/m3	Nitrite Nitrate _as N__LabResult	0.001
-      # Total Nitrogen	              Total Nitrogen	                g/m3	N _Tot__LabResult	                0.01
-      # Ammoniacal Nitrogen	          Ammoniacal Nitrogen	            g/m3	Ammoniacal N_LabResult	          0.002
-      # Dissolved Reactive Phosphorus	DRP	                            g/m3	DRP_LabResult	                    0.001
-      # Total Phosphorus	            TP	                            g/m3	P _Tot__LabResult	                0.001
-      # Turbidity	                    Turbidity	                      NTU	  Turbidity, Nephelom_LabResult	    0.1
-      # pH	                          pH  	                      pH units	pH_LabResult	                    0.2
-      # Visual Clarity	              BDISC	                            m	  Water Clarity_LabResult	          0.01
-      # Escherichia coli	            Ecoli	                      /100 ml	  E coli_LabResult	                1
-      cenTON = which(mfl$Measurement=="TON"&mfl$Value<0.001)
-      cenTN =  which(mfl$Measurement=="TN"&mfl$Value<0.01)
-      cenNH4 = which(mfl$Measurement=="NH4"&mfl$Value<0.002)
-      cenDRP = which(mfl$Measurement=="DRP"&mfl$Value<0.001)
-      cenTP =  which(mfl$Measurement=="TP"&mfl$Value<0.001)
-      cenTURB =which(mfl$Measurement=="TURB"&mfl$Value<0.1)
-      cenPH =  which(mfl$Measurement=="PH"&mfl$Value<0.2)
-      cenCLAR =which(mfl$Measurement=="BDISC"&mfl$Value<0.01)
-      cenECOLI=which(mfl$Measurement=="ECOLI"&mfl$Value<1)
-      if(length(cenTON)>0){
-        mfl$Censored[cenTON] <- TRUE
-        mfl$CenType[cenTON] <- "Left"
-        mfl$Value[cenTON] <- 0.001
+      #Pull these out for LUke at HRC
+      if(all(c("makakahi at end kaiparoro roadturb","mangatainoka at hukanuiturb")%in%missingCombos)){
+        missingCombos=missingCombos[-which(missingCombos%in%c("makakahi at end kaiparoro roadturb","mangatainoka at hukanuiturb"))]
       }
-      if(length(cenTN)>0){
-        mfl$Censored[cenTN] <- TRUE
-        mfl$CenType[cenTN] <- "Left"
-        mfl$Value[cenTN] <- 0.01
+      if(length(missingCombos)>0){
+        agencyFiles = rev(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
+                              pattern = paste0('^',agencies[agencyi],'.csv'),
+                              full.names = T,recursive = T,ignore.case = T))[-1]
+        for(af in seq_along(agencyFiles)){
+          agencyCSV = read_csv(agencyFiles[af],guess_max=)
+          if("Measurement"%in%names(agencyCSV)){
+            agencyCSVsiteMeasCombo=paste0(tolower(agencyCSV$CouncilSiteID),tolower(agencyCSV$Measurement))
+            if(any(missingCombos%in%unique(agencyCSVsiteMeasCombo))){
+               browser()
+              these=agencyCSVsiteMeasCombo%in%missingCombos
+              agencyCSV=agencyCSV[these,]
+              agencyCSV$Altitude=mfl$Altitude[match(agencyCSV$CouncilSiteID,mfl$CouncilSiteID)]
+              agencyCSV$AltitudeCl=mfl$AltitudeCl[match(agencyCSV$CouncilSiteID,mfl$CouncilSiteID)]
+             
+               if('SWQLandcover'%in%names(agencyCSV)){
+                agencyCSV <- agencyCSV%>%select(-SWQLandcover)
+                agencyCSV$SWQLanduse=mfl$SWQLanduse[match(agencyCSV$CouncilSiteID,mfl$CouncilSiteID)]
+                agencyCSV$Landcover=mfl$Landcover[match(agencyCSV$CouncilSiteID,mfl$CouncilSiteID)]
+              }
+              if(!'LawaSiteID'%in%names(agencyCSV)){
+                agencyCSV$LawaSiteID=tolower(siteTable$LawaSiteID[match(tolower(agencyCSV$CouncilSiteID),
+                                                                        tolower(siteTable$CouncilSiteID))])
+              }else{
+                agencyCSV$LawaSiteID=tolower(agencyCSV$LawaSiteID)
+              }
+              
+              cat(agencyFiles[af],dim(agencyCSV)[1],'\n')
+              
+              if(!"rawSWQLanduse"%in%names(agencyCSV)){
+                agencyCSV$rawSWQLanduse = siteTable$rawSWQLanduse[match(agencyCSV$LawaSiteID,siteTable$LawaSiteID)]
+              }
+              if(!"rawRecLandcover"%in%names(agencyCSV)){
+                agencyCSV$rawRecLandcover = siteTable$rawRecLandcover[match(agencyCSV$LawaSiteID,siteTable$LawaSiteID)]
+              }
+              if(!"QC"%in%names(agencyCSV)){
+                agencyCSV$QC=NA
+              }
+              mfl=rbind(mfl,agencyCSV[,names(mfl)])
+              rm(agencyCSV,these)
+              currentSiteMeasCombos=unique(paste0(tolower(mfl$CouncilSiteID),tolower(mfl$Measurement)))
+              missingCombos=targetCombos[!targetCombos%in%currentSiteMeasCombos]
+              if(length(missingCombos)==0){
+                break
+              }            
+            }
+          }
+          suppressWarnings(rm(agencyCSV))
+        }
+        
+        rm(missingCombos,targetCombos,currentSiteMeasCombos,targetSites)
       }
-      if(length(cenNH4)>0){
-        mfl$Censored[cenNH4] <- TRUE
-        mfl$CenType[cenNH4] <- "Left"
-        mfl$Value[cenNH4] <- 0.002
-      }
-      if(length(cenDRP)>0){
-        mfl$Censored[cenDRP] <- TRUE
-        mfl$CenType[cenDRP] <- "Left"
-        mfl$Value[cenDRP] <- 0.001
-      }
-      if(length(cenTP)>0){
-        mfl$Censored[cenTP] <- TRUE
-        mfl$CenType[cenTP] <- "Left"
-        mfl$Value[cenTP] <- 0.001
-      }
-      if(length(cenTURB)>0){
-        mfl$Censored[cenTURB] <- TRUE
-        mfl$CenType[cenTURB] <- "Left"
-        mfl$Value[cenTURB] <- 0.1
-      }
-      if(length(cenPH)>0){
-        mfl$Censored[cenPH] <- TRUE
-        mfl$CenType[cenPH] <- "Left"
-        mfl$Value[cenTON] <- 0.2
-      }
-      if(length(cenCLAR)>0){
-        mfl$Censored[cenCLAR] <- TRUE
-        mfl$CenType[cenCLAR] <- "Left"
-        mfl$Value[cenCLAR] <- 0.01
-      }
-      if(length(cenECOLI)>0){
-        mfl$Censored[cenECOLI] <- TRUE
-        mfl$CenType[cenECOLI] <- "Left"
-        mfl$Value[cenECOLI] <- 1
-      }
-      rm(cenTON,cenTN,cenNH4,cenDRP,cenTP,cenTURB,cenPH,cenCLAR,cenECOLI)
     }
-    
-  }
   return(mfl)
 }->wqdata   
 stopCluster(workers)
 rm(workers)
-wqdata <- wqdata%>%filter(Measurement%in%lawaset)
-Sys.time()-startTime  #7s
+wqdata$Measurement=toupper(wqdata$Measurement)
+Sys.time()-startTime  
 #23/6/2020    797484
 #23/6/2020pm  856506
 #25/6/2020    999530
@@ -314,31 +152,67 @@ Sys.time()-startTime  #7s
 #8/7/2021    1174823
 #16/7/2021   1322226
 #23/7/2021   1341448
+#30/7/2021   1378214 #30s
+#05/8/2021   1413164 26
+#06/8/21     1434671
+#09/8/21     1447976
+#12/8/21     1448781
+#13/8/21     1464492 31 s with backfill
+#17/8/21     1464752
+#20/8/21     1479324 33.6
+#24/8/21     1470599
+#27/8/21     1470856 from boprc and hrc, 102 and 155 respectively
+#27/8/21     1474832 three enw gwrc sites
 donecombine=T
 
 
+wqdata$CouncilSiteID=trimws(tolower(wqdata$CouncilSiteID))
+wqdata$CenType[wqdata$CenType%in%c("L","Left")] <- "Left"
+wqdata$CenType[wqdata$CenType%in%c("R","Right")] <- "Right"
+wqdata$Units=tolower(wqdata$Units)
 
-lawaset=c("NH4", "TURB","TURBFNU", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
+siteTable$CouncilSiteID=trimws(tolower(siteTable$CouncilSiteID))
+siteTable$SWQLanduse=pseudo.titlecase(siteTable$SWQLanduse)
+siteTable$SWQAltitude=pseudo.titlecase(siteTable$SWQAltitude)
+siteTable$SiteID=trimws(tolower(siteTable$SiteID))
+siteTable$LawaSiteID=trimws(siteTable$LawaSiteID)
+siteTable$Altitude=tolower(siteTable$Altitude)
+siteTable$Landcover=tolower(siteTable$Landcover)
+siteTable$Region=tolower(siteTable$Region)
+siteTable$Agency=tolower(siteTable$Agency)
+table(unique(wqdata$CouncilSiteID)%in%siteTable$CouncilSiteID)
+
+wqdata <- merge(wqdata,
+                siteTable%>%select(CouncilSiteID,SiteID,LawaSiteID,Agency,Region,
+                                   SWQAltitude,SWQLanduse,Altitude,Landcover))
+
+table(wqdata$Agency,is.na(wqdata$QC),useNA='a')  #QC data in AC, ECAN, GDC, GWRC,MDC, ORC 
+table(wqdata$Region,useNA='a')
+table(wqdata$Agency,useNA='a')
+#    ac  boprc   ecan     es    gdc   gwrc   hbrc    hrc    mdc    ncc   niwa    nrc    orc    tdc    trc  wcrc    wrc
+# 70659  54768 222636 107083  39888  89950 108161 211987  36018  22172 114686  62186  77052  19394  26640 29501 182051 
+# 70659  54768 222636 107083  39888  85974 108161 211987  36018  22172 114686  62186  77052  19394  26640 29501 182051 
+# 70659  54768 222636 107083  39888  85974 108161 211987  36018  22172 114686  62186  77052  19394  26640 29501 182051
+# 70659  54666 222636 107083  39888  85974 108161 211832  36018  22090 114686  62186  77052  19394  26640 29501 182051
+# 70659  54666 222636 107083  39888  85974 108161 220639  36018  22090 114686  62186  77052  19394  26640 29501 182051
+# 70659  54666 224053 107083  39888  85974 108157 211826  36018  22090 114686  62186  69880  19394  26640 29501 182051
+# 70659  54666 224053 107083  39888  85974 108157 211566  36018  22090 114686  62186  69880  19394  26640 29501 182051
+# 70659  43017 224053 107083  37779  85974 112751 207414  36018  21624 113359  62186  69653  18705  24845 29501 182051
+# 70659  60683 224074 107085  37789  86012 108214 210434  36020  22093 108318  75279  49574  17499  22689 29503 182051 
+# 64588  54043 224074 107085  37789  86012 108214 210434  36020  22093 108318  75279  49574  17499  22689 28909 160544 
+# 64588  54043 224074 107085  37789  61674 108214 210434  36020  22093 108318  75279  49574  17499  22689 47585 160544 
+# 64588  54043 224074 102735  37789  61674 108246 258964  36020  22175 108318  81617  49574  17499   6483 23359 160544
+# 64588  54043 223907  84384  37791  61674 117390 269600  36020  19490 108318  51925  49574  17499  20639 23289 160544
+# 54617  47156 162662  73340  27466  54929  85873 160718   4289  16893 103590  41344  47780  14992  20917 22749 143024 
+# 54061  49821 162662  81815  32391  54929  77699 160718  29796  16893 103590  41344  50056  15008  20917 22749 143024
+# 54060  49821 162662  81815  32391  54929  77681 160718  29796  16893 103590  41344  50056  15008  20917 22749 143024 
+# 54060  49417 162662  81815  32391  54929  77681 160718  29796  16893 103510  41344  50056  15005  20917 22749 143024 
+# 55868  54043 165467  77948  36359  57951  84042 160718  31241  18914  15771  50493  46922  17247  20957 22841 151466 
 
 
-wqdata$Region[wqdata$Region%in%c("horizons","manawatu-whanganui")] <- "manawatū-whanganui"
-
-table(wqdata$Agency,wqdata$QC==0)  #QC data in GWRC, HBRC
-table(wqdata$Region)
-table(wqdata$Agency)
-#    ac  boprc   ecan     es    gdc   gwrc   hbrc    hrc    mdc    ncc   niwa    nrc    orc    tdc    trc   wcrc    wrc 
-# 64588  54043 223907  84384  37791  61674 117390 269600  36020  19490 108318  51925  49574  17499  20639  23289 160544
-# 54617  47156 162662  73340  27466  54929  85873 160718   4289  16893 103590  41344  47780  14992  20917  22749  143024 
-# 54061  49821 162662  81815  32391  54929  77699 160718  29796  16893 103590  41344  50056  15008  20917  22749  143024
-# 54060  49821 162662  81815  32391  54929  77681 160718  29796  16893 103590  41344  50056  15008  20917  22749  143024 
-# 54060  49417 162662  81815  32391  54929  77681 160718  29796  16893 103510  41344  50056  15005  20917  22749  143024  
-# 55868  54043 165467  77948  36359  57951  84042 160718  31241  18914  15771  50493  46922  17247  20957  22841  151466 
 table(wqdata$SWQLanduse,wqdata$SWQAltitude)
-
 table(wqdata$Agency,wqdata$Measurement)
 
-
-wqdata$Units=tolower(wqdata$Units)
 
 unique(wqdata$Units)
 wqdata$Units = gsub(pattern = " units|_units| Units",replacement = "",x = wqdata$Units)
@@ -348,85 +222,23 @@ wqdata$Units = gsub(pattern = ".*/ *100m(l|L)",replacement = "/100ml",x = wqdata
 wqdata$Units = gsub(pattern = ".*/ *100ml",replacement = "/100ml",x = wqdata$Units)
 wqdata$Units = gsub(pattern = "-n|-p",replacement = "",x = wqdata$Units)
 wqdata$Units = gsub(pattern = "/m3.",replacement = "/m3",x = wqdata$Units)
-wqdata$Units = gsub(pattern = "g/m3",replacement = "mg/l",x = wqdata$Units)
+wqdata$Units = gsub(pattern = "g/m3|\\(mg/l|ppb",replacement = "mg/l",x = wqdata$Units)
+wqdata$Units = gsub(pattern = "g/m3|\\(mg/l",replacement = "mg/l",x = wqdata$Units)
 wqdata$Units = gsub(pattern = "meter",replacement = "m",x = wqdata$Units)
 wqdata$Units = gsub(pattern = "---",replacement = "ph",x = wqdata$Units)
 wqdata$Units = gsub(pattern = "formazin nephelometric unit",replacement = "fnu",x = wqdata$Units)
+
 unique(wqdata$Units)
 table(wqdata$Measurement,wqdata$Units)
+table(wqdata$Agency,wqdata$Units)
 
-NIWAppb=which(wqdata$Units=='ppb')
-wqdata$Value[NIWAppb]=wqdata$Value[NIWAppb]*1000
-wqdata$Units[NIWAppb]='mg/l'
-rm(NIWAppb)
-
-table(wqdata$Units,wqdata$Agency)
-table(wqdata$Agency[wqdata$Units=='ntu'&wqdata$Measurement=="TURBFNU"]) #TRC
-wqdata$Measurement[wqdata$Units=='ntu'&wqdata$Measurement=="TURBFNU"]<-"TURB"  #Switched in July 2019
-wqdata%>%filter(Agency=='trc')%>%select(Measurement,Units)%>%table
-wqdata%>%filter(Agency=='wcrc')%>%select(Measurement,Units)%>%table
-wqdata%>%filter(Agency=='orc')%>%select(Measurement,Units)%>%table
-wqdata%>%filter(Units=='fnu')%>%select(Agency,Measurement)%>%table
-wqdata%>%filter(Units=='')%>%select(Agency,Measurement)%>%table
-wqdata$Measurement[wqdata$Units=='fnu'&wqdata$Agency=='wcrc'] <- "TURBFNU"
-wqdata$Measurement[wqdata$Units=='fnu'] <- "TURBFNU"
+wqdata$Measurement[which(wqdata$Units=='fnu')] <- "TURBFNU"
 wqdata%>%filter(Measurement=="TURBFNU")%>%select(Agency,Units)%>%table
 
 write.csv(table(wqdata$Units,wqdata$Agency),paste0('h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',format(Sys.Date(),"%Y-%m-%d"),'/unitsagency.csv'),row.names = F)
 write.csv(table(wqdata$Units,wqdata$Measurement),paste0('h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',format(Sys.Date(),"%Y-%m-%d"),'/unitsmeasurement.csv'),row.names = F)
 
 
-wqdata$SWQLanduse[which(is.na(wqdata$SWQLanduse))] <- siteTable$SWQLanduse[match(wqdata$LawaSiteID[which(is.na(wqdata$SWQLanduse))],
-                                                                                 siteTable$LawaSiteID)]
-wqdata$SWQAltitude[which(!is.na(as.numeric(wqdata$SWQAltitude)))] <- siteTable$SWQAltitude[match(wqdata$LawaSiteID[which(!is.na(as.numeric(wqdata$SWQAltitude)))],
-                                                                                                 siteTable$LawaSiteID)]
-wqdata$SWQAltitude[which(tolower(wqdata$SWQAltitude)=='unstated')] <- siteTable$SWQAltitude[match(wqdata$LawaSiteID[which(tolower(wqdata$SWQAltitude)=='unstated')],
-                                                                                                 siteTable$LawaSiteID)]
-
-wqdata$SWQLanduse=pseudo.titlecase(wqdata$SWQLanduse)
-wqdata$SWQAltitude=pseudo.titlecase(wqdata$SWQAltitude)
-
-table(wqdata$SWQLanduse,wqdata$SWQAltitude)
-
-
-wqdata$SiteID=trimws(tolower(wqdata$SiteID))
-wqdata$CouncilSiteID=trimws(tolower(wqdata$CouncilSiteID))
-wqdata$LawaSiteID=trimws(wqdata$LawaSiteID)
-# wqdata$SWQAltitude=tolower(wqdata$SWQAltitude)
-wqdata$Altitude=tolower(wqdata$Altitude)
-# wqdata$SWQLanduse=tolower(wqdata$SWQLanduse)
-wqdata$Landcover=tolower(wqdata$Landcover)
-wqdata$Region=tolower(wqdata$Region)
-wqdata$Agency=tolower(wqdata$Agency)
-
-wqdata$CenType[wqdata$CenType%in%c("L","Left")] <- "Left"
-wqdata$CenType[wqdata$CenType%in%c("R","Right")] <- "Right"
-
-wqdata=unique(wqdata)  #1341448 -> 1340103
-
-
-#Find sites handled by more than one agency with the same LawaSiteID
-wqdata%>%group_by(tolower(LawaSiteID))%>%
-  dplyr::summarise(.groups='keep',
-                   agCount=length(unique(Agency)),
-                   ags=paste(unique(Agency),collapse=' '),
-                   cid=paste(unique(CouncilSiteID),collapse=', '),
-                   sid=paste(unique(SiteID),collapse=', '))%>%
-  ungroup%>%
-  filter(agCount>1)%>%dplyr::select(-agCount)
-
-
-
-#Tag the sites that are under NIWA and under an agency
-wqdata%>%group_by(tolower(LawaSiteID))%>%
-  dplyr::summarise(agCount=length(unique(Agency)),
-                   ags=paste(unique(Agency),collapse=' '),
-                   cid=paste(unique(CouncilSiteID),collapse=', '))%>%
-  ungroup%>%
-  filter(agCount>1)%>%dplyr::select(`tolower(LawaSiteID)`)%>%unlist%>%unname->dupSites
-
-wqdata$LawaSiteID[wqdata$LawaSiteID%in%dupSites&wqdata$Agency=='niwa'] <- 
-  paste0(wqdata$LawaSiteID[wqdata$LawaSiteID%in%dupSites&wqdata$Agency=='niwa'],"_NIWA")
 
 #855695 July8 2019
 #932548 July17 2019
@@ -457,22 +269,16 @@ wqdata$LawaSiteID[wqdata$LawaSiteID%in%dupSites&wqdata$Agency=='niwa'] <-
 #1183566  8/7/21
 #1321880  16/7/2021
 #1340103  23/7/21
-
-table(unique(tolower(wqdata$LawaSiteID))%in%tolower(siteTable$LawaSiteID))
-table(unique(tolower(wqdata$CouncilSiteID))%in%tolower(siteTable$CouncilSiteID))
-wqdata$CouncilSiteID[!tolower(wqdata$CouncilSiteID)%in%tolower(siteTable$CouncilSiteID) & 
-                       (wqdata$LawaSiteID)%in%(siteTable$LawaSiteID)] <- 
-  siteTable$CouncilSiteID[match(wqdata$LawaSiteID[!tolower(wqdata$CouncilSiteID)%in%tolower(siteTable$CouncilSiteID) & 
-                                                    (wqdata$LawaSiteID)%in%(siteTable$LawaSiteID)],siteTable$LawaSiteID)]
-# wqdata <- wqdata%>%select(-CouncilSiteID.1)
-table(unique(tolower(wqdata$SiteID))%in%tolower(siteTable$SiteID))
-
-#The Lawa CouncilSiteIDs are not in the siteTable as CouncilSiteID
-unique(wqdata$LawaSiteID[!tolower(wqdata$SiteID)%in%tolower(siteTable$SiteID)])
-unique(wqdata$SiteID[!tolower(wqdata$SiteID)%in%tolower(siteTable$SiteID)])
-unique(wqdata$CouncilSiteID[!tolower(wqdata$SiteID)%in%tolower(siteTable$SiteID)])
-unique(wqdata$Agency[!tolower(wqdata$SiteID)%in%tolower(siteTable$SiteID)])
-
+#1364751  30/7/21
+#1387542  5/8/21
+#1418516  6/8/21
+#1428486  9/8/21
+#1448781  12/8/21
+#1464492  13/8/21
+#1464752  17/8/21
+#1479324  20/8/21
+#1470674 24/8/21
+#1470856  26/8/21
 
 
 wqdata$Symbol=""
@@ -483,55 +289,33 @@ wqdata$RawValue=paste0(wqdata$Symbol,wqdata$Value)
 
 table(wqdata$Agency,wqdata$Measurement)/table(wqdata$Agency,wqdata$Measurement)
 
-# BDISC DIN DRP ECOLI NH4 NO3N  PH  TN TON  TP TURB TURBFNU 
-# ac        1   1   1     1   1    1   1   1   1   1    1   
-# boprc     1       1     1   1        1   1   1   1    1   
-# ecan      1   1   1     1   1    1   1       1   1    1   
-# es                1     1   1    1   1   1   1   1    1   
-# gdc               1     1   1        1   1   1   1    1   
-# gwrc      1       1     1   1        1   1   1   1        
-# hbrc      1   1   1     1   1    1   1       1   1    1   
-# hrc       1   1   1     1   1    1   1   1   1   1    1   
-# mdc               1     1   1    1   1   1   1   1    1   
-# ncc       1       1     1   1        1   1       1    1   
-# niwa      1       1     1   1        1   1       1    1   
-# nrc       1       1     1   1        1   1   1   1    1   
-# orc       1       1     1   1        1   1   1   1        
-# tdc       1       1     1   1        1   1   1   1    1   
-# trc       1       1     1   1        1   1   1   1    1   
-# wcrc      1       1     1   1        1   1   1   1        
-# wrc       1       1     1   1        1   1   1   1        
+#       BDISC DIN DRP ECOLI NH4 NO3N  PH  TN TON  TP TURB TURBFNU
+# ac        1   1   1     1   1    1   1   1   1   1    1        
+# boprc     1       1     1   1        1   1   1   1    1        
+# ecan      1   1   1     1   1    1   1   1   1   1    1        
+# es        1   1   1     1   1    1   1   1   1   1    1        
+# gdc       1   1   1     1   1    1   1   1   1   1    1       1
+# gwrc      1   1   1     1   1    1   1   1   1   1    1        
+# hbrc      1   1   1     1   1    1   1   1   1   1    1       1
+# hrc       1   1   1     1   1    1   1   1   1   1    1       1
+# mdc               1     1   1    1   1   1   1   1    1        
+# ncc       1       1     1   1    1   1   1       1    1        
+# niwa      1       1     1   1        1   1       1    1        
+# nrc       1   1   1     1   1    1   1   1   1   1    1        
+# orc       1   1   1     1   1    1   1   1   1   1    1        
+# tdc       1       1     1   1    1   1   1   1   1    1        
+# trc       1   1   1     1   1    1   1   1   1   1    1       1
+# wcrc      1   1   1     1   1    1   1   1   1   1            1
+# wrc       1       1     1   1        1   1   1   1    1        
+
 
 
 ##################
+
+wqdata$LawaSiteID = tolower(wqdata$LawaSiteID)
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
-write.csv(wqdata,paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/AllCouncils.csv"),row.names = F)
-# wqdata=read.csv(tail(dir("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",pattern="AllCouncils.csv",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+write.csv(wqdata,paste0("D:/LAWA/2021/AllCouncils.csv"),row.names = F)
+file.copy(from = "D:/LAWA/2021/AllCouncils.csv",
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/AllCouncils.csv"),overwrite = T)
 ##################
 
-# 
-# siteTable[grep('cust',siteTable$SiteID,ignore.case = T),]    #ECAN-00081
-# siteTable[grep('cam',siteTable$SiteID,ignore.case = T),]      #ECAN-00080  ECAN-00189
-# siteTable[grep('ohoka',siteTable$SiteID,ignore.case = T),]    #ECAN-00082
- # siteTable[grep('kaiapoi',siteTable$SiteID,ignore.case = T),]  #ECAN-00079, LAWA-100475
-# siteTable[grep('waimaka',siteTable$SiteID,ignore.case = T),]  #nrwqn-00054, nrwqn-00055
-# 
-# 
-# depreeset=c("ECAN-00081",
-#   "ECAN-00080",
-#   "ECAN-00189",
-#   "ECAN-00082",
-#   "ECAN-00079",
-#   "LAWA-100475",
-#   "nrwqn-00054",
-#   "nrwqn-00055")
-#  
-# 
- # depreeDat = wqdata%>%filter(tolower(LawaSiteID)%in%tolower(depreeset))
- # write.csv(depreeDat,"h:/ericg/16666LAWA/LAWA2021/WaterQuality/DepreeOut.csv",row.names=F)
-
-
-# wqdata$NZSegment <- riverSiteTable$NZSegment[match(gsub('_niwa','',wqdata$LawaSiteID,ignore.case = T),
-#                                                    riverSiteTable$LawaSiteID)]
-# 
-# wqdata$SedimentClass <- riverSiteTable$SedimentClass[match(wqdata$NZSegment,riverSiteTable$NZSegment)]

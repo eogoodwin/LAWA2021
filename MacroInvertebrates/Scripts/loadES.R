@@ -12,6 +12,9 @@ df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/"
 #  configsites <- subset(df,df$Type=="Site")[,2]
 #  configsites <- as.vector(configsites)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
+
+Measurements=c("%25%20EPT%20Taxa","MCI","Taxanomic%20Richness","QMCI%20%5bQMCI%5d","ASPM%20%5bASPM%5d")
+
 siteTable=loadLatestSiteTableMacro()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
@@ -26,7 +29,7 @@ for(i in 1:length(sites)){
   for(j in 1:length(Measurements)){
     
     url <- paste0("http://odp.es.govt.nz/MI.hts?service=Hilltop&request=GetData",
-                  "&Site=",sites[i],
+                  "&Site=",URLencode(sites[i]),
                   "&Measurement=",Measurements[j],
                   "&From=1990-01-01",
                   "&To=2021-06-01")
@@ -137,5 +140,5 @@ for(i in 1:length(sites)){
 #saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
 saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"Macro.xml"))
 file.copy(from=paste0("D:/LAWA/2021/",agency,"Macro.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),overwrite=T)
 

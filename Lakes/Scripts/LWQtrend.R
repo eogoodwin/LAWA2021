@@ -40,20 +40,11 @@ if(!exists('lakeData')){
   if(mean(lakeData$Value[which(lakeData$Measurement%in%c('NH4N','TN','TP'))],na.rm=T)<250){
     lakeData$Value[which(lakeData$Measurement%in%c('NH4N','TN','TP'))]=lakeData$Value[which(lakeData$Measurement%in%c('NH4N','TN','TP'))]*1000
   }
-  if(lubridate::year(Sys.Date())==2019){
-    # Lake Omapere in northland was being measured for chlorophyll in the wrong units.  It's values need converting.
-    these = which(lakeData$LawaSiteID=='nrc-00095' & lakeData$Measurement=='CHLA')
-    if(mean(lakeData$Value[these],na.rm=T)<1){
-      lakeData$Value[these] = lakeData$Value[these]*1000
-    }
-    rm(these)
-  }
-  
 }
 
 
-lakeData$uclid = paste(lakeData$CouncilSiteID,lakeData$LawaSiteID,sep='||')
-
+# lakeData$uclid = paste(lakeData$CouncilSiteID,lakeData$LawaSiteID,sep='||')
+# lakesSiteTable$uclid = paste(lakesSiteTable$CouncilSiteID,lakesSiteTable$LawaSiteID,sep='||')
 
 # https://www.lawa.org.nz/learn/factsheets/calculating-water-quality-trends/
 
@@ -62,14 +53,15 @@ lakeData$uclid = paste(lakeData$CouncilSiteID,lakeData$LawaSiteID,sep='||')
 library(parallel)
 library(doParallel)
 
-lakeDatafor15=lakeData%>%filter(Year>=startYear15 & Year <= EndYear & Measurement!="pH")
+lakeDatafor15=lakeData%>%filter(Year>=startYear15 & Year <= EndYear & !Measurement%in%c("pH","CYANOTOX"))
 
-uclids=unique(lakeDatafor15$uclid)
+uLLSIDs=unique(lakeDatafor15$LawaSiteID)
 uMeasures=unique(lakeDatafor15$Measurement)
-nMax=length(table(lakeDatafor15$uclid,lakeDatafor15$Measurement)[table(lakeDatafor15$uclid,lakeDatafor15$Measurement)>0])
-cat('\n',length(uclids),'\n')
+nMax=length(table(lakeDatafor15$LawaSiteID,lakeDatafor15$Measurement)[table(lakeDatafor15$LawaSiteID,lakeDatafor15$Measurement)>0])
+cat('\n',length(uLLSIDs),'\n')
 u=1
 
+startTime=Sys.time()
 workers <- makeCluster(5)
 registerDoParallel(workers)
 clusterCall(workers,function(){
@@ -79,11 +71,11 @@ clusterCall(workers,function(){
   library(dplyr)
   
 })
-foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
+foreach(u = u:length(uLLSIDs),.combine=rbind,.errorhandling="stop")%dopar%{
   # trendTable15=NULL
-  # for(u in 1:length(uclids)){
-  subDat=lakeDatafor15%>%dplyr::filter(uclid==uclids[u])
-  siteTrendTable15=data.frame(LawaSiteID=uclids[u], Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
+  # for(u in 1:length(uLLSIDs)){
+  subDat=lakeDatafor15%>%dplyr::filter(LawaSiteID==uLLSIDs[u])
+  siteTrendTable15=data.frame(LawaSiteID=uLLSIDs[u], Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
                               nLastYear=NA,numMonths=NA, numQuarters=NA, numYears=NA,
                               Observations=NA,KWstat=NA,pvalue=NA, SeasNote=NA,
                               nObs=NA, S=NA, VarS=NA, D=NA,tau=NA, Z=NA, p=NA, C=NA,Cd=NA, MKAnalysisNote=NA,
@@ -145,17 +137,19 @@ foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
   return(siteTrendTable15)
 }-> trendTable15
 stopCluster(workers)
+Sys.time()-startTime
+#13/8/21  16s 1296
 
-rm(workers,uclids,uMeasures,u,lakeDatafor15)
+rm(workers,uLLSIDs,uMeasures,u,lakeDatafor15)
 rownames(trendTable15) <- NULL
 trendTable15$Sen_Probability[trendTable15$Measurement!="Secchi"]=1-(trendTable15$Sen_Probability[trendTable15$Measurement!="Secchi"])
 trendTable15$Probabilitymin[trendTable15$Measurement!="Secchi"]=1-(trendTable15$Probabilitymin[trendTable15$Measurement!="Secchi"])
 trendTable15$Probabilitymax[trendTable15$Measurement!="Secchi"]=1-(trendTable15$Probabilitymax[trendTable15$Measurement!="Secchi"])
 trendTable15$Cd[trendTable15$Measurement!="Secchi"]=1-(trendTable15$Cd[trendTable15$Measurement!="Secchi"])
-trendTable15$Agency=lakesSiteTable$Agency[match(trendTable15$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable15$Region=lakesSiteTable$Region[match(trendTable15$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable15$LFENZID =    lakesSiteTable$LFENZID[match(trendTable15$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable15$LType =    lakesSiteTable$LType[match(trendTable15$LawaSiteID,lakesSiteTable$LawaSiteID)]
+trendTable15$Agency=lakesSiteTable$Agency[match(tolower(trendTable15$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable15$Region=lakesSiteTable$Region[match(tolower(trendTable15$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable15$LFENZID =    lakesSiteTable$LFENZID[match(tolower(trendTable15$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable15$LType =    lakesSiteTable$LType[match(tolower(trendTable15$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
 trendTable15$ConfCat <- cut(trendTable15$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
                             labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
 trendTable15$ConfCat=factor(trendTable15$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
@@ -168,16 +162,16 @@ rm(trendTable15)
 
 
 #10 year trend ####
-lakeDatafor10=lakeData%>%filter(Year>=startYear10 & Year <= EndYear & Measurement!="pH")
+lakeDatafor10=lakeData%>%filter(Year>=startYear10 & Year <= EndYear & !Measurement%in%c("pH","CYANOTOX"))
 
-uclids=unique(lakeDatafor10$uclid)
+uLLSIDs=unique(lakeDatafor10$LawaSiteID)
 uMeasures=unique(lakeDatafor10$Measurement)
 nMax=length(table(lakeDatafor10$LawaSiteID,lakeDatafor10$Measurement)[table(lakeDatafor10$LawaSiteID,lakeDatafor10$Measurement)>0])
 
-cat('\n',length(uclids),'\n')
+cat('\n',length(uLLSIDs),'\n')
 u=1
-library(parallel)
-library(doParallel)
+
+startTime=Sys.time()
 workers <- makeCluster(5)
 registerDoParallel(workers)
 clusterCall(workers,function(){
@@ -186,9 +180,9 @@ clusterCall(workers,function(){
   library(dplyr)
   
 })
-foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
-  subDat=lakeDatafor10%>%filter(uclid==uclids[u])
-  siteTrendTable10=data.frame(LawaSiteID=uclids[u],Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
+foreach(u = u:length(uLLSIDs),.combine=rbind,.errorhandling="stop")%dopar%{
+  subDat=lakeDatafor10%>%filter(LawaSiteID==uLLSIDs[u])
+  siteTrendTable10=data.frame(LawaSiteID=uLLSIDs[u],Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
                               nLastYear=NA,numMonths=NA, numQuarters=NA, numYears=NA,
                               Observations=NA,KWstat=NA,pvalue=NA, SeasNote=NA,
                               nObs=NA, S=NA, VarS=NA, D=NA,tau=NA, Z=NA, p=NA, C=NA,Cd=NA, MKAnalysisNote=NA,
@@ -247,16 +241,19 @@ foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
   return(siteTrendTable10)
 }-> trendTable10
 stopCluster(workers)
-rm(workers,uclids,uMeasures,u,lakeDatafor10)
+rm(workers,uLLSIDs,uMeasures,u,lakeDatafor10)
+Sys.time()-startTime
+#13/8/21 16s 1288
+
 rownames(trendTable10) <- NULL
 trendTable10$Sen_Probability[trendTable10$Measurement!="Secchi"]=1-(trendTable10$Sen_Probability[trendTable10$Measurement!="Secchi"])
 trendTable10$Probabilitymin[trendTable10$Measurement!="Secchi"]=1-(trendTable10$Probabilitymin[trendTable10$Measurement!="Secchi"])
 trendTable10$Probabilitymax[trendTable10$Measurement!="Secchi"]=1-(trendTable10$Probabilitymax[trendTable10$Measurement!="Secchi"])
 trendTable10$Cd[trendTable10$Measurement!="Secchi"]=1-(trendTable10$Cd[trendTable10$Measurement!="Secchi"])
-trendTable10$Agency=lakesSiteTable$Agency[match(trendTable10$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable10$Region=lakesSiteTable$Region[match(trendTable10$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable10$LFENZID =    lakesSiteTable$LFENZID[match(trendTable10$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable10$LType =    lakesSiteTable$LType[match(trendTable10$LawaSiteID,lakesSiteTable$LawaSiteID)]
+trendTable10$Agency=lakesSiteTable$Agency[match(tolower(trendTable10$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable10$Region=lakesSiteTable$Region[match(tolower(trendTable10$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable10$LFENZID =    lakesSiteTable$LFENZID[match(tolower(trendTable10$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable10$LType =    lakesSiteTable$LType[match(tolower(trendTable10$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
 trendTable10$ConfCat <- cut(trendTable10$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
                             labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
 trendTable10$ConfCat=factor(trendTable10$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
@@ -270,15 +267,17 @@ rm(trendTable10)
 
 
 #5 year trend ####
-lakeDatafor5=lakeData%>%filter(Year>=startYear5 & Year <= EndYear & Measurement!="pH")
+lakeDatafor5=lakeData%>%filter(Year>=startYear5 & Year <= EndYear & !Measurement%in%c("pH","CYANOTOX"))
 lakeDatafor5$Season=lakeDatafor5$Month
 
-uclids=unique(lakeDatafor5$uclid)
+uLLSIDs=unique(lakeDatafor5$LawaSiteID)
 uMeasures=unique(lakeDatafor5$Measurement)
 nMax=length(table(lakeDatafor5$LawaSiteID,lakeDatafor5$Measurement)[table(lakeDatafor5$LawaSiteID,lakeDatafor5$Measurement)>0])
 
-cat('\n',length(uclids),'\n')
+cat('\n',length(uLLSIDs),'\n')
 u=1
+
+startTime=Sys.time()
 workers <- makeCluster(5)
 registerDoParallel(workers)
 clusterCall(workers,function(){
@@ -287,9 +286,9 @@ clusterCall(workers,function(){
   library(dplyr)
   
 })
-foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
-  subDat=lakeDatafor5%>%filter(uclid==uclids[u])
-  siteTrendTable5=data.frame(LawaSiteID=uclids[u],Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
+foreach(u = u:length(uLLSIDs),.combine=rbind,.errorhandling="stop")%dopar%{
+  subDat=lakeDatafor5%>%filter(LawaSiteID==uLLSIDs[u])
+  siteTrendTable5=data.frame(LawaSiteID=uLLSIDs[u],Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
                              nLastYear=NA,numMonths=NA, numQuarters=NA, numYears=NA,
                              Observations=NA,KWstat=NA,pvalue=NA, SeasNote=NA,
                              nObs=NA, S=NA, VarS=NA, D=NA,tau=NA, Z=NA, p=NA, C=NA,Cd=NA, MKAnalysisNote=NA,
@@ -341,16 +340,22 @@ foreach(u = u:length(uclids),.combine=rbind,.errorhandling="stop")%dopar%{
   return(siteTrendTable5)
 }->trendTable5
 stopCluster(workers)
-rm(workers,uclids,uMeasures,u,lakeDatafor5)
+rm(workers,uLLSIDs,uMeasures,u,lakeDatafor5)
+
+Sys.time()-startTime
+#13/8/21 8.8s 1288
+
+
+
 rownames(trendTable5) <- NULL
 trendTable5$Sen_Probability[trendTable5$Measurement!="Secchi"]=1-(trendTable5$Sen_Probability[trendTable5$Measurement!="Secchi"])
 trendTable5$Probabilitymin[trendTable5$Measurement!="Secchi"]=1-(trendTable5$Probabilitymin[trendTable5$Measurement!="Secchi"])
 trendTable5$Probabilitymax[trendTable5$Measurement!="Secchi"]=1-(trendTable5$Probabilitymax[trendTable5$Measurement!="Secchi"])
 trendTable5$Cd[trendTable5$Measurement!="Secchi"]=1-(trendTable5$Cd[trendTable5$Measurement!="Secchi"])
-trendTable5$Agency=lakesSiteTable$Agency[match(trendTable5$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable5$Region =    lakesSiteTable$Region[match(trendTable5$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable5$LFENZID =    lakesSiteTable$LFENZID[match(trendTable5$LawaSiteID,lakesSiteTable$LawaSiteID)]
-trendTable5$LType =    lakesSiteTable$LType[match(trendTable5$LawaSiteID,lakesSiteTable$LawaSiteID)]
+trendTable5$Agency=lakesSiteTable$Agency[match(tolower(trendTable5$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable5$Region =    lakesSiteTable$Region[match(tolower(trendTable5$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable5$LFENZID =    lakesSiteTable$LFENZID[match(tolower(trendTable5$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
+trendTable5$LType =    lakesSiteTable$LType[match(tolower(trendTable5$LawaSiteID),tolower(lakesSiteTable$LawaSiteID))]
 trendTable5$ConfCat <- cut(trendTable5$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
                            labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
 trendTable5$ConfCat=factor(trendTable5$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
@@ -368,8 +373,10 @@ load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
 load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
               pattern = "Trend5Year.rData",full.names = T,recursive = T),1),verbose = T)
 
-
 combTrend <- rbind(rbind(trendTable15,trendTable10),trendTable5)
+
+combTrend$LawaSiteID = sapply(combTrend$LawaSiteID,FUN=function(s)strFrom(s=s,c='\\|\\|'))
+
 combTrend$CouncilSiteID = lakesSiteTable$CouncilSiteID[match(tolower(gsub('_NIWA','',combTrend$LawaSiteID)),tolower(lakesSiteTable$LawaSiteID))]
 combTrend <- combTrend%>%
   dplyr::select(LawaSiteID,CouncilSiteID,LFENZID,Agency,Region,LType,
@@ -404,6 +411,5 @@ write.csv(trendTable15%>%dplyr::transmute(LAWAID=LawaSiteID,
                       "/ITELakeSiteTrend15",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 
 
-# combTrend <- read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/","LakesWQ_Trend",
-# 		recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+# combTrend <- read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/","LakesWQ_Trend",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
 

@@ -3,7 +3,7 @@ library(XML)
 library(tidyverse)
 library(parallel)
 library(doParallel)
-source('H:/ericg/16666LAWA/LAWA2019/Scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/Groundwater//Audit/",format(Sys.Date(),"%Y-%m-%d")))
 StartYear5 <- lubridate::isoyear(Sys.Date())-5  #2014
 EndYear <-lubridate::isoyear(Sys.Date())-1    #2018
@@ -71,27 +71,34 @@ remove(workers)
 
 
 #Audit plots to allow comparison between agencies - check units consistency etc  ####
-wqd=doBy::summaryBy(data=GWdata,
-                    formula=Value~LawaSiteID+Measurement+myDate,
-                    id=~Agency,
-                    FUN=median)
-wqds=spread(wqd,Measurement,Value.median)
+wqds <- GWdata%>%dplyr::group_by(LawaSiteID,Measurement,myDate)%>%
+  dplyr::summarise(.groups='keep',
+                   Agency=first(Agency),
+            median=quantile(Value,probs=0.5,type=5,na.rm=T))%>%
+  pivot_wider(names_from=Measurement,values_from=median)%>%as.data.frame
+# wqd=doBy::summaryBy(data=GWdata,
+#                     formula=Value~LawaSiteID+Measurement+myDate,
+#                     id=~Agency,
+#                     FUN=median)
+# wqds=spread(wqd,Measurement,Value.median)
 
-params=unique(GWdata$Measurement)
-for(param in 1:length(params)){
-  png(filename = paste0("h:/ericg/16666LAWA/LAWA2021/Groundwater/Audit/",format(Sys.Date(),"%Y-%m-%d"),"/",
-                        gsub(pattern = '\\.',replacement='',make.names(names(wqds)[param+3])),format(Sys.Date(),'%d%b%y'),".png"),
-       width = 12,height=9,units='in',res=300,type='cairo')
-    plot(as.factor(wqds$Agency[wqds[,param+3]>0]),wqds[wqds[,param+3]>0,param+3],
-         ylab=names(wqds)[param+3],main=names(wqds)[param+3],log='y')
+params=names(wqds)
+for(param in 4:length(params)){
+  png(filename = paste0("h:/ericg/16666LAWA/LAWA2021/Groundwater/Audit/",
+                        format(Sys.Date(),"%Y-%m-%d"),"/",
+                        gsub(pattern = '\\.',replacement='',make.names(names(wqds)[param])),
+                        format(Sys.Date(),'%d%b%y'),".png"),width = 12,height=9,units='in',res=300,type='cairo')
+  toplot=which(!is.na(wqds[,param]) & wqds[,param]>0)
+    plot(as.factor(wqds$Agency[toplot]),wqds[toplot,param],
+         ylab=names(wqds)[param],main=names(wqds)[param],log='y')
   if(names(dev.cur())=='png'){dev.off()}
 }
 
 
 
 #And the ubercool html summary audit report doncuments per council!
-for(agency in c("ac", "boprc", "ecan", "gdc",  "gwrc","hbrc", "hrc", "mdc",
-                   "nrc", "orc", "es", "trc", "tdc", "wrc", "wcrc")){
+for(agency in c("ac", "boprc", "ecan","es", "gdc",  "gwrc","hbrc", "hrc", "mdc",
+                   "nrc", "orc",  "trc", "tdc", "wrc", "wcrc")){
           if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/Groundwater/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                 pattern = paste0(agency,".*audit\\.csv"),
                 recursive = T,full.names = T,ignore.case = T))>0){

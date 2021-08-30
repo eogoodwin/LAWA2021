@@ -1,4 +1,4 @@
-require(XML)     ### XML library to write hilltop XML
+require(xml2)     ### XML library to write hilltop XML
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 library(parallel)
 library(doParallel)
@@ -10,9 +10,9 @@ library(doParallel)
   
 #Also "method" available same place
 
-agency='hbrc'
 setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 
+agency='hbrc'
 Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
 # Measurements=c(Measurements,'WQ Sample')
@@ -20,9 +20,10 @@ Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Tr
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
-workers = makeCluster(8)
-registerDoParallel(workers)
 
+
+workers = makeCluster(7)
+registerDoParallel(workers)
 clusterCall(workers,function(){
   library(magrittr)  
   library(dplyr)
@@ -31,83 +32,67 @@ clusterCall(workers,function(){
 
 if(exists("Data"))rm(Data)
 hbrcSWQ=NULL
-
-
 for(i in 1:length(sites)){
   cat('\n',sites[i],i,'out of ',length(sites),'\t')
   siteDat=NULL
   foreach(j = 1:length(Measurements),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
     if(Measurements[j]=="Reported DIN"){
-      url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMAR.hts?service=Hilltop&request=GetData",
+      url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMAR.hts?",
+                    "service=Hilltop&request=GetData",
                     "&Site=",sites[i],
                     "&Measurement=",Measurements[j],
-                    "&From=2004-01-01",
-                    "&To=2021-01-01")
+                    "&From=2004-01-01&To=2021-01-01")
     }else{
-      url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMARDiscreteGood.hts?service=Hilltop&request=GetData",
+      url <- paste0("https://data.hbrc.govt.nz/Envirodata/EMARDiscrete.hts?",
+                    "service=Hilltop&request=GetData",
                     "&Site=",sites[i],
                     "&Measurement=",Measurements[j],
-                    "&From=2004-01-01",
-                    "&To=2021-01-01")
+                    "&From=2004-01-01&To=2021-01-01")
     }
     url <- URLencode(url)
     destFile=paste0("D:/LAWA/2021/tmp",Measurements[j],"WQhbrc.xml")
     dl=try(download.file(url,destfile=destFile,method='curl',quiet=T),silent = T)
-    Data=xml2::read_xml(destFile)
-    Data = xml2::as_list(Data)[[1]]
-    Data = Data$Measurement$Data
-    if(length(Data)>0){
-      cat('.')
-      Data=lapply(seq_along(Data),function(listIndex){
-        liout <- unlist(Data[[listIndex]][c("T","Value")])
-        liout=data.frame(Name=names(liout),Value=unname(liout))
-        if(length(Data[[listIndex]])>2){
-          attrs=sapply(seq_along(Data[[listIndex]])[-c(1,2)],
-                       FUN=function(inListIndex){
-                         as.data.frame(attributes(Data[[listIndex]][inListIndex]$Parameter))
-                       })
-          if(class(attrs)=="list"&&any(lengths(attrs)==0)){
-            attrs[[which(lengths(attrs)==0)]] <- NULL
-            liout=rbind(liout,bind_rows(attrs))
-          }else{
-            attrs=t(attrs)
-            liout=rbind(liout,attrs)
+    if(!'try-error'%in%attr(dl,'class')){
+      Data=xml2::read_xml(destFile)
+      Data = xml2::as_list(Data)[[1]]
+      dataSource = unlist(Data$Measurement$DataSource)
+      Data = Data$Measurement$Data
+      if(length(Data)>0){
+        if(length(Data)>1){
+          Data = lapply(Data,function(e){
+            unlist(e)
+          })
+          Data = do.call(bind_rows,Data)
+        }else{
+          Data = bind_rows(unlist(lapply(Data,function(e){
+            unlist(e[which(names(e)!='Parameter')])%>%t%>%as.data.frame
+          })))
+          names(Data) <- gsub("^E\\.","",names(Data))
+        }
+        Data$Measurement=Measurements[j]
+        if(exists('dataSource')){
+          if('ItemInfo.Units'%in%names(dataSource)){
+            Data$Units = unname(dataSource[which(names(dataSource)=="ItemInfo.Units")])
           }
         }
-        return(liout)
-      })
-      allNames = unique(unlist(sapply(Data,function(li)li$Name)))
-      
-      eval(parse(text=paste0("Datab=data.frame(`",paste(allNames,collapse='`=NA,`'),"`=NA)")))
-      for(dd in seq_along(Data)){
-        newrow=Data[[dd]]
-        newrow=pivot_wider(newrow,names_from = 'Name',values_from = 'Value')%>%as.data.frame
-        newrow=apply(newrow,2,unlist)%>%as.list%>%data.frame
-        Datab <- merge(Datab,newrow,all=T)
-        rm(newrow)
-      }
-      rm(dd)
-      
-      mtRows=which(apply(Datab,1,FUN=function(r)all(is.na(r))))
-      if(length(mtRows)>0){Datab=Datab[-mtRows,]}
-      
-      Data=Datab
-      rm(Datab,mtRows)
-      
-      if(!is.null(Data)){
-        Data$Measurement=Measurements[j]
-        # siteDat=bind_rows(siteDat,Data)
-      }
-    }else{
-      cat("No",Measurements[j],'\t')
+        
+        rownames(Data) <- NULL
+      }else{Data=NULL}
     }
-    # rm(Data)
+   
     file.remove(destFile)
     rm(destFile)
     return(Data)
   }->siteDat
+  
   if(!is.null(siteDat)){
     siteDat$CouncilSiteID = sites[i]
+    mtCols = which(apply(siteDat,2,function(c)all(is.na(c))))
+    if(length(mtCols)>0){
+      siteDat=siteDat[,-mtCols]
+    }
+    rm(mtCols)
+    
     hbrcSWQ=bind_rows(hbrcSWQ,siteDat)
   }
   rm(siteDat)
@@ -117,45 +102,40 @@ for(i in 1:length(sites)){
 stopCluster(workers)
 rm(workers)
 
-mtCols = which(apply(hbrcSWQ,2,function(c)all(is.na(c))))
-if(length(mtCols)>0){
-  hbrcSWQ=hbrcSWQ[,-mtCols]
-}
-rm(mtCols)
 
-
-if(0){
-  save(hbrcSWQ,file = 'hbrcSWQraw.rData')
-}
-
+save(hbrcSWQ,file = 'hbrcSWQraw.rData')
+#load('hbrcSWQraw.rData')
+  agency='hbrc'
+  
+  
+  
+hbrcSWQ <- hbrcSWQ%>%filter(QualityCode!=40)
+    
 hbrcSWQb=data.frame(CouncilSiteID=hbrcSWQ$CouncilSiteID,
-                    Date=as.character(format(lubridate::ymd_hms(hbrcSWQ$$T),'%d-%b-%y')),
+                    Date=as.character(format(lubridate::ymd_hms(hbrcSWQ$T),'%d-%b-%y')),
                     Value=hbrcSWQ$Value,
                     # Method=hbrcSWQ%>%select(matches('meth'))%>%apply(.,2,FUN=function(r)paste(r)),
                     Measurement=hbrcSWQ$Measurement,
-                    Units = ifelse('Units'%in%names(hbrcSWQ),hbrcSWQ$Units,NA),
+                    Units = hbrcSWQ$Units,
                     Censored=grepl(pattern = '<|>',x = hbrcSWQ$Value),
                     CenType=F,
-                    QC=NA)
+                    QC=hbrcSWQ$QualityCode)
 hbrcSWQb$CenType[grep('<',hbrcSWQb$Value)] <- 'Left'
 hbrcSWQb$CenType[grep('>',hbrcSWQb$Value)] <- 'Right'
 
 hbrcSWQb$Value=readr::parse_number(hbrcSWQb$Value)
 
-table(hbrcSWQb$Measurement)
-hbrcSWQb$Measurement <- as.character(factor(hbrcSWQb$Measurement,
-                                            levels = c("Total Ammoniacal-N", "Black Disc", "Reported DIN", 
-                                                       "Dissolved Reactive Phosphorus", 
-                                                       "E. Coli", "Nitrate Nitrogen", "Nitrate + Nitrite Nitrogen", 
-                                                       "pH (Field)", "pH (Lab)", "Total Nitrogen", "Total Phosphorus", 
-                                                       "Turbidity (Field)", "Turbidity (Lab)", "Turbidity FNU (Lab)", 
-                                                       "WQ Sample"),
-                                            labels=c("NH4","BDISC","DIN","DRP",
-                                                     "ECOLI","NO3N","TON","PH","PH","TON","TP",
-                                                     "TURB(FIELD)","TURB(LAB)","TURBFNU","WQSAMPLE")))
-table(hbrcSWQb$Measurement)
-transfers=read.table("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/transfers_plain_english_view.txt",
-                     sep=',',header = T,stringsAsFactors = F)
+translate=read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
+  filter(Agency==agency)%>%select(CallName,LAWAName)
+
+table(hbrcSWQb$Measurement,useNA = 'a')
+hbrcSWQb$Measurementb <- as.character(factor(hbrcSWQb$Measurement,
+                                             levels = translate$CallName,
+                                             labels = translate$LAWAName))
+table(hbrcSWQb$Measurement,hbrcSWQb$Measurementb,useNA='a')
+hbrcSWQb$Measurement <- hbrcSWQb$Measurementb
+hbrcSWQb <- hbrcSWQb%>%select(-Measurementb)
+
 
 labMeasureNames=unique(grep(pattern = 'lab',x = hbrcSWQb$Measurement,ignore.case=T,value = T))
 fieldMeasureNames=unique(grep(pattern = 'field',x = hbrcSWQb$Measurement,ignore.case=T,value = T))
@@ -203,9 +183,13 @@ if(length(labMeasureNames)>0 & length(fieldMeasureNames)>0){
   }
 }      
 
+hbrcSWQb <- unique(hbrcSWQb)
 
-hbrcSWQb <- merge(hbrcSWQb,siteTable,by='CouncilSiteID')
+# hbrcSWQb <- merge(hbrcSWQb,siteTable,by='CouncilSiteID')
 
-
-write.csv(hbrcSWQb,file = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/hbrc.csv"),row.names = F)
+write.csv(hbrcSWQb,file = paste0("D:/LAWA/2021/hbrc.csv"),row.names = F)
+file.copy(from=paste0("D:/LAWA/2021/hbrc.csv"),
+          to = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/hbrc.csv"),
+          overwrite = T)
 rm(hbrcSWQ,hbrcSWQb)
+

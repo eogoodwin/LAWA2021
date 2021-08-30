@@ -2,15 +2,15 @@
 rm(list=ls())
 # library(readxl)
 library(tidyverse)
-source('H:/ericg/16666LAWA/LAWA2019/Scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 EndYear <- year(Sys.Date())-1
 startYear5 <- EndYear - 5+1
 startYear10 <- EndYear - 10+1
 startYear15 <- EndYear - 15+1
 
-# GWdata = read.csv('h:/ericg/16666LAWA/LAWA2019/GW/Data/2019-09-10/MfEExport_20190902.csv',stringsAsFactors = F)
+# GWdata = read.csv('h:/ericg/16666LAWA/LAWA2019/GW/Data/2021-09-10/MfEExport_20210902.csv',stringsAsFactors = F)
 
-GWdata = readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2019/GW/Data/2019-09-10/GWQImport_20190902.xlsx",sheet="TS Readings")%>%as.data.frame
+GWdata = readxl::read_xlsx("H:/ericg/16666LAWA/LAWA2019/GW/Data/2021-09-10/GWQImport_20210902.xlsx",sheet="TS Readings")%>%as.data.frame
 
 GWdata <- GWdata%>%mutate(LawaSiteID=`LAWA Site Id`,
                           Measurement=`Parameter Name`,

@@ -39,13 +39,13 @@ setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 agency='wrc'
 Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
-Measurements=c(Measurements,'WQ Sample')
 
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency=='wrc'])
 if(exists('Data'))rm(Data)
 cat("SiteID\tMeasurementName\tSitesPct\tMeasuresPct\tRERIMP\tWARIMP\n")
-for(i in 1:length(sites)){
+i=1
+for(i in i:length(sites)){
   cat('\n',sites[i],i,'out of',length(sites),'\n')
   for(j in 1:length(Measurements)){
     # Querying procedure=RERIMP.Sample.Results
@@ -79,6 +79,7 @@ for(i in 1:length(sites)){
       #  Establish if <om:result> exists, and if so, whether, there is at least 1 <wml2:point>
       countwml2Points<-xpathApply(xmlRoot(xmlfile),path="count(//wml2:point)",xmlValue)
       WARIMP<-countwml2Points
+      # if(WARIMP>0){browser()}
     }
     rm(countwml2Points)  # no longer required.
     
@@ -162,7 +163,12 @@ for(i in 1:length(sites)){
     
   }
 }
-qualifiers_added <- unique(Data$qualifier)
+
+
+
+
+
+
 
 con <- xmlOutputDOM("Hilltop")
 con$addTag("Agency", agency)

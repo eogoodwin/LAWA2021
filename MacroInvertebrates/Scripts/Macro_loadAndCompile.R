@@ -14,36 +14,32 @@ dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
 scriptsToRun = c(
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadAC.R", #1
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNIWA.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadBOP.R", #slow - next to xml2
-  # "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadECAN.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadES.R",
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadGDC.R",              #5
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadGWRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHBRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadMDC.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNCC.R",        #10
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNRC.R",
+   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHBRC.R",  #this is hte one
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadMDC.R",        #10
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadORC.R",
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadTDC.R",
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadTRC.R",         #15
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWCRC.R",
-  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWRC.R")
-agencies = c('ac','niwa','boprc','es',
-             'gdc','gwrc','hbrc','hrc','mdc',
-             'ncc','nrc','orc','tdc','trc',
-             'wcrc','wrc')
-workers <- makeCluster(6)
+  "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNCC.R")
+source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadBOP_list.R")
+source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadECAN_list.R")
+source( "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadES_list.R")
+# source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHBRC_list.R") this one doesnt work yet
+source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHRC.R")
+source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNRC_list.R")
+# source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWCRC_list.R")
+source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWRC.R")
+
+workers <- makeCluster(4)
 registerDoParallel(workers)
 clusterCall(workers,function(){
+  library(readr)
   source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 })
 startTime=Sys.time()
 foreach(i = 1:length(scriptsToRun),.errorhandling = "stop")%dopar%{
-  if(agencies[i]=='ncc'){return(NULL)}
-  if(agencies[i]%in%tolower(siteTable$Agency)) try(source(scriptsToRun[i]))
-  rm(con)
-  gc()
+  (source(scriptsToRun[i]))
   return(NULL)
 }
 stopCluster(workers)
@@ -53,27 +49,27 @@ cat("Done load\n")
 #17 minutes
 
 
-for(agency in agencies){
+xmlAgencies=c("gdc","gwrc","hbrc","mdc","ncc","orc","tdc","trc")
+csvAgencies=c('ac','boprc','ecan','es','hbrc','hrc','nrc','wcrc','wrc')
+for(agency in xmlAgencies){
   checkXMLageMacro(agency)
-  checkCSVageMacros(agency)
 }
+for(agency in csvAgencies){
+   checkCSVageMacros(agency)
+}
+
 
 
 #XML 2 CSV for MACROS ####
 lawaset=c("TaxaRichness","MCI","PercentageEPTTaxa","QMCI","ASPM")
-agencies=c("ac","boprc","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")
+
 startTime=Sys.time()
-for(agency in c("ac","boprc","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
+for(agency in xmlAgencies){
 # foreach(agency = 1:length(agencies))
   forcsv=xml2csvMacro(agency,maxHistory = 60,quiet=T)
   if(is.null(forcsv))next
   cat(agency,'\t',paste0(unique(forcsv$Measurement),collapse=', '),'\n')
   
-  #Drop sqMCI
-  if('sqmci'%in%unique(tolower(forcsv$Measurement))){
-    forcsv=forcsv[-which(forcsv$Measurement%in%c('SQMCI')),]
-    cat(agency,'\t',paste0(unique(forcsv$Measurement),collapse=', '),'\n')
-  }
   forcsv$measName = forcsv$Measurement
   forcsv$Measurement[grepl(pattern = 'Taxa',x = forcsv$Measurement,ignore.case = T)&
                      !grepl('EPT',forcsv$Measurement,ignore.case = F)] <- "TaxaRichness"
@@ -94,9 +90,11 @@ browser()
             row.names=F)
   rm(forcsv)
 }
-Sys.time()-startTime 
+Sys.time()-startTime  #12 secs
 
-
+for(agency in xmlAgencies){
+  checkCSVageMacros(agency)
+}
 
 
 ##############################################################################
@@ -109,17 +107,18 @@ siteTable=loadLatestSiteTableMacro()
 rownames(siteTable)=NULL
 lawaset=c("TaxaRichness","MCI","PercentageEPTTaxa","QMCI","ASPM")
 suppressWarnings(rm(macrodata,"ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc"))
-agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")
-library(parallel)
-library(doParallel)
-workers=makeCluster(4)
+agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
+
+
+workers=makeCluster(6)
 clusterCall(workers,function(){
   library(tidyverse)
 })
 registerDoParallel(workers)
-foreach(agency =1:length(agencies),.combine = bind_rows,.errorhandling = 'stop')%dopar%{
-  mfl=loadLatestCSVmacro(agencies[agency],maxHistory = 30)
-  if(agencies[agency]=='boprc'){
+foreach(agencyi =1:length(agencies),.combine = bind_rows,.errorhandling = 'stop')%dopar%{
+  # for(agencyi in 1:length(agencies)){
+  mfl=loadLatestCSVmacro(agencies[agencyi],maxHistory = 30)
+  if(agencies[agencyi]=='boprc'){
     mfl=unique(mfl)
   }
   if(!is.null(mfl)&&dim(mfl)[1]>0){
@@ -128,26 +127,26 @@ foreach(agency =1:length(agencies),.combine = bind_rows,.errorhandling = 'stop')
       cat('\t',sum(!unique(tolower(mfl$LawaSiteID))%in%tolower(siteTable$LawaSiteID)),'LawaSiteIDs not in site table\n')
     }
     
-    
     #Refill dataset from previous pulls, if gaps
-    targetSites=tolower(siteTable$CouncilSiteID[siteTable$Agency==agencies[agency]])
+    if(!agencies[agencyi]%in%c("hrc","ac",'nrc')){
+    targetSites=tolower(siteTable$CouncilSiteID[siteTable$Agency==agencies[agencyi]])
     targetCombos=apply(expand.grid(targetSites,tolower(lawaset)),MARGIN = 1,FUN=paste,collapse='')
     currentSiteMeasCombos=unique(paste0(tolower(mfl$CouncilSiteID),tolower(mfl$Measurement)))
     missingCombos=targetCombos[!targetCombos%in%currentSiteMeasCombos]
     
     if(length(missingCombos)>0){
       agencyFiles = rev(dir(path = "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
-                            pattern = paste0('^',agencies[agency],'.csv'),
+                            pattern = paste0('^',agencies[agencyi],'.csv'),
                             full.names = T,recursive = T,ignore.case = T))[-1]
       for(af in seq_along(agencyFiles)){
         agencyCSV = read.csv(agencyFiles[af],stringsAsFactors=F)
         if("Measurement"%in%names(agencyCSV)){
           agencyCSVsiteMeasCombo=paste0(tolower(agencyCSV$CouncilSiteID),tolower(agencyCSV$Measurement))
           if(any(missingCombos%in%unique(agencyCSVsiteMeasCombo))){
-            browser()
+            # browser()
             these=agencyCSVsiteMeasCombo%in%missingCombos
             agencyCSV=agencyCSV[these,]
-            mfl=rbind(mfl,agencyCSV[,names(mfl)])
+            mfl=bind_rows(mfl,agencyCSV%>%select(matches(names(mfl))))
             rm(agencyCSV,these)
             currentSiteMeasCombos=unique(paste0(tolower(mfl$CouncilSiteID),tolower(mfl$Measurement)))
             missingCombos=targetCombos[!targetCombos%in%currentSiteMeasCombos]
@@ -160,28 +159,19 @@ foreach(agency =1:length(agencies),.combine = bind_rows,.errorhandling = 'stop')
       }
     }
     rm(missingCombos,targetCombos,currentSiteMeasCombos,targetSites)
-    
-    mfl$Agency=agencies[agency]
-    if(agencies[agency]=='ac'){
-      #Auckland
-      # mfl$CouncilSiteID=trimws(mfl$CouncilSiteID)
-      # store=mfl$CouncilSiteID
-      mfl$CouncilSiteID=trimws(mfl$SiteID)
-      # mfl$SiteID=store
-      # rm(store)
-      mfl <- mfl%>%select(-LAWASiteID,-SiteID)
-      sort(unique(tolower(mfl$CouncilSiteID))[unique(tolower(mfl$CouncilSiteID))%in%tolower(siteTable$CouncilSiteID)])
-      # mfl$CouncilSiteID[tolower(mfl$CouncilSiteID)=="avondale @ thuja"] <- "Avondale @ Thuja Pl"
-      # mfl$Date = format(lubridate::ymd(mfl$Date),'%d-%b-%Y')
     }
-    if(agencies[agency]=='es'){
+    if(agencies[agencyi]%in%c('nrc','wrc')){mfl$CouncilSiteID=as.character(mfl$CouncilSiteID)}
+    
+    mfl$Agency=agencies[agencyi]
+   
+    if(agencies[agencyi]=='es'){
       toCut=which(mfl$CouncilSiteID=="mataura river 200m d/s mataura bridge"&mfl$Date=="21-Feb-2017")
       if(length(toCut)>0){
         mfl=mfl[-toCut,]
       }
       rm(toCut)
     }
-    if(agencies[agency]=='tdc'){
+    if(agencies[agencyi]=='tdc'){
       funnyTDCsites=!tolower(mfl$CouncilSiteID)%in%tolower(siteTable$CouncilSiteID)
       cat(length(funnyTDCsites),'\n')
       if(length(funnyTDCsites)>0){
@@ -192,6 +182,9 @@ foreach(agency =1:length(agencies),.combine = bind_rows,.errorhandling = 'stop')
     }
   }
   mfl$CouncilSiteID=as.character(mfl$CouncilSiteID)
+  # eval(parse(text=paste0(agencies[agencyi],'mfl=mfl')))
+  # macroDdata=rbind(macroData,mfl)}
+  
   return(mfl)
 }->macroData 
 stopCluster(workers)
@@ -203,31 +196,34 @@ Sys.time()-startTime #2.03
 #15/7/21  56792
 #16/7/21  57235
 #23/7/21 57375
+#30/7/21 59582
+#5/8/21 55508
+#5/8/21 75637
+#9/8/2021 77239
+#13/8/21 66189 #4.3 s
+#19/8/21 66223
+#20/8/21 66341
+#25/8/21 66223
 
 
-macroData$LawaSiteID = siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID),tolower(siteTable$CouncilSiteID))]
+
+
+missingLSID=which(is.na(macroData$LawaSiteID))
+macroData$LawaSiteID[missingLSID] = 
+  siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID[missingLSID]),tolower(siteTable$CouncilSiteID))]
 table(is.na(macroData$LawaSiteID),macroData$Agency)
-macroData$LawaSiteID[which(is.na(macroData$LawaSiteID))] = 
-  siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID[which(is.na(macroData$LawaSiteID))]),
+
+missingLSID=which(is.na(macroData$LawaSiteID))
+macroData$LawaSiteID[missingLSID] = 
+  siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID[missingLSID]),
                              tolower(siteTable$SiteID))]
+rm(missingLSID)
+
 table(is.na(macroData$LawaSiteID),macroData$Agency)
+macroData%>%filter(is.na(LawaSiteID))%>%select(CouncilSiteID,Agency)%>%distinct
 
+macroData <- macroData%>%filter(!is.na(LawaSiteID))
 
-#Add CSV-delivered datasets
-niwamac = loadLatestCSVmacro(agency='niwa')
-niwamac$LawaSiteID=tolower(niwamac$LawaSiteID)
-niwamac$measName=niwamac$Measurement
-# niwamac$Measurement[niwamac$Measurement=="ntaxa"] <- "TaxaRichness"
-macroData=bind_rows(macroData,niwamac)
-#50875 24/9/20
-#43804 2/7/21
-#59623 7/7/21
-#58838 8/7/21
-#62258 15/7/21
-#62701 16/7/21
-#62841 23/7/21
- 
-rm(niwamac)
 
 #This one with rounding is a good way to assign samples to a sampling season.  
 #November/December etc gets rounded forward to the following year
@@ -236,112 +232,68 @@ rm(niwamac)
 macroData$sYear = lubridate::year(lubridate::round_date(lubridate::dmy(macroData$Date),unit = 'year'))
 
 macroData$cYear = lubridate::year(lubridate::dmy(macroData$Date))
-# macroData$sYear = macroData$cYear
-# macroData$sYear[which(lubridate::month(lubridate::dmy(macroData$Date))>6)]=macroData$sYear[which(lubridate::month(lubridate::dmy(macroData$Date))>6)]+1
-
-#Audit the sites that are under NIWA and under an agency
-macroData%>%group_by(tolower(LawaSiteID))%>%
-  dplyr::summarise(agCount=length(unique(Agency)),
-                   ags=paste(unique(Agency),collapse=' '),
-                   cid=paste(unique(CouncilSiteID),collapse=', '))%>%
-  ungroup%>%
-  filter(agCount>1)%>%dplyr::select(-agCount)%>%arrange(`tolower(LawaSiteID)`)%>%as.data.frame->dupData
-
-macroData%>%group_by(tolower(LawaSiteID))%>%
-  dplyr::summarise(agCount=length(unique(Agency)),
-                   ags=paste(unique(Agency),collapse=' '),
-                   cid=paste(unique(CouncilSiteID),collapse=', '))%>%
-  ungroup%>%
-  filter(agCount>1)%>%dplyr::select(`tolower(LawaSiteID)`)%>%unlist%>%unname->dupSites
-
-
-
-macroData$LawaSiteID[macroData$LawaSiteID%in%dupSites&macroData$Agency=='niwa'] <- 
-  paste0(macroData$LawaSiteID[macroData$LawaSiteID%in%dupSites&macroData$Agency=='niwa'],"_NIWA")
-
-
-#Let's check this.
-# ebop223=macroData%>%filter(grepl("ebop-00223",LawaSiteID,T))
-# plot(dmy(ebop223$Date),ebop223$Value,pch=as.numeric(factor(ebop223$Measurement)),col=as.numeric(factor(ebop223$Agency)))
-
-table(macroData$Agency,macroData$Measurement)/table(macroData$Agency,macroData$Measurement)
 
 
 write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/MacrosCombined.csv'),row.names = F)
 # macroData=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',pattern='MacrosCombined.csv',recursive = T,full.names = T),1),stringsAsFactors = F)
 
-#62841
 
 
-# #audit presence of CouncilSiteIDs in sitetable
-# table(unique(tolower(macroData$CouncilSiteID))%in%unique(tolower(c(siteTable$SiteID,siteTable$CouncilSiteID))))
-# unique((macroData$CouncilSiteID))[!unique(tolower(macroData$CouncilSiteID))%in%unique(tolower(c(siteTable$SiteID,siteTable$CouncilSiteID)))]->unmatched
-# 
-# # based on CouncilSiteID
-# table(unique(macroData$CouncilSiteIDlc)%in%siteTable$CouncilSiteIDlc)
-# unique(macroData$agency[!macroData$CouncilSiteIDlc%in%siteTable$CouncilSiteIDlc])
-# (unique(macroData$CouncilSiteID[!macroData$CouncilSiteIDlc%in%siteTable$CouncilSiteIDlc])->unmatched)
-# table(unique(macroData[,c(1,2)])$agency[unique(macroData[,c(1,2)])$CouncilSiteID%in%unmatched])
-# unique(macroData[,c(1,2)])[unique(macroData[,c(1,2)])$CouncilSiteID%in%unmatched,]
-# rm(unmatched)
-# table(unique(macroData$CouncilSiteIDlc)%in%siteTable$CouncilSiteIDlc)
+#Guided by the below
+macroData$CouncilSiteID[macroData$Agency=='niwa'] <- 
+  siteTable$CouncilSiteID[match(macroData$CouncilSiteID[macroData$Agency=='niwa'],
+                                siteTable$SiteID)]
 
-# ac boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc  niwa   nrc   orc   tdc   trc  wcrc   wrc 
-# 1878 38535  8949  2997  1083  1568  2559  2646  1159  1105  5466  1734  1096     0  7712  2655  3393 
+table(unique(tolower(macroData$CouncilSiteID))%in%tolower(siteTable$CouncilSiteID))
+unique(macroData$Agency[!tolower(macroData$CouncilSiteID)%in%tolower(siteTable$CouncilSiteID)])
+unique(macroData$CouncilSiteID[!tolower(macroData$CouncilSiteID)%in%tolower(siteTable$CouncilSiteID)])
 
-macroData=merge(macroData,siteTable,by=c("LawaSiteID","Agency"),all.x=T,all.y=F)%>%
-  dplyr::select("LawaSiteID","CouncilSiteID.x","SiteID","Region","Agency","Date","cYear","sYear","Measurement","Value","Lat","Long","Landcover","Altitude")%>%
-  dplyr::rename(CouncilSiteID=CouncilSiteID.x)%>%distinct  #Drop macro,and sitnamelc
+
+
+macroData=merge(macroData%>%mutate(LawaSiteID = tolower(LawaSiteID)),
+                siteTable%>%mutate(LawaSiteID=tolower(LawaSiteID)),
+                by=c("CouncilSiteID","Agency"),all.x=T,all.y=F)%>%
+  dplyr::select("LawaSiteID.x","CouncilSiteID","SiteID","Region","Agency","Date","cYear","sYear","Measurement","Value",'CollMeth','ProcMeth',"Lat","Long","Landcover","Altitude")%>%
+  dplyr::rename(LawaSiteID=LawaSiteID.x)%>%distinct  #Drop macro,and sitnamelc
 macroData$Agency=tolower(macroData$Agency)
 macroData$Region=tolower(macroData$Region)
 
+#66096
 
 
 agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
-table(factor(macroData$Agency,levels=agencies))
-table(macroData$Agency)
-# ac   boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc  niwa   nrc   orc   tdc   trc  wcrc   wrc 
-# 2736 3762  17180  2997  1083  1568  3580  4702  1099  1105  5464  1701  1102   726  7787  2586  3441
+table(factor(macroData$Agency,levels=agencies),useNA='a')%>%addmargins()
+
+# ac   boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc  niwa   nrc   orc   tdc   trc  wcrc   wrc
+# 3420  3963 12810  5560  1083  1814  3580  4437  1465  1105  5464  2133  1102   651  7802  3560  6029     0 65553
+# 3420  3963 12810  5135  1083  1814  3580  4437  1465  1105  5464  2676  1102   651  7802  3560  6029 66096
+# 3420  3963 12810  5135  1083  1691  3580  4437  1465  1105  5464  2676  1102   651  7799  3577  6014 65972 19/8/21 delt duplicate sitenames
+# 3465  3963 12810  5135  1083  1691  3581  4437  1465  1105  5464  2676  1102   678  7799  3577  6014 66045 13/8/21 
+# 3420  3945 12810  5135  1083  1691  3581  4437  1465  1105  5464  2606  1102   678  7793  3561  6014 65890 
+# 3420  3688 12810  5135  1083  1691  3580  4437  1465  1105  5464  2606  1102   678  7793  2586  6014 80203  9/8/21
+# 3420  3688 12810  5135  1083  1691  3580  2835  1465  1105  5464  2606  1102   678  7793  2586  6014 
+# 3420  3762 12810  5135  1083  1691  3580  2835  1465  1105  5464  2606  1102   678  7793  2586  3621  5/8/21
+# 2736  3762 17180  5135  1083  1568  3580  4462  1465  1105  5464  1701  1102   678  7787  2586  3441
 write.csv(macroData,paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),
                        '/MacrosWithMetadata.csv'),row.names = F)
 
+
 table(macroData$Agency,macroData$Measurement)/table(macroData$Agency,macroData$Measurement)
-
-#Some sites are under the purview of both a local agency and a NIWA
-# macroData%>%group_by(LawaSiteID=gsub(pattern = '_NIWA','',LawaSiteID))%>%
-#   summarise(nA=length(unique(Agency)),
-#             nCSI=length(unique(CouncilSiteID)),
-#             nSI=length(unique(SiteID)))%>%
-#   ungroup%>%
-#   filter(nA>1|nCSI>1|nSI>1)%>%
-#   dplyr::select(LawaSiteID)%>%
-#   drop_na->dupSites
-
-# 
-# macroData%>%filter(gsub(pattern = '_NIWA','',LawaSiteID)%in%dupSites)%>%select(LawaSiteID,SiteID,CouncilSiteID,Agency)%>%distinct
-# 
-# macroData%>%filter(gsub(pattern = '_NIWA','',LawaSiteID)%in%dupSites)->dupData
-# dupData$Date=lubridate::dmy(dupData$Date)
-# dupData <- dupData%>%filter(Date>dmy('1-12-2004'))
-# windows()
-# par(mfrow=c(5,4))
-# for(sss in dupSites){
-#   with(dupData%>%filter(grepl(sss,LawaSiteID)&Measurement=="MCI"),
-#        plot(Date,Value,pch=as.numeric(factor(Agency)),main=sss,yli=c(0,200),ylab='MCI'))
-#   with(dupData%>%filter(grepl(sss,LawaSiteID)&Measurement=="MCI"),
-#        legend('bottomleft',unique(Agency),pch=1:2))
-# }
-# par(mfrow=c(4,5))
-# for(sss in dupSites){
-#   with(dupData%>%filter(grepl(sss,LawaSiteID)&Measurement=="TaxaRichness"),
-#        plot(Date,Value,pch=as.numeric(factor(Agency)),main=sss,yli=c(3,37),log='y',ylab='TaxaRichness'))
-#   with(dupData%>%filter(grepl(sss,LawaSiteID)&Measurement=="MCI"),
-#        legend('topleft',unique(Agency),pch=1:2))
-# }
-# par(mfrow=c(4,5))
-# for(sss in dupSites){
-#   with(dupData%>%filter(grepl(sss,LawaSiteID)&Measurement=="PercentageEPTTaxa"),
-#        plot(Date,Value,pch=as.numeric(factor(Agency)),main=sss,yli=c(0,100),ylab='PercentEPTTaxa'))
-#   with(dupData%>%filter(grepl(sss,LawaSiteID)&Measurement=="MCI"),
-#        legend('bottomleft',unique(Agency),pch=1:2))
-# }
+#       ASPM MCI PercentageEPTTaxa QMCI TaxaRichness
+# ac       1   1                 1    1            1
+# boprc        1                 1                 1
+# ecan     1   1                 1    1            1
+# es       1   1                 1    1            1
+# gdc          1                 1                 1
+# gwrc         1                 1                 1
+# hbrc     1   1                 1    1            1
+# hrc      1   1                 1    1            1
+# mdc          1                 1    1            1
+# ncc          1                 1                 1
+# niwa         1                 1                 1
+# nrc      1   1                 1    1            1
+# orc          1                 1                 1
+# tdc          1                 1                 1
+# trc          1                 1                 1
+# wcrc         1                 1    1            1
+# wrc      1   1                 1    1            1

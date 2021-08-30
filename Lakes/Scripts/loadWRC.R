@@ -7,9 +7,7 @@ source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 agency='wrc'
 
-df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
-# configsites <- subset(df,df$Type=="Site")[,1]
-# configsites <- as.vector(configsites)
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/wrcLWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 
 siteTable=loadLatestSiteTableLakes(maxHistory=30)
@@ -28,7 +26,8 @@ for(i in 1:length(sites)){
   cat('\n',i,'out of',length(sites),'\n')
   for(j in 1:length(Measurements)){
     
-    url <- paste0("http://envdata.waikatoregion.govt.nz:8080/KiWIS/KiWIS?datasource=0&service=SOS&agency=LAWA&",
+    url <- paste0("http://envdata.waikatoregion.govt.nz:8080/KiWIS/KiWIS?",
+                  "datasource=0&service=SOS&agency=LAWA&",
                   "version=2.0&request=GetObservation&procedure=LWQ.Sample.Results.P",
                   "&featureOfInterest=",sites[i],
                   "&observedProperty=",Measurements[j],
@@ -133,127 +132,172 @@ sapply(unique(as.numeric(Data$qualifier)),FUN=function(x)bitwAnd(x,2^13))
 sapply(unique(as.numeric(Data$qualifier)),FUN=function(x)bitwAnd(x,2^14))
 
 
-con <- xmlOutputDOM("Hilltop")
-con$addTag("Agency", "WRC")
 
 
-max<-nrow(Data)
+save(Data,file = 'wrcLWQraw.rData')
+agency='wrc'
+#load('wrcLWQraw.rData')
+df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/wrcLWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
+Measurements <- subset(df,df$Type=="Measurement")[,1]
 
-i<-1
-#for each site
-while(i<=max){
-  s<-Data$Site[i]
-  # store first counter going into while loop to use later in writing out sample values
-  start<-i
-  
-  cat(i,Data$Site[i],"\n")   ### Monitoring progress as code runs
-  
-  while(Data$Site[i]==s){
-    #for each measurement
-    #cat(datatbl$CouncilSiteID[i],"\n")
-    con$addTag("Measurement",  attrs=c(SiteName=Data$Site[i]), close=FALSE)  #Until 21/6/19 this was CouncilSiteID=Data$Site, which yeah it should be, but, consistency with other agencies
-    con$addTag("DataSource",  attrs=c(Name=Data$Measurement[i],NumItems="2"), close=FALSE)
-    con$addTag("TSType", "StdSeries")
-    con$addTag("DataType", "WQData")
-    con$addTag("Interpolation", "Discrete")
-    con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
-    con$addTag("ItemName", Data$Measurement[i])
-    con$addTag("ItemFormat", "F")
-    con$addTag("Divisor", "1")
-    con$addTag("Units", Data$Units[i])
-    con$addTag("Format", "#.###")
-  con$closeTag() # ItemInfo
-  con$closeTag() # DataSource
-  
-  # for the TVP and associated measurement water quality parameters
-  con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="2"),close=FALSE)
-  d<- Data$Measurement[i]
-  
-  cat("       - ",Data$Measurement[i],"\n")   ### Monitoring progress as code runs
-  
-  while(Data$Measurement[i]==d&Data$Site[i]==s){
-    # for each tvp
-    if(!is.na(Data$qualifier[i])){    # this will need to be expanded to deal with range of qualifiers
-      if(grepl("8202",Data$qualifier[i])){                   ## GREATER THAN VALUES
-        con$addTag("E",close=FALSE)
-        con$addTag("T",Data$time[i])
-        con$addTag("I1", paste0(">",Data$value[i]))
-        con$addTag("I2", "$ND\t>\t")
-        con$closeTag() # E
-      } else if(grepl("16394",Data$qualifier[i])){           ## LESS THAN VALUES
-        con$addTag("E",close=FALSE)
-        con$addTag("T",Data$time[i])
-        con$addTag("I1", paste0("<",Data$value[i]))
-        con$addTag("I2", "$ND\t<\t")
-        con$closeTag() # E 
-      } else {                                               ## UNCENSORED VALUES
-        con$addTag("E",close=FALSE)
-        con$addTag("T",Data$time[i])
-        con$addTag("I1", Data$value[i])
-        con$addTag("I2", "\t")
-        con$closeTag() # E
-      }
-      # Write all other result values  
-    } else {                                                 ## UNCENSORED VALUES
-      con$addTag("E",close=FALSE)
-      con$addTag("T",Data$time[i])
-      con$addTag("I1", Data$value[i])
-      con$addTag("I2", "\t")
-      con$closeTag() # E
-      
-    }
-    i<-i+1 # incrementing overall for loop counter
-    if(i>max){break}
-  }
-  # next
-  con$closeTag() # Data
-  con$closeTag() # Measurement
-  
-  if(i>max){break}
-  # Next 
-  }
-# store last counter going out of while loop to use later in writing out sample values
-end<-i-1
 
-# Adding WQ Sample Datasource to finish off this Site
-# along with Sample parameters
-con$addTag("Measurement",  attrs=c(SiteName=Data$Site[start]), close=FALSE)#Until 21/6/19 this was CouncilSiteID=Data$Site, which yeah it should be, but, consistency with other agencies
-con$addTag("DataSource",  attrs=c(Name="WQ Sample", NumItems="1"), close=FALSE)
-con$addTag("TSType", "StdSeries")
-con$addTag("DataType", "WQSample")
-con$addTag("Interpolation", "Discrete")
-con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
-con$addTag("ItemName", "WQ Sample")
-con$addTag("ItemFormat", "S")
-con$addTag("Divisor", "1")
-con$addTag("Units")
-con$addTag("Format", "$$$")
-con$closeTag() # ItemInfo
-con$closeTag() # DataSource
+wrcLWQ <- Data%>%select(CouncilSiteID=Site,Date=time,Value=value,Measurement,Units,qualifier)
 
-# for the TVP and associated measurement water quality parameters
-con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="1"),close=FALSE)
-# for each tvp
-## LOAD SAMPLE PARAMETERS
-## SampleID, ProjectName, SourceType, SamplingMethod and mowsecs
-sample<-Data[start:end,3]
-sample<-unique(sample)
-sample<-sample[order(sample)]
-## THIS NEEDS SOME WORK.....
-for(a in 1:length(sample)){ 
-  con$addTag("E",close=FALSE)
-  con$addTag("T",sample[a])
-  #put metadata in here when it arrives
-  con$addTag("I1", "")
-  con$closeTag() # E
-}
 
-con$closeTag() # Data
-con$closeTag() # Measurement    
 
-}
-# saveXML(con$value(), file = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/MetaData/",format(Sys.Date(),'%Y-%m-%d'),"/",agency,"LWQ.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
-file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
-if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))
+wrcLWQb=data.frame(CouncilSiteID=wrcLWQ$CouncilSiteID,
+                    Date=as.character(format(lubridate::ymd_hms(wrcLWQ$Date),'%d-%b-%y')),
+                    Value=wrcLWQ$Value,
+                   Method=NA,
+                    Measurement=wrcLWQ$Measurement,
+                    # Units=wrcLWQ$Units,
+                    Censored=grepl(pattern = '<|>',x = wrcLWQ$Value),
+                    centype=F,
+                    QC=wrcLWQ$qualifier)
+
+wrcLWQb$centype[grep('<',wrcLWQb$Value)] <- 'Left'
+wrcLWQb$centype[grep('>',wrcLWQb$Value)] <- 'Right'
+
+wrcLWQb$Value = readr::parse_number(wrcLWQb$Value)
+
+table(wrcLWQb$Measurement,useNA='a')
+wrcLWQb$Measurement <- as.character(factor(wrcLWQb$Measurement,
+                                            levels = Measurements,
+                                            labels = c("NH4N","CHLA","TP","TN","pH",
+                                                       "Secchi","ECOLI","CYANOTOT")))
+table(wrcLWQb$Measurement,useNA='a')
+
+# wrcLWQb <- merge(wrcLWQb,siteTable,by='CouncilSiteID')
+
+write.csv(wrcLWQb,file = paste0("D:/LAWA/2021/wrcL.csv"),row.names = F)
+file.copy(from=paste0("D:/LAWA/2021/wrcL.csv"),
+          to = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/wrc.csv"),
+          overwrite = T)
+rm(wrcLWQ,wrcLWQb)
+# 
+# 
+# 
+# con <- xmlOutputDOM("Hilltop")
+# con$addTag("Agency", "WRC")
+# 
+# 
+# max<-nrow(Data)
+# 
+# i<-1
+# #for each site
+# while(i<=max){
+#   s<-Data$Site[i]
+#   # store first counter going into while loop to use later in writing out sample values
+#   start<-i
+#   
+#   cat(i,Data$Site[i],"\n")   ### Monitoring progress as code runs
+#   
+#   while(Data$Site[i]==s){
+#     #for each measurement
+#     #cat(datatbl$CouncilSiteID[i],"\n")
+#     con$addTag("Measurement",  attrs=c(SiteName=Data$Site[i]), close=FALSE)  #Until 21/6/19 this was CouncilSiteID=Data$Site, which yeah it should be, but, consistency with other agencies
+#     con$addTag("DataSource",  attrs=c(Name=Data$Measurement[i],NumItems="2"), close=FALSE)
+#     con$addTag("TSType", "StdSeries")
+#     con$addTag("DataType", "WQData")
+#     con$addTag("Interpolation", "Discrete")
+#     con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
+#     con$addTag("ItemName", Data$Measurement[i])
+#     con$addTag("ItemFormat", "F")
+#     con$addTag("Divisor", "1")
+#     con$addTag("Units", Data$Units[i])
+#     con$addTag("Format", "#.###")
+#   con$closeTag() # ItemInfo
+#   con$closeTag() # DataSource
+#   
+#   # for the TVP and associated measurement water quality parameters
+#   con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="2"),close=FALSE)
+#   d<- Data$Measurement[i]
+#   
+#   cat("       - ",Data$Measurement[i],"\n")   ### Monitoring progress as code runs
+#   
+#   while(Data$Measurement[i]==d&Data$Site[i]==s){
+#     # for each tvp
+#     if(!is.na(Data$qualifier[i])){    # this will need to be expanded to deal with range of qualifiers
+#       if(grepl("8202",Data$qualifier[i])){                   ## GREATER THAN VALUES
+#         con$addTag("E",close=FALSE)
+#         con$addTag("T",Data$time[i])
+#         con$addTag("I1", paste0(">",Data$value[i]))
+#         con$addTag("I2", "$ND\t>\t")
+#         con$closeTag() # E
+#       } else if(grepl("16394",Data$qualifier[i])){           ## LESS THAN VALUES
+#         con$addTag("E",close=FALSE)
+#         con$addTag("T",Data$time[i])
+#         con$addTag("I1", paste0("<",Data$value[i]))
+#         con$addTag("I2", "$ND\t<\t")
+#         con$closeTag() # E 
+#       } else {                                               ## UNCENSORED VALUES
+#         con$addTag("E",close=FALSE)
+#         con$addTag("T",Data$time[i])
+#         con$addTag("I1", Data$value[i])
+#         con$addTag("I2", "\t")
+#         con$closeTag() # E
+#       }
+#       # Write all other result values  
+#     } else {                                                 ## UNCENSORED VALUES
+#       con$addTag("E",close=FALSE)
+#       con$addTag("T",Data$time[i])
+#       con$addTag("I1", Data$value[i])
+#       con$addTag("I2", "\t")
+#       con$closeTag() # E
+#       
+#     }
+#     i<-i+1 # incrementing overall for loop counter
+#     if(i>max){break}
+#   }
+#   # next
+#   con$closeTag() # Data
+#   con$closeTag() # Measurement
+#   
+#   if(i>max){break}
+#   # Next 
+#   }
+# # store last counter going out of while loop to use later in writing out sample values
+# end<-i-1
+# 
+# # Adding WQ Sample Datasource to finish off this Site
+# # along with Sample parameters
+# con$addTag("Measurement",  attrs=c(SiteName=Data$Site[start]), close=FALSE)#Until 21/6/19 this was CouncilSiteID=Data$Site, which yeah it should be, but, consistency with other agencies
+# con$addTag("DataSource",  attrs=c(Name="WQ Sample", NumItems="1"), close=FALSE)
+# con$addTag("TSType", "StdSeries")
+# con$addTag("DataType", "WQSample")
+# con$addTag("Interpolation", "Discrete")
+# con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
+# con$addTag("ItemName", "WQ Sample")
+# con$addTag("ItemFormat", "S")
+# con$addTag("Divisor", "1")
+# con$addTag("Units")
+# con$addTag("Format", "$$$")
+# con$closeTag() # ItemInfo
+# con$closeTag() # DataSource
+# 
+# # for the TVP and associated measurement water quality parameters
+# con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="1"),close=FALSE)
+# # for each tvp
+# ## LOAD SAMPLE PARAMETERS
+# ## SampleID, ProjectName, SourceType, SamplingMethod and mowsecs
+# sample<-Data[start:end,3]
+# sample<-unique(sample)
+# sample<-sample[order(sample)]
+# ## THIS NEEDS SOME WORK.....
+# for(a in 1:length(sample)){ 
+#   con$addTag("E",close=FALSE)
+#   con$addTag("T",sample[a])
+#   #put metadata in here when it arrives
+#   con$addTag("I1", "")
+#   con$closeTag() # E
+# }
+# 
+# con$closeTag() # Data
+# con$closeTag() # Measurement    
+# 
+# }
+# # saveXML(con$value(), file = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/MetaData/",format(Sys.Date(),'%Y-%m-%d'),"/",agency,"LWQ.xml"))
+# saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
+# file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
+#           to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
+# if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))

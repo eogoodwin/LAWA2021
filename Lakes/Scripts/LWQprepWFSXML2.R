@@ -111,7 +111,7 @@ siteTable$Agency=tolower(as.character(siteTable$Agency))
 
 
 
-table(siteTable$region)
+table(siteTable$Region,useNA='a')
 siteTable$Region[siteTable$Region=='alexandra'] <- 'otago'
 siteTable$Region[siteTable$Region=='dunedin'] <- 'otago'
 siteTable$Region[siteTable$Region=='tekapo'] <- 'otago'
@@ -119,7 +119,7 @@ siteTable$Region[siteTable$Region=='orc'] <- 'otago'
 siteTable$Region[siteTable$Region=='christchurch'] <- 'canterbury'
 siteTable$Region[siteTable$Region=='gdc'] <- 'gisborne'
 siteTable$Region[siteTable$Region=='greymouth'] <- 'west coast'
-siteTable$Region[siteTable$Region=='wcrc'] <- 'west coast'
+siteTable$Region[siteTable$Agency=='wcrc'] <- 'west coast'
 siteTable$Region[siteTable$Region=='hamilton'] <- 'waikato'
 siteTable$Region[siteTable$Region=='turangi'] <- 'waikato'
 siteTable$Region[siteTable$Region=='wrc'] <- 'waikato'
@@ -130,23 +130,20 @@ siteTable$Region[siteTable$Region=='rotorua'] <- 'bay of plenty'
 siteTable$Region[siteTable$Region%in%c('wanganui','horizons','hrc')] <- 'manawat\u16b-whanganui'
 siteTable$Region[siteTable$Region=='gwrc'] <- 'wellington'
 siteTable$Region[siteTable$Region=='whangarei'] <- 'northland'
-siteTable$Region[siteTable$Region=='nrc'] <- 'northland'
+siteTable$Region[siteTable$Agency=='nrc'] <- 'northland'
+siteTable$Region[siteTable$Agency=='orc'] <- 'otago'
 siteTable$Region[siteTable$Region=='mdc'] <- 'marlborough'
 siteTable$Region[siteTable$Region=='tdc'] <- 'tasman'
-siteTable$Region[siteTable$Region=='trc'] <- 'taranaki'
-siteTable$Region[siteTable$Region=='gwrc'] <- 'wellington'
-table(siteTable$Region)
+siteTable$Region[siteTable$Agency=='trc'] <- 'taranaki'
+siteTable$Region[siteTable$Agency=='gwrc'] <- 'wellington'
+table(siteTable$Region,useNA='a')
 
 ################################################################################################
 
 
 
 siteTable$Agency=tolower(siteTable$Agency)
-siteTable$Agency[siteTable$Agency=='arc'] <- 'ac'
-siteTable$Agency[siteTable$Agency=='auckland council'] <- 'ac'
-siteTable$Agency[siteTable$Agency=='christchurch'] <- 'ecan'
-siteTable$Agency[siteTable$Agency=='environment canterbury'] <- 'ecan'
-table(siteTable$Agency)
+table(siteTable$Agency,useNA = 'a')
 
 par(mfrow=c(1,1))
 plot(siteTable$Long,siteTable$Lat,col=as.numeric(factor(siteTable$Agency)),asp=1)
@@ -158,18 +155,19 @@ tolower(urls$Agency)[!tolower(urls$Agency)%in%tolower(siteTable$Agency)]
 
 
 
-siteTable$LFENZID[which(siteTable$CouncilSiteID=="SQ36148")] <- (-16)
-# siteTable$LFENZID[grepl('brunner',siteTable$CouncilSiteID,ignore.case=T)&siteTable$Agency=='wcrc'] <- 38974
+siteTable$LFENZID[grep("SQ36148",siteTable$CouncilSiteID,ignore.case=T)] <- (-16)
 siteTable$LFENZID[grepl('haupiri',siteTable$CouncilSiteID,ignore.case=T)&siteTable$Agency=='wcrc'] <- 39225
+siteTable$LFENZID <- as.integer(siteTable$LFENZID)
 
-
-FENZlake = read.csv("D:/RiverData/FENZLake.txt",stringsAsFactors = F)[,c(2,3,13,14,15,17,26,27,32,33,34,35,36,38)]
+FENZlake = read.csv("D:/RiverData/FENZLake.txt",stringsAsFactors = F)#[,c(2,3,13,14,15,17,26,27,32,33,34,35,36,38)]
 cbind(siteTable$Agency[siteTable$GeomorphicLType==""],
       siteTable$CouncilSiteID[siteTable$GeomorphicLType==""],
       FENZlake$GeomorphicType[match(siteTable$LFENZID[siteTable$GeomorphicLType==""],FENZlake$LID)])
 
 siteTable$GeomorphicLType[which(is.na(siteTable$GeomorphicLType)|siteTable$GeomorphicLType=="")] <- 
   FENZlake$GeomorphicType[match(siteTable$LFENZID[which(is.na(siteTable$GeomorphicLType)|siteTable$GeomorphicLType=="")],FENZlake$LID)]
+
+siteTable$MaxDepth = FENZlake$MaxDepth[match(as.integer(siteTable$LFENZID),FENZlake$LID)]
 
 
 siteTable$LType[which(siteTable$LType%in%c("polymictc","artificall"))] <- "polymictic"
@@ -185,11 +183,12 @@ if(!all(c('ac','boprc','ecan','es','gwrc','hbrc','hrc','nrc','orc','trc','wcrc',
   missingCouncils = c('ac','boprc','ecan','es','gwrc','hbrc','hrc','nrc','orc','trc','wcrc','wrc')[!c('ac','boprc','ecan','es','gwrc','hbrc','hrc','nrc','orc','trc','wcrc','wrc')%in%unique(siteTable$Agency)]
   oldsiteTable=oldsiteTable%>%filter(Agency%in%missingCouncils)
   if(dim(oldsiteTable)[1]>0){
-    siteTable = rbind(siteTable,oldsiteTable)
+    siteTable = bind_rows(siteTable,oldsiteTable)
   }
   rm(oldsiteTable)
 }
 
+siteTable$LawaSiteID=tolower(siteTable$LawaSiteID)
 
 ## Output for next script
 write.csv(x = siteTable,file = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Data/",
@@ -214,23 +213,23 @@ colnames(AgencyRep)[dim(AgencyRep)[2]]=format(Sys.Date(),'%d%b%y')
 rm(LakeWFSsiteFiles)
 write.csv(AgencyRep,'h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepLakeWFS.csv')
 
-#      02Jul21 07Jul21 08Jul21 09Jul21 16Jul21 23Jul21
-# ac          4       4       4       4       4       4
-# boprc      13      13      13      13      13      13
-# ecan       43      43      43      44      44      44
-# es         18      18      18      18      18      18
-# gdc         0       0       0       0       0       0
-# gwrc        5       5       5       5       5       5
-# hbrc        7       7       7       7       7       7
-# hrc        15      15      15      15      15      15
-# mdc         0       0       0       0       0       0
-# ncc         0       0       0       0       0       0
-# nrc        25      25      25      25      25      25
-# orc        14      14      14      14      14      14
-# tdc         0       0       0       0       0       0
-# trc         3       3       3       3       3       9
-# wcrc        3       3       3       3       3       3
-# wrc        12      12      12      12      12      12
+#     02Jul21 07Jul21 08Jul21 09Jul21 16Jul21 23Jul21 30Jul21 03Aug21 04Aug21 05Aug21 11Aug21 13Aug21 17Aug21 19Aug21 20Aug21
+# ac          4       4       4       4       4       4       4       4       4       4       4       4       4       4       4
+# boprc      13      13      13      13      13      13      13      13      13      13      13      13      14      14      14
+# ecan       43      43      43      44      44      44      44      44      44      44      44      44      44      44      44
+# es         18      18      18      18      18      18      18      18      18      18      18      18      18      18      18
+# gdc         0       0       0       0       0       0       0       0       0       0       0       0       0       0       0
+# gwrc        5       5       5       5       5       5       5       5       5       5       5       5       5       5       5
+# hbrc        7       7       7       7       7       7       7       7       7       7       7       7       7       7       7
+# hrc        15      15      15      15      15      15      15      15      15      15      15      15      15      15      15
+# mdc         0       0       0       0       0       0       0       0       0       0       0       0       0       0       0
+# ncc         0       0       0       0       0       0       0       0       0       0       0       0       0       0       0
+# nrc        25      25      25      25      25      25      25      25      25      25      25      25      25      25      25
+# orc        14      14      14      14      14      14      14      14      14      14      14      14      14      14      14
+# tdc         0       0       0       0       0       0       0       0       0       0       0       0       0       0       0
+# trc         3       3       3       3       3       3       3       9       9       3       9       3       9       3       9
+# wcrc        3       3       3       3       3       3       3       3       3       3       3       3       3       3       3
+# wrc        12      12      12      12      12      12      12      12      12      12      12      12      12      12      12
 
 
 # st14apr=read.csv('h:/ericg/16666LAWA/LAWA2021/Lakes/Data/2020-04-14/SiteTable_Lakes14Apr20.csv',stringsAsFactors = F)

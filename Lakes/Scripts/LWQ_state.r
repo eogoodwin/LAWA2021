@@ -1,6 +1,8 @@
 rm(list=ls())
 library(tidyverse)
 library(doBy)
+library(parallel)
+library(doParallel)
 EndYear <- lubridate::year(Sys.Date())-1
 StartYear10 <- EndYear-9
 StartYear5 <- EndYear-4
@@ -55,7 +57,7 @@ lakeData$Year=lubridate::year(lubridate::dmy(lakeData$Date))
 lakeData$monYear=paste0(lakeData$month,lakeData$Year)
 
 lakeData=lakeData[which( lakeData$Year<=EndYear),] #lakeData$Year>=StartYear10 &
-#59389 to 59389
+#79433 to 79431
 if(0){
   #Marchtwentynineteen PaulScholes identifies that the wrong LFENZ IDs have been applied to the BOPRC lakeData
   #They're correct in the lakeSiteTable, but wrong in the data
@@ -89,9 +91,6 @@ if(0){
 
 #Check 15/8/twentynineteen on the sampling frequency between lake sites
 lakeData$Date=lubridate::dmy(lakeData$Date)
-# freqs <- lakeData%>%split(.$LawaSiteID)%>%purrr::map(~freqCheck(.))%>%unlist
-# lakeData$Frequency=freqs[lakeData$LawaSiteID]  
-# rm(freqs)
 
 
 # IMPLEMENT TROPHIC LEVEL INDEX FOR LAKES TLI ###
@@ -140,9 +139,8 @@ TLIbyFENZ <- TLIbyFENZ%>%
 
 
 
-library(parallel)
-library(doParallel)
-lakeParam <- c("TP", "NH4N", "TN", "Secchi", "CHLA", "pH", "ECOLI")
+
+lakeParam <- c("TP", "NH4N", "TN", "Secchi", "CHLA", "pH", "ECOLI","CYANOTOT","CYANOTOX") #Note - exclude cyanotox from monthly medians
 #TLI will not be included in the monthly medians, because it's calculated on annual average values 
 suppressWarnings(rm(lakeData_A,lakeData_med,lakeData_n,lakeMonthlyMedian))
 workers=makeCluster(4)
@@ -150,6 +148,7 @@ registerDoParallel(workers)
 clusterCall(workers,function(){
   library(tidyverse)
 })
+startTime=Sys.time()
 foreach(i = 1:length(lakeParam),.combine=rbind,.errorhandling='stop')%dopar%{
   lakeData_A = lakeData[tolower(lakeData$Measurement)==tolower(lakeParam[i]),]
   #CENSORING
@@ -157,23 +156,9 @@ foreach(i = 1:length(lakeParam),.combine=rbind,.errorhandling='stop')%dopar%{
   lakeData_A$origValue=lakeData_A$Value
   if(any(lakeData_A$centype=='Left')){
     lakeData_A$Value[lakeData_A$centype=="Left"] <- lakeData_A$Value[lakeData_A$centype=="Left"]/2
-    # options(warn=-1)
-    # lcenreps=lakeData_A%>%drop_na(CouncilSiteID)%>%split(.$CouncilSiteID)%>%purrr::map(~max(.$Value[.$centype=='Left'],na.rm=T))
-    # options(warn=0)
-    # lakeData_A$lcenrep=as.numeric(lcenreps[match(lakeData_A$CouncilSiteID,names(lcenreps))])
-    # lakeData_A$Value[lakeData_A$centype=='Left'] <- lakeData_A$lcenrep[lakeData_A$centype=='Left']
-    # lakeData_A <- lakeData_A%>%select(-lcenrep)
-    # rm(lcenreps)
   }
   if(any(lakeData_A$centype=='Right')){
     lakeData_A$Value[lakeData_A$centype=="Right"] <- lakeData_A$Value[lakeData_A$centype=="Right"]*1.1
-    # options(warn=-1)
-    # rcenreps=lakeData_A%>%split(.$CouncilSiteID)%>%purrr::map(~min(.$Value[.$centype=='Right'],na.rm=T))
-    # options(warn=0)
-    # lakeData_A$rcenrep=as.numeric(rcenreps[match(lakeData_A$CouncilSiteID,names(rcenreps))])
-    # lakeData_A$Value[lakeData_A$centype=='Right'] <- lakeData_A$rcenrep[lakeData_A$centype=='Right']
-    # lakeData_A <- lakeData_A%>%select(-rcenrep)
-    # rm(rcenreps)
   }
 	lakeData_A <- as.data.frame(lakeData_A)
 
@@ -191,7 +176,7 @@ foreach(i = 1:length(lakeParam),.combine=rbind,.errorhandling='stop')%dopar%{
                      LFENZID=unique(LFENZID,na.rm=T),
                      Agency=unique(Agency),
                      Region=unique(Region),
-                     Value=median(Value,na.rm=T),
+                     Value=quantile(Value,prob=0.5,type=5,na.rm=T),
                      Measurement=unique(Measurement,na.rm=T),
                      n=n(),
                      Censored=any(Censored),
@@ -206,6 +191,9 @@ foreach(i = 1:length(lakeParam),.combine=rbind,.errorhandling='stop')%dopar%{
 }->lakeMonthlyMedian
 stopCluster(workers)
 rm(workers)
+Sys.time()-startTime  
+#13/8/21 5 s 75590
+
 
 
 #5Year medians
@@ -226,9 +214,9 @@ TLI5Year = TLI%>%
 lake5YearMedian <- rbind(lake5YearMedian,TLI5Year)%>%arrange(LawaSiteID,Measurement)
 rm(TLI5Year)
 sum(lake5YearMedian$n>=30)/dim(lake5YearMedian)[1]
-#467 out of 1047  0.446
+#519 out of 928  0.46
 lake5YearMedian <- lake5YearMedian%>%filter(n>=30|Measurement=="TLI") #Require 30 monthly values to calculate 5-year state median
-#625 from 1047
+#683 from 1131
 
 lake5yearMedianBYFENZ <- lakeMonthlyMedian%>%
   drop_na(LFENZID)%>%
@@ -260,21 +248,17 @@ write.csv(lakeMonthlyMedian,file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analy
 # lakeMonthlyMedian=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",pattern = "lakeMonthlyMedian.*",recursive = T,full.names = T,ignore.case=T),1),stringsAsFactors = F)
 
 #LakeSiteState for ITE
-write.csv(lake5YearMedian%>%drop_na(Median)%>%
+write.csv(lake5YearMedian%>%
+            filter(Measurement!='CYANOTOX')%>%
+            drop_na(Median)%>%
             dplyr::transmute(LAWAID=LawaSiteID,
                       Parameter=Measurement,
                       Year=EndYear, #of 5
                       Median=Median), #fiveyear median
           file=paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/',format(Sys.Date(),'%Y-%m-%d'),
                       '/ITELakeSiteState',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
-# write.csv(lake5yearMedianBYFENZ%>%drop_na(Median)%>%
-#             dplyr::transmute(LFENZID=LFENZID,
-#                              Parameter=Measurement,
-#                              Year=EndYear,
-#                              Median=Median),
-#           file=paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/',format(Sys.Date(),'%Y-%m-%d'),
-#                       '/ITELakeSiteStateBYFENZID',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
-# lake5YearMedian=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",pattern="LakeSiteState.*csv",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors=F)
+
+# itelakesitestate = read_csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis',pattern='ITELakeSiteState',recursive = T,full.names = T),1))
 
 # LakeTLI
 write.csv(TLI,paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/',format(Sys.Date(),'%Y-%m-%d'),

@@ -33,31 +33,44 @@ source('k:/R_functions/nzmg2WGS.r')
 
 
 NIWAmacroSites=readxl::read_xlsx('h:/ericg/16666LAWA/2018/MacroInvertebrates/1.Imported/NIWAInvertebrate.xlsx',sheet = 'site metadata')
-lawaIDs=read.csv("H:/ericg/16666LAWA/LAWA2019/Metadata/LAWAMasterSiteListasatMarch2018.csv",stringsAsFactors = F)
-lawaIDs <- lawaIDs%>%dplyr::filter(Module=="Freshwater Quality")
-lawaIDs$Long=as.numeric(lawaIDs$Longitude)
-lawaIDs$Lat=as.numeric(lawaIDs$Latitude)
+NIWAmacroSites$shortID=gsub("NAT-(..)0(.)","\\1\\2",NIWAmacroSites$lawaid)
+NIWAmacroSites$shortID=gsub("NAT-","",NIWAmacroSites$shortID)
+niwaSub=read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteIDs.csv",stringsAsFactors=F)
+table(NIWAmacroSites$shortID%in%niwaSub$CouncilSiteID)
+NIWAmacroSites$LawaSiteID = paste0(niwaSub$LawaSiteID[match(NIWAmacroSites$shortID,niwaSub$CouncilSiteID)],'_NIWA')
 
-latlon=nzmg2wgs(East =  NIWAmacroSites$nzmge,North =  NIWAmacroSites$nzmgn)
-NIWAmacroSites$Long=latlon[,2]
-NIWAmacroSites$Lat=latlon[,1]
-rm(latlon)
+rm(niwaSub)
+# lawaIDs=read.csv("H:/ericg/16666LAWA/LAWA2019/Metadata/LAWAMasterSiteListasatMarch2018.csv",stringsAsFactors = F)
+# lawaIDs <- lawaIDs%>%dplyr::filter(Module=="Freshwater Quality")
+# lawaIDs$Long=as.numeric(lawaIDs$Longitude)
+# lawaIDs$Lat=as.numeric(lawaIDs$Latitude)
+# 
+# latlon=nzmg2wgs(East =  NIWAmacroSites$nzmge,North =  NIWAmacroSites$nzmgn)
+# NIWAmacroSites$Long=latlon[,2]
+# NIWAmacroSites$Lat=latlon[,1]
+# rm(latlon)
+# 
+# minDists=rep(0,dim(NIWAmacroSites)[1])
+# NIWAmacroSites$LawaSiteID=NA
+# NIWAmacroSites$lidname=NA
+# # NIWAmacroSites$Region=NA
+# for(nms in 1:(dim(NIWAmacroSites)[1])){
+#   dists=sqrt((NIWAmacroSites$Long[nms]-lawaIDs$Long)^2+(NIWAmacroSites$Lat[nms]-lawaIDs$Lat)^2)
+#   minDists[nms]=min(dists,na.rm=T)
+#   NIWAmacroSites$LawaSiteID[nms]=lawaIDs$LawaID[which.min(dists)]
+#   NIWAmacroSites$lidname[nms]=lawaIDs$SiteName[which.min(dists)]
+# }
+# NIWAmacroSites$dist=minDists
+# #This hand correction was identified 24/9/2020
+# NIWAmacroSites$LawaSiteID[NIWAmacroSites$LawaSiteID=='ECAN-10028'] <- 'NRWQN-00054'
+# # NIWAmacroSites[,c(8,15)]%>%as.data.frame
 
-minDists=rep(0,dim(NIWAmacroSites)[1])
-NIWAmacroSites$LawaSiteID=NA
-NIWAmacroSites$lidname=NA
-# NIWAmacroSites$Region=NA
-for(nms in 1:(dim(NIWAmacroSites)[1])){
-  dists=sqrt((NIWAmacroSites$Long[nms]-lawaIDs$Long)^2+(NIWAmacroSites$Lat[nms]-lawaIDs$Lat)^2)
-  minDists[nms]=min(dists,na.rm=T)
-  NIWAmacroSites$LawaSiteID[nms]=lawaIDs$LawaID[which.min(dists)]
-  NIWAmacroSites$lidname[nms]=lawaIDs$SiteName[which.min(dists)]
-}
-NIWAmacroSites$dist=minDists
-#This hand correction was identified 24/9/2020
-NIWAmacroSites$LawaSiteID[NIWAmacroSites$LawaSiteID=='ECAN-10028'] <- 'NRWQN-00054'
 
-# NIWAmacroSites[,c(8,15)]%>%as.data.frame
+
+
+
+
+
 
 #2020 delivery from RickStoffels
 niwamacroraw=read.csv('./Data/NIWAMacros.csv',stringsAsFactors = F,skip=2)%>%dplyr::rename(Year=Group)
@@ -102,8 +115,8 @@ niwaMacrol$Value=as.numeric(niwaMacrol$Value)
 niwaMacrol <- niwaMacrol%>%drop_na(Date)
 
 write.csv(niwaMacrol%>%select(LawaSiteID,CouncilSiteID,Date,Measurement,Value,Agency),
-          file=paste0( 'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',format(Sys.Date(),"%Y-%m-%d"),'/','NIWA.csv'),
-          row.names=F)
+          file=paste0( 'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',
+                       format(Sys.Date(),"%Y-%m-%d"),'/','NIWA.csv'),row.names=F)
 
 write.csv(NIWAmacroSites,'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/NIWASiteTable.csv',row.names = F)
 

@@ -8,8 +8,6 @@ source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 agency='orc'
 df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
-# configsites <- subset(df,df$Type=="Site")[,1]
-# configsites <- as.vector(configsites)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 
 siteTable=loadLatestSiteTableLakes(maxHistory=30)
@@ -23,7 +21,7 @@ metaMeasurements <- unique(meta$Measurement)
 
 ## Manually matching order of measurement names in the measurement vector to the metaMeasurement vector
 # metaMeasurements <- metaMeasurements[c(12,9,7,1,13,2)]
-metaMeasurements <- c(metaMeasurements[c(1,13,13,12,7,2,9)],"Secchi depth (m)")
+metaMeasurements <- c(metaMeasurements[c(1,13,13,12,7,2,9)],"Secchi depth (m)","CyanoTox","CyanoTot")
 
 meas <- cbind.data.frame(metaMeasurements,Measurements, stringsAsFactors=FALSE)
 names(meas) <- c("Measurement","MeasurementName")
@@ -152,4 +150,4 @@ for(i in 1:length(sites)){
 saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
 file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
           to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"),overwrite = T)
-if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))
+# if(length(lakeDataColumnLabels)>0)write.csv(row.names=F,lakeDataColumnLabels,paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LakeDataColumnLabels.csv"))

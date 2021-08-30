@@ -54,28 +54,19 @@ nonrollyrs=which(!grepl('to',yr))
 reps <- length(yr)
 
 if(!exists('wqdata')){
-  combowqdata=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
-  cat(combowqdata)
-  wqdata=readr::read_csv(combowqdata,guess_max=200000)%>%as.data.frame
-  rm(combowqdata)
-  # wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')] = as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')]),'%d-%b-%y'))
-  
+  wqdata=loadLatestDataRiver()
   wqdYear=lubridate::year(dmy(wqdata$Date))
-
   wqdata <- wqdata[which(wqdYear>=firstYear & wqdYear<=EndYear),]
-  # |(wqdYear>=(StartYear5-1) & wqdYear<=EndYear & wqdata$Measurement=='ECOLI')),]
   rm(wqdYear)
+}
 
-  1309067
-  }
-
-wqparam <- c("BDISC","TURB","NH4",
+wqparam <- c("BDISC","TURB","NH4","TURBFNU",
              "PH","TON","TN",
              "DRP","TP","ECOLI","DIN","NO3N") 
 
-#Replace censored values with 0.5 or 1.1 x                               NO LONGER as of 10/9/2020 max censored or min censored, per site, 
+#Replace censored values with 0.5 or 1.1 x                 NO LONGER as of 10/9/2020 max censored or min censored, per site, 
 #then calculate per site&date median values to take forward
-workers <- makeCluster(7)
+workers <- makeCluster(6)
 registerDoParallel(workers)
 clusterCall(workers,function(){
 library(tidyverse)
@@ -87,12 +78,12 @@ foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
   if(dim(wqdata_A)[1]==0){return(NULL)}
   wqdata_A$origValue=wqdata_A$Value
   #CENSORING
-  #left-censored replacement value is the maximum of left-censored values, per site
-  if(any(tolower(wqdata_A$CenType)%in%c("lt","left"))){
-    wqdata_A$Value[tolower(wqdata_A$CenType)%in%c("lt","left")] <- wqdata_A$Value[tolower(wqdata_A$CenType)%in%c("lt","left")]/2
+  #left-censored replacement value is half its face value
+  if(any(wqdata_A$CenType=="Left")){
+    wqdata_A$Value[wqdata_A$CenType=="Left"] <- wqdata_A$origValue[wqdata_A$CenType=="Left"]/2
   }
-  if(any(tolower(wqdata_A$CenType)%in%c("rt","right"))){
-       wqdata_A$Value[tolower(wqdata_A$CenType)%in%c("rt","right")] <- wqdata_A$Value[tolower(wqdata_A$CenType)%in%c("rt","right")]*1.1
+  if(any(wqdata_A$CenType=="Right")){
+    wqdata_A$Value[wqdata_A$CenType=="Right"] <- wqdata_A$origValue[wqdata_A$CenType=="Right"]*1.1
   }
   
   wqdata_A$Date=lubridate::dmy(wqdata_A$Date)
@@ -104,19 +95,19 @@ foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
   wqdata_med <- wqdata_A%>%
     dplyr::group_by(LawaSiteID,Date)%>%
     dplyr::summarise(.groups='keep',
-      SiteID=paste(unique(SiteID),collapse='&'),
-      CouncilSiteID=paste(unique(CouncilSiteID),collapse='&'),
-      Agency=paste(unique(Agency),collapse='&'),
-      Region=paste(unique(Region),collapse='&'),
-      Value=median(Value,na.rm=T),
-      Measurement=unique(Measurement,na.rm=T),  
-      n=n(),
-      Censored=any(Censored),
-      CenType=paste(unique(CenType[CenType!='FALSE']),collapse=''),
-      Landcover=paste(unique(Landcover),collapse=''),
-      SWQAltitude=paste(unique(SWQAltitude),collapse='')
+                     SiteID=paste(unique(SiteID),collapse='&'),
+                     CouncilSiteID=paste(unique(CouncilSiteID),collapse='&'),
+                     Agency=paste(unique(Agency),collapse='&'),
+                     Region=paste(unique(Region),collapse='&'),
+                     Value=median(Value,na.rm=T),
+                     Measurement=unique(Measurement,na.rm=T),  
+                     n=n(),
+                     Censored=any(Censored),
+                     CenType=paste(unique(CenType[CenType!='FALSE']),collapse=''),
+                     Landcover=paste(unique(Landcover),collapse=''),
+                     SWQAltitude=paste(unique(SWQAltitude),collapse='')
     )%>%ungroup
-
+  
   return(wqdata_med)
 }->wqdataPerDateMedian
 stopCluster(workers)
@@ -128,10 +119,10 @@ cat(Sys.time()-startTime)
 #44.8 aug21 from 2004 onward
 #41.1  29June 2021
 #55.8  16/7/2021
+#53    30/7/2021
+#51 12/8/21   1432691 to 1419310
 
 # Saving the wqdataPerDateMedian table to be USED in NOF calculations. 
-# NOTE AFTER HAVING OUT-COMMENTED THE LINE 57, WE'VE NOW GOT ALL YEARS, FOR THE ROLLING NOF 
-# Has six years available for ECOli if necessary
 save(wqdataPerDateMedian,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),
                           "/wqdataPerDateMedian",StartYear5,"-",EndYear,"ec6.RData"))
 # load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",pattern='wqdataPerDateMedian',recursive = T,full.names=T,ignore.case=T),1),verbose = T)
@@ -140,59 +131,62 @@ save(wqdataPerDateMedian,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/D
 sub_swq <- wqdataPerDateMedian%>%dplyr::select(c("LawaSiteID","CouncilSiteID","Date","Measurement","Value"))%>%
   dplyr::filter(tolower(Measurement)%in%tolower(c("NH4","TON","ECOLI","PH","DRP","NO3N","DIN","BDISC")))%>%
   dplyr::filter(lubridate::year(Date)<=EndYear)
-#1291898 -> 911468
 
-table(lubridate::year(sub_swq$Date),sub_swq$Measurement)
-# BDISC   DIN   DRP ECOLI   NH4  NO3N    PH   TON
-# 2004  2606  1062  3722  3278  3768   594  3147  3321
-# 2005  3681  1279  4917  4509  4941   741  4284  3592
-# 2006  4108  1534  5961  5283  6062   874  5473  4649
-# 2007  4313  1984  6662  6180  6789  1286  6488  5367
-# 2008  4765  2456  7387  6884  7554  1469  7088  6089
-# 2009  4857  2890  8001  7491  8105  1697  7841  6651
-# 2010  4629  2969  8048  7394  8103  1741  7708  6648
-# 2011  4770  3195  8473  7807  8476  1955  8201  7030
-# 2012  5215  3550  8914  8144  8963  2294  8729  7513
-# 2013  6141  4280  9884  9968  9960  3383  9716  8451
-# 2014  6443  4534 10395 10576 10428  3626 10182  9005
-# 2015  6869  4583 10913 11028 10922  3725 10729  9692
-# 2016  7196  4681 11161 11342 11227  3821 10823 10219
-# 2017  7403  4771 11543 11650 11568  3867 10942 10543
-# 2018  7480  4778 11537 11779 11567  3997 11059 10596
-# 2019  7367  4892 11426 11714 11418  4415 10848 10342
-# 2020  6358  4516 10174 10443 10215  3953  9207  9048
+
+table(lubridate::year(lubridate::dmy(wqdata$Date)),wqdata$Measurement)
+#      BDISC   DIN   DRP ECOLI   NH4  NO3N    PH
+# 2004  3802  2440  4656  2676  4735  1568  4049
+# 2005  3904  2662  4915  3878  4990  1812  4290
+# 2006  4919  2958  5958  5317  6114  2051  5467
+# 2007  5138  3412  6670  6229  6843  2468  6484
+# 2008  5576  3934  7430  6978  7598  2314  7116
+# 2009  5786  4492  8041  7562  8148  3377  7872
+# 2010  5642  4464  8150  7550  8211  3865  7797
+# 2011  5775  4785  8551  7939  8562  4435  8274
+# 2012  6206  5166  8939  8220  8985  4948  8741
+# 2013  7153  6061  9944 10069 10013  6164  9754
+# 2014  7533  6456 10494 10713 10520  6593 10255
+# 2015  8038  6577 11030 11204 11046  6957 10813
+# 2016  8381  6886 11277 11519 11337  7251 10943
+# 2017  8603  7192 11652 11871 11668  7621 11043
+# 2018  8672  7200 11638 12068 11660  7805 11168
+# 2019  8556  7566 11516 11919 11499  7981 10950
+# 2020  7496  6957 10291 10670 10323  7145  9314
+
+rm(wqdataPerDateMedian,wqdata)
+
 
 #+++++++++++++++++++++++++++++ Ammonia adjustment for pH++++++++++++++++++++++++++++++++++++
-adjnh4="H:/ericg/16666LAWA/LAWA2021/WaterQuality/metadata/NOFAmmoniaAdjustment.csv"
-adjnh4=NH4adj(sub_swq,meas=c("NH4","PH"),csv = adjnh4)
+csv="H:/ericg/16666LAWA/LAWA2021/WaterQuality/metadata/NOFAmmoniaAdjustment.csv"
+adjnh4=NH4adj(sub_swq,meas=c("NH4","PH"),csv = csv)
 sub_swq<-rbind(sub_swq,adjnh4)
 rm(adjnh4)
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 sub_swq$YearQuarter=paste0(quarters(sub_swq$Date),year(sub_swq$Date))
 if(0){
-par(mfrow=c(3,2),mar=c(5,4,4,2))
-sub_swq%>%group_by(LawaSiteID,Measurement)%>%
-  dplyr::summarise(nQ=length(unique(YearQuarter)),nA=n())%>%
-  ungroup%>%
-  split(.$Measurement)%>%purrr::map(~plot(rev(cumsum(rev(tabulate(.$nQ)))),main=unique(.$Measurement),ylim=c(0,1000),xlab='Num quarters',ylab='Number of sites'))
-par(mfrow=c(1,1))
-par(mfrow=c(3,2),mar=c(5,4,4,2))
-sub_swq%>%group_by(LawaSiteID,Measurement)%>%
-  dplyr::summarise(nQ=length(unique(YearQuarter)),nA=n())%>%
-  ungroup%>%
-  split(.$Measurement)%>%purrr::map(~plot(rev(cumsum(rev(tabulate(.$nA)))),main=unique(.$Measurement),ylim=c(0,1000),xlim=c(0,250),xlab='Num measures',ylab='Number of sites'))
-par(mfrow=c(1,1))
-par(mfrow=c(3,2),mar=c(5,4,4,2))
-sub_swq%>%group_by(LawaSiteID,Measurement)%>%
-  dplyr::summarise(nQ=length(unique(YearQuarter)),nA=n())%>%
-  ungroup%>%
-  split(.$Measurement)%>%purrr::map(~{plot(.$nA,.$nQ,main=unique(.$Measurement),
-                                          ylim=c(0,60),xlim=c(0,250),xlab='Num measures',ylab='Number of quarters');abline(0,1)})
-par(mfrow=c(1,1))
-
-sub_swq%>%filter(Measurement=="PH")%>%group_by(LawaSiteID)%>%dplyr::summarise(nQ=length(unique(YearQuarter)),nA=n())%>%
-  ungroup%>%filter(nQ==nA)
+  par(mfrow=c(3,2),mar=c(5,4,4,2))
+  sub_swq%>%group_by(LawaSiteID,Measurement)%>%
+    dplyr::summarise(nQ=length(unique(YearQuarter)),nA=n())%>%
+    ungroup%>%
+    split(.$Measurement)%>%purrr::map(~plot(rev(cumsum(rev(tabulate(.$nQ)))),main=unique(.$Measurement),ylim=c(0,1000),xlab='Num quarters',ylab='Number of sites'))
+  par(mfrow=c(1,1))
+  par(mfrow=c(3,2),mar=c(5,4,4,2))
+  sub_swq%>%group_by(LawaSiteID,Measurement)%>%
+    dplyr::summarise(nQ=length(unique(YearQuarter)),nA=n())%>%
+    ungroup%>%
+    split(.$Measurement)%>%purrr::map(~plot(rev(cumsum(rev(tabulate(.$nA)))),main=unique(.$Measurement),ylim=c(0,1000),xlim=c(0,250),xlab='Num measures',ylab='Number of sites'))
+  par(mfrow=c(1,1))
+  par(mfrow=c(3,2),mar=c(5,4,4,2))
+  sub_swq%>%group_by(LawaSiteID,Measurement)%>%
+    dplyr::summarise(nQ=length(unique(YearQuarter)),nA=n())%>%
+    ungroup%>%
+    split(.$Measurement)%>%purrr::map(~{plot(.$nA,.$nQ,main=unique(.$Measurement),
+                                             ylim=c(0,60),xlim=c(0,250),xlab='Num measures',ylab='Number of quarters');abline(0,1)})
+  par(mfrow=c(1,1))
+  
+  sub_swq%>%filter(Measurement=="PH")%>%group_by(LawaSiteID)%>%dplyr::summarise(nQ=length(unique(YearQuarter)),nA=n())%>%
+    ungroup%>%filter(nQ==nA)
 }
 
 uLAWAids <- unique(sub_swq$LawaSiteID)
@@ -200,11 +194,11 @@ uLAWAids <- unique(sub_swq$LawaSiteID)
 cat(length(uLAWAids),'\t')
 if(exists("NOFSummaryTable")) { rm("NOFSummaryTable") }
 
-workers <- makeCluster(6)
+workers <- makeCluster(7)
 registerDoParallel(workers)
 clusterCall(workers,function(){
 library(tidyverse)
-  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
+  source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R',echo=F)
 })
 startTime=Sys.time()
 
@@ -248,11 +242,10 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
                          SusSedBand               = rep(as.character(NA),reps),
                          SusSedAnalysisNote       = rep('',reps),
                          stringsAsFactors = FALSE)
-  # stop("Check n requirements from NPSFM per attribute")
   ###################### Nitrate  ########################################
   
     tonsite <- rightSite%>%
-    dplyr::filter(Measurement%in%c("NO3N","TON"))%>%
+    dplyr::filter(Measurement%in%c("NO3N"))%>%
     pivot_wider(names_from = 'Measurement',values_from = Value)
   if(dim(tonsite)[1]>0){
     if(all(c("NO3N","TON")%in%names(tonsite))){
@@ -269,7 +262,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   if(dim(annualMedian)[1]!=0){
     Com_NOF$NitrateMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
     #Rolling 5yr median
-    rollingMeds=rolling5(siteChemSet = tonsite,quantProb = 0.5,nreq=54,quReq=20)
+    rollingMeds=rolling5(siteChemSet = tonsite,quantProb = 0.5,nreq=54,quReq=18)
     rollFails= grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
     Com_NOF$NitrateMed[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
@@ -284,7 +277,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     annual95 <- tonsite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.95,type=5,na.rm=T))
     Com_NOF$Nitrate95 = annual95$Value[match(Com_NOF$Year,annual95$Year)]
     #Rolling 5yr 95%ile
-    rolling95=rolling5(tonsite,0.95,nreq=54,quReq=20)
+    rolling95=rolling5(tonsite,0.95,nreq=54,quReq=18)
     rollFails= grepl(pattern = '^n',x = rolling95,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rolling95)
     Com_NOF$Nitrate95[yr%in%names(rolling95)[rollSucc]] <- readr::parse_number(rolling95[rollSucc])
@@ -315,7 +308,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     if(dim(annualMedian)[1]!=0){
       Com_NOF$AmmoniacalMed = annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
       #Rolling 5yr median
-      rollingMeds=rolling5(nh4site,0.5,nreq=54,quReq = 20)
+      rollingMeds=rolling5(nh4site,0.5,nreq=54,quReq=18)
       rollFails= grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
       rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
       Com_NOF$AmmoniacalMed[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
@@ -329,7 +322,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
       annualmax <- nh4site%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=max(Value,na.rm=T))
       Com_NOF$AmmoniacalMax <- annualmax$Value[match(Com_NOF$Year,annualmax$Year)]
       #Rolling 5yr max
-      rollingMax=rolling5(nh4site,1,nreq=54,quReq=20)
+      rollingMax=rolling5(nh4site,1,nreq=54,quReq=18)
       rollFails= grepl(pattern = '^n',x = rollingMax,ignore.case=T)
       rollSucc = grepl(pattern='^[[:digit:]]',rollingMax)
       Com_NOF$AmmoniacalMax[yr%in%names(rollingMax)[rollSucc]] <- readr::parse_number(rollingMax[rollSucc])
@@ -356,7 +349,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   if(dim(annualMedian)[1]!=0){
     Com_NOF$EcoliMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
     #rolling 5yr or 6yr median
-    rollingMeds=rolling5(ecosite,0.5,nreq=54,quReq=20)
+    rollingMeds=rolling5(ecosite,0.5,nreq=54,quReq=18)
     rollFails=grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
     Com_NOF$EcoliMed[yr%in%names(rollingMeds)[rollSucc]] = readr::parse_number(rollingMeds[rollSucc])
@@ -372,8 +365,8 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   if(length(annual95)!=0){
     Com_NOF$Ecoli95 <- annual95$Value[match(Com_NOF$Year,annual95$Year)]
     #rolling 5yr or 6yr 95%ile
-    rolling95 = rolling5(ecosite,0.95,nreq=54,quReq=20)
-    rollFails=grepl(pattern='^y',x=rolling95,ignore.case=T)
+    rolling95 = rolling5(ecosite,0.95,nreq=54,quReq=18)
+    rollFails=grepl(pattern='^n',x=rolling95,ignore.case=T)
     rollSucc= grepl(pattern='^[[:digit:]]',x=rolling95)
     Com_NOF$Ecoli95[yr%in%names(rolling95)[rollSucc]] <- readr::parse_number(rolling95[rollSucc])
     Com_NOF$EcoliAnalysisNote[rollyrs[rollFails]] <- paste0(Com_NOF$EcoliAnalysisNote[rollyrs[rollFails]],
@@ -388,15 +381,21 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   options(warn=-1)
   for(yy in 1:length(Com_NOF$Year)){
     if(!is.na(as.numeric(Com_NOF$Year[yy]))){
+      #Single year
       ecv=ecosite$Value[which(ecosite$Year==Com_NOF$Year[yy])]
+    if(length(ecv)>10){
+      Com_NOF$EcoliRecHealth540[yy]=sum(ecv>540)/length(ecv)*100
+      Com_NOF$EcoliRecHealth260[yy]=sum(ecv>260)/length(ecv)*100
+    }
     }else{
+      #Year range
       startYear = strTo(s = Com_NOF$Year[yy],c = 'to')
       stopYear = strFrom(s= Com_NOF$Year[yy],c = 'to')
       ecv=ecosite$Value[ecosite$Year>=startYear & ecosite$Year<=stopYear]
-    }
-    if(length(ecv)>0){
-      Com_NOF$EcoliRecHealth540[yy]=sum(ecv>540)/length(ecv)*100
-      Com_NOF$EcoliRecHealth260[yy]=sum(ecv>260)/length(ecv)*100
+      if(length(ecv)>54){
+        Com_NOF$EcoliRecHealth540[yy]=sum(ecv>540)/length(ecv)*100
+        Com_NOF$EcoliRecHealth260[yy]=sum(ecv>260)/length(ecv)*100
+      }
     }
   }
   options(warn=0)
@@ -413,7 +412,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   if(dim(annualMedian)[1]!=0){
     Com_NOF$DRPMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
     #Rolling 5yr median
-    rollingMeds=rolling5(siteChemSet = drpsite,quantProb=0.5,nreq=54,quReq = 20)
+    rollingMeds=rolling5(siteChemSet = drpsite,quantProb=0.5,nreq=54,quReq=18)
     rollFails = grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
     Com_NOF$DRPMed[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
@@ -427,7 +426,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     annual95 <- drpsite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.95,type=5,na.rm=T))
     Com_NOF$DRP95 = annual95$Value[match(Com_NOF$Year,annual95$Year)]
     #Rolling 5yr 95%ile
-    rolling95=rolling5(drpsite,0.95,nreq=54,quReq=20)
+    rolling95=rolling5(drpsite,0.95,nreq=54,quReq=18)
     rollFails=grepl(pattern = '^n',x = rolling95,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rolling95)
     Com_NOF$DRP95[yr%in%names(rolling95)[rollSucc]] <- readr::parse_number(rolling95[rollSucc])
@@ -451,22 +450,20 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   suspsedsite <- rightSite%>%dplyr::filter(Measurement=="BDISC")
   annualMedian <- suspsedsite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.5,type=5))
   if(dim(annualMedian)[1]!=0){
-    sedimentClass = unique(riverSiteTable$SedimentClass[which(tolower(riverSiteTable$LawaSiteID) == tolower(uLAWAids[i]) & riverSiteTable$Agency!='niwa')])
-    if(length(sedimentClass)==0||is.na(sedimentClass)){
-      sedimentClass = unique(riverSiteTable$SedimentClass[which(tolower(riverSiteTable$LawaSiteID)==tolower(gsub('_NIWA','',uLAWAids[i])) & riverSiteTable$Agency=='niwa')])
-      }
+    sedimentClass = unique(riverSiteTable$SedimentClass[which(tolower(riverSiteTable$LawaSiteID) == tolower(uLAWAids[i]) )])
     Com_NOF$SusSedMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
     #Rolling 5yr median
-    rollingMeds = rolling5(siteChemSet = suspsedsite,quantProb=0.5,nreq=60,quReq = 20)
+    rollingMeds = rolling5(siteChemSet = suspsedsite,quantProb=0.5,nreq=54,quReq=18) #NPSFM says 60, but we say 54
     rollFails   = grepl(pattern = '^n',x=rollingMeds,ignore.case=T)
     rollSucc    = grepl(pattern = '^[[:digit:]]',rollingMeds)
     Com_NOF$SusSedMed[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
-    Com_NOF$SusSedAnalysisNote[rollyrs[rollFails]] <- paste0("Need 60 values for 5yr median, have ",rollingMeds[rollFails])
+    Com_NOF$SusSedAnalysisNote[rollyrs[rollFails]] <- paste0("Need 54 values for 5yr median, have ",rollingMeds[rollFails])
     Com_NOF$SusSedBand <- sapply(Com_NOF$SusSedMed,NOF_FindBand,bandColumn=NPSFMSusSed[,sedimentClass+1])
   }else{
     Com_NOF$SusSedAnalysisNote="No clarity data"
   }
   
+  #clear up and return ####
     rm(rightSite)
   # if(dim(Com_NOF)[2]!=32){stop()}
   return(Com_NOF)
@@ -479,6 +476,9 @@ cat(Sys.time()-startTime)
 #30s 14.7.2021
 #26s  16/7/2021
 #29  23/7/2021  31320
+#30  30/7/2021 31590
+#26 12/8/21  31590
+#31 13/8/21 31620
 
 NOFSummaryTable$EcoliMed_Band <- sapply(NOFSummaryTable$EcoliMed,NOF_FindBand,bandColumn=NOFbandDefinitions$`E. coli`)
 
@@ -506,14 +506,13 @@ if(0){
   table(NOFSummaryTable$Nitrate95_Band,NOFSummaryTable$Nitrate_Toxicity_Band)
   table(NOFSummaryTable$AmmoniacalMed_Band,NOFSummaryTable$Ammonia_Toxicity_Band)
   table(NOFSummaryTable$Ammoniacal95_Band,NOFSummaryTable$Nitrate_Toxicity_Band)
-  table(NOFSummaryTable$Ecoli95_Band,NOFSummaryTable$EcoliSummaryband)
+  table(NOFSummaryTable$Ecoli95_Band,NOFSummaryTable$EcoliSummaryband,useNA='a')
+  table(NOFSummaryTable$EcoliRecHealth260_Band,NOFSummaryTable$EcoliMed_Band,useNA='a')
 }
 
+NOFSummaryTable <- merge(NOFSummaryTable, riverSiteTable,by = "LawaSiteID") 
 
-NOFSummaryTable$CouncilSiteID=riverSiteTable$CouncilSiteID[match(NOFSummaryTable$LawaSiteID,riverSiteTable$LawaSiteID)]
-NOFSummaryTable$SiteID=riverSiteTable$SiteID[match(NOFSummaryTable$LawaSiteID,riverSiteTable$LawaSiteID)]
-NOFSummaryTable <- NOFSummaryTable%>%dplyr::select(LawaSiteID,CouncilSiteID,SiteID,Year:EcoliAnalysisNote,EcoliSummaryband,DRPMed:DRPAnalysisNote)
-NOFSummaryTable <- merge(NOFSummaryTable, riverSiteTable) 
+NOFSummaryTable <- NOFSummaryTable%>%dplyr::select(LawaSiteID,CouncilSiteID,SiteID,Year:SusSedAnalysisNote,everything())
 
 #############################Save the output table ############################
 #For audit
@@ -525,6 +524,46 @@ write.csv(NOFSummaryTable%>%dplyr::filter(grepl(pattern = 'to',x = Year)),
                         "/NOFSummaryTable_Rolling.csv"),row.names=F)
 
 # NOFSummaryTable <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern="NOFSummaryTable_All",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors = F)
+
+# grep('note',names(NOFSummaryTable),ignore.case = T,value = T)
+# nitrAN = unname(sapply( NOFSummaryTable$NitrateAnalysisNote, function(s)strFrom(s,c="%")))
+# nitrAN = unname(sapply(nitrAN,function(s)strFrom(s,c='e')))
+# nitrAN = nitrAN[nitrAN!=""]
+# nitrAN = t(sapply(nitrAN,function(s)as.data.frame(t(parse_number(unlist(strsplit(s,',')))))))
+# par(mfrow=c(2,1))
+# plot(table(unlist(nitrAN)[1:dim(nitrAN)[1]]),ylab='count',xlab='Num records')
+# plot(table(unlist(nitrAN)[(dim(nitrAN)[1]+1):(dim(nitrAN)[1]*2)]),ylab='count',xlab='Num quarters')
+# par(mfrow=c(1,1))
+# plot(unlist(nitrAN)[1:dim(nitrAN)[1]],unlist(nitrAN)[(dim(nitrAN)[1]+1):(dim(nitrAN)[1]*2)],
+#      xlab='Num records',ylab='Num quarters')
+# abline(v=53.9,h=19.9,lty=2)
+# 
+# ammAN = unname(sapply( NOFSummaryTable$AmmoniaAnalysisNote, function(s)strFrom(s,c="x")))
+# ammAN = ammAN[ammAN!=""]
+# ammAN = unname(sapply(ammAN,function(s)strFrom(s,c='e')))
+# ammAN = t(sapply(ammAN,function(s)as.data.frame(t(parse_number(unlist(strsplit(s,',')))))))
+# par(mfrow=c(2,1))
+# plot(table(unlist(ammAN)[1:dim(ammAN)[1]]),ylab='count',xlab='Num records')
+# plot(table(unlist(ammAN)[(dim(ammAN)[1]+1):(dim(ammAN)[1]*2)]),ylab='count',xlab='Num quarters')
+# 
+# ecoAN = unname(sapply( NOFSummaryTable$EcoliAnalysisNote, function(s)strFrom(s,c="m")))
+# ecoAN = ecoAN[!ecoAN%in%c("","edians")]
+# ecoAN = unname(sapply(ecoAN,function(s)strFrom(s,c='a')))
+# ecoAN = unname(sapply(ecoAN,function(s)strFrom(s,c='e')))
+# ecoAN = t(sapply(ecoAN,function(s)as.data.frame(t(parse_number(unlist(strsplit(s,',')))))))
+# par(mfrow=c(2,1))
+# plot(table(unlist(ecoAN)[1:dim(ecoAN)[1]]),ylab='count',xlab='Num records')
+# plot(table(unlist(ecoAN)[(dim(ecoAN)[1]+1):(dim(ecoAN)[1]*2)]),ylab='count',xlab='Num quarters')
+# 
+# drpAN = unname(sapply( NOFSummaryTable$DRPAnalysisNote, function(s)strFrom(s,c="%")))
+# drpAN = drpAN[!drpAN%in%c("","n = 0 Insufficient to calculate annual medians ")]
+# drpAN = unname(sapply(drpAN,function(s)strFrom(s,c='e')))
+# drpAN = unname(sapply(drpAN,function(s)strFrom(s,c='e')))
+# drpAN = t(sapply(drpAN,function(s)as.data.frame(t(parse_number(unlist(strsplit(s,',')))))))
+# par(mfrow=c(2,1))
+# plot(table(unlist(drpAN)[1:dim(drpAN)[1]]),ylab='count',xlab='Num records')
+# plot(table(unlist(drpAN)[(dim(drpAN)[1]+1):(dim(drpAN)[1]*2)]),ylab='count',xlab='Num quarters')
+
 
 # ************
 # Note this is not the full summary table - only rolling years
@@ -539,20 +578,18 @@ NOFSummaryTable$SWQLanduse=pseudo.titlecase(NOFSummaryTable$SWQLanduse)
 # Reshape Output
 RiverNOF <-
   NOFSummaryTable%>%
-  # dplyr::filter(grepl(pattern = 'to',x = Year))%>%  #To i8nclude rolling assessment
-  dplyr::filter(Year=="2015to2019")%>%                #To include only the latest
-  #And now we're not doing the nitrate ones!  Because, toxicity!
-  # dplyr::select(-NitrateMed,-NitrateMed_Band,-Nitrate95,-Nitrate95_Band,-Nitrate_Toxicity_Band,-NitrateAnalysisNote)%>%
+  dplyr::filter(Year=="2016to2020")%>%                #To include only the latest
   dplyr::rename(LAWAID=LawaSiteID,
                 SiteName=CouncilSiteID,
                 Year=Year)%>%
   dplyr::select(-SiteID,-accessDate,-Lat,-Long,-AltitudeCl,-SWQAltitude,-SWQLanduse,-rawSWQLanduse,-rawRecLandcover,
-                -Altitude,-Landcover,-NZReach,-Agency,-Region,-Catchment,-ends_with('Note'))%>%
+                -Altitude,-Landcover,-NZReach,-NZSegment,-SedimentClass,-Agency,-Region,-Catchment,-ends_with('Note'))%>%
   tidyr::drop_na(LAWAID)%>%
   dplyr::mutate_if(is.factor,as.character)%>%
   reshape2::melt(id.vars=c("LAWAID","SiteName","Year"))%>%
   dplyr::rename(Parameter=variable,Value=value)
 
+#Get letter values in one column, and numeric values in the other
 RiverNOF$Band=RiverNOF$Value
 RiverNOF$Value=as.numeric(RiverNOF$Value)
 RiverNOF$Band[!is.na(RiverNOF$Value)] <- NA
@@ -563,6 +600,7 @@ write.csv(RiverNOF,
 rm(RiverNOF)
 
 
-
+# RiverNOF = read_csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
+#                              pattern="ITERiverNOF",full.names = T,recursive = T),1))
 
 

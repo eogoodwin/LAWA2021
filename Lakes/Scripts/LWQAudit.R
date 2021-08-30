@@ -29,14 +29,14 @@ urls$SOSwq[urls$Agency%in%c("GDC","GWRC","MDC","NCC","WCRC")]      #These use hi
 # WRC and ARC are in the habit of using KiWIS; HRC are indeed using hilltop, and BOP is an amazon based 52North
 
 #         Hilltop  KiWIS 52N  XML  Data  ColLabs
-"ac                 X              X           ?       "   #Have provided a format to get the QC codes from KiWIS Kisters
+"ac                  X              X           ?       "   #Have provided a format to get the QC codes from KiWIS
 "boprc                    X    X    X           ?       "   #Format matches same as HRC       MeasurementTVPs
 "ecan       X                  X    X        X          "
 "es         X                  X    X        X          "
 "gdc        X                                           "
 "gwrc       X                  O    X           ?       "   #Seem to be having today a no-data situation
 "hbrc       X                  X    X        X          "
-"hrc        X                  O    X           ?       "   #jeez just a completely different format, like the KiWIS.   MeasurementTVPs
+"hrc        X                  O    X           ?       "   #different format, like the KiWIS.   MeasurementTVPs
 "mdc        X                                           "
 "ncc        X                                           "
 "nrc        X                  X    X        X          "
@@ -179,37 +179,19 @@ ucounc=unique(LWQdata$agency)
 
 
 urls <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
-# library(parallel)
-# library(doParallel)
-# workers <- makeCluster(7)
-# registerDoParallel(workers)
-# foreach(agency = c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc"),
-#         .combine=rbind,.errorhandling='stop')%dopar%{
+
 for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
   if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d")),
-                        pattern = paste0('^',agency,".*audit\\.csv"),
-                        recursive = T,full.names = T,ignore.case = T))>0){
-            rmarkdown::render('H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/AuditDocument.Rmd',
-                              params=list(agency=agency,
-                                          sos=urls$SOSwq[which(tolower(urls$Agency)==agency)]),
-                              output_dir = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Audit/",format(Sys.Date(),"%Y-%m-%d")),
-                              output_file = paste0(toupper(agency),"Audit",format(Sys.Date(),'%d%b%y'),".html"),
-                              envir = new.env())
-          }
-          # return(NULL)
-        }
-# stopCluster(workers)
-# rm(workers)
-
-
-
-lwqtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",
-                           pattern="LakesWQ_Trend*.*",
-                           full.names=T,recursive=T,ignore.case=T),1))
-lwqtrend$frequency[grep('unassessed',lwqtrend$frequency,ignore.case=T)]<-'unassessed'
-lwqtrend%>%dplyr::filter(period==5)%>%select(frequency,Agency)%>%table
-lwqtrend%>%dplyr::filter(period==10)%>%select(frequency,Agency)%>%table
-lwqtrend%>%dplyr::filter(period==15)%>%select(frequency,Agency)%>%table
-
+                pattern = paste0('^',agency,".*audit\\.csv"),
+                recursive = T,full.names = T,ignore.case = T))>0){
+    rmarkdown::render('H:/ericg/16666LAWA/LAWA2021/Lakes/Scripts/AuditDocument.Rmd',
+                      params=list(agency=agency,
+                                  sos=urls$SOSwq[which(tolower(urls$Agency)==agency)]),
+                      output_dir = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Audit/",
+                                          format(Sys.Date(),"%Y-%m-%d")),
+                      output_file = paste0(toupper(agency),"Audit",format(Sys.Date(),'%d%b%y'),".html"),
+                      envir = new.env())
+  }
+}
 
 

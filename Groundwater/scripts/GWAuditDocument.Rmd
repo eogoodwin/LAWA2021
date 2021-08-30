@@ -12,20 +12,22 @@ editor_options:
 
 ```{r setup, include=FALSE,echo=FALSE}
 library(tidyverse)
-source('H:/ericg/16666LAWA/LAWA2020/Scripts/LAWAFunctions.R')
+source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 lawaset=c("Chloride", "Dissolved reactive phosphorus", "E.coli", "Electrical conductivity/salinity", 
 "Nitrate nitrogen", "Ammoniacal nitrogen")
 
-agency=params$agency
+if(!exists("agency")){agency=params$agency}
 
-GWdata=get("GWdata",pos=1)#parent.frame()$wqdata#loadLatestDataRiver()
+if(!exists("GWdata")){
+  GWdata=get("GWdata",pos=1)
+  }
 
-# GWdata=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2020/Groundwater/Data/',pattern='GWdata.csv',full.names = T,recursive =T) ,1),stringsAsFactors = F)
+# GWdata=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/',pattern='GWdata.csv',full.names = T,recursive =T) ,1),stringsAsFactors = F)
 # GWdata$Agency=factor(GWdata$Source,labels=c('ac','boprc','ecan','gdc','hbrc','hrc','mdc',
                                             # 'nrc','orc','es','trc','tdc','wrc','gwrc','wcrc'))
 agencyGWdata=GWdata%>%filter(Agency==agency)
 
-gwAudit = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Groundwater/Audit",
+gwAudit = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Groundwater/Audit",
                             pattern = paste0(agency,".*Audit.csv"),
                             recursive = T,full.names = T,ignore.case = T),1),
                    stringsAsFactors = F)
@@ -35,29 +37,29 @@ gwAudit$Agency=GWdata$Agency[match(tolower(gwAudit$Site),tolower(GWdata$LawaSite
 agencyGWdataLIDs = unique(tolower(agencyGWdata$LawaSiteID))
 agencyLIDs=unique(agencyGWdataLIDs)
 
-ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Groundwater/Analysis",
+ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Groundwater/Analysis",
                         pattern = 'ITEGWState',
 						full.names = T,recursive=T,ignore.case=T),1),stringsAsFactors = F)
 ss=ss[which(tolower(ss$LawaSiteID)%in%agencyLIDs),]
 
-GWtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Groundwater/Analysis",
-                          pattern="*GWTrend*.*",
-                          full.names=T,recursive=T,ignore.case=T),1),guess_max = 20000)
+GWtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Groundwater/Analysis",
+                          full.names=T,recursive=T,ignore.case=T)%>%
+                        grep(pattern="*GWTrend[^Succ]",value = T),1),guess_max = 20000)
 GWtrend <- GWtrend[which(tolower(GWtrend$LawaSiteID)%in%agencyLIDs),]
 # GWtrend <- GWtrend%>%select(LawaSiteID,Measurement,nMeasures,frequency,period,TrendScore,ConfCat)
 # GWtrend$frequency[is.na(GWtrend$frequency)] <- 'unassessed'
 if(dim(GWtrend)[1]>0){
-GWtrend$nReq = NA
-GWtrend$nReq[GWtrend$frequency=='quarterly']=GWtrend$period[GWtrend$frequency=='quarterly']*4*0.75
-GWtrend$nReq[GWtrend$frequency=='monthly']=GWtrend$period[GWtrend$frequency=='monthly']*12*0.75
-
-GWtrend$note = paste0("NA n=",GWtrend$nMeasures,'/',GWtrend$nReq)
-GWtrend$note[!is.na(GWtrend$ConfCat)] = GWtrend$frequency[!is.na(GWtrend$ConfCat)]
-GWtrend$TrendScore[is.na(GWtrend$ConfCat)] = GWtrend$note[is.na(GWtrend$ConfCat)]
-GWtrend$TrendScore[!is.na(GWtrend$ConfCat)] = paste0(GWtrend$ConfCat,' (',GWtrend$note,')')[!is.na(GWtrend$ConfCat)]
-GWtrend=GWtrend%>%
-  select(-ConfCat,-frequency,-nMeasures,-note,-nReq)%>%
-  tidyr::spread(key = c('Measurement'),value="TrendScore")
+  GWtrend$nReq = NA
+  GWtrend$nReq[which(GWtrend$frequency=='quarterly')]=GWtrend$period[which(GWtrend$frequency=='quarterly')]*4*0.75
+  GWtrend$nReq[which(GWtrend$frequency=='monthly')]=GWtrend$period[which(GWtrend$frequency=='monthly')]*12*0.75
+  
+  GWtrend$note = paste0("NA n=",GWtrend$nMeasures,'/',GWtrend$nReq)
+  GWtrend$note[!is.na(GWtrend$ConfCat)] = GWtrend$frequency[!is.na(GWtrend$ConfCat)]
+  GWtrend$TrendScore[is.na(GWtrend$ConfCat)] = GWtrend$note[is.na(GWtrend$ConfCat)]
+  GWtrend$TrendScore[!is.na(GWtrend$ConfCat)] = paste0(GWtrend$ConfCat,' (',GWtrend$note,')')[!is.na(GWtrend$ConfCat)]
+  GWtrend=GWtrend%>%
+    select(-ConfCat,-frequency,-nMeasures,-note,-nReq)%>%
+    tidyr::spread(key = c('Measurement'),value="TrendScore")
 }else{
   GWtrend=NULL
 }
@@ -79,12 +81,13 @@ print(paste("From the timeseries/SOS server, data is pulled for ",length(unique(
 
 The 16 different councils have different numbers of sites present in the combined dataset, with different date ranges, and different numbers of measurements. This table summarises those differences.  Absent councils currently have no data in the combined dataset.
 
-```{r councilRep, echo=F, results='asis'}
+```{r councilRep, echo=F,results='asis'}
+cat('  \n')
 print(knitr::kable(gwAudit%>%
                      dplyr::summarise(totalSites=length(unique(Site)),
                                       latestDate=max(ymd(EndDate),na.rm=T),
-                                      nMeasTypes=length(unique(Var))))%>%
-        kableExtra::kable_styling(c('bordered','striped'),full_width=T))
+                                      nMeasTypes=length(unique(Var))),format = 'html')%>%
+         kableExtra::kable_styling(c('bordered','striped'),full_width=T)%>%htmltools::HTML())
 cat('  \n')
 # if(any(!c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")%in%unique(gwAudit$Agency))){
 # cat(c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")[!c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")%in%unique(gwAudit$Agency)]," currently no data available.")
@@ -96,8 +99,10 @@ cat('  \n')
 
 A summary audit for `r agency` follows.  For each measurement ('var'), this gives the date range accessed, the number of values, number in the last 5 years, number of sites with values for that measurement, the average value in the returned data, the maximum and minimum values, and number of NA values.  See below the plots for more (per-site) detail.
 ```{r echo=F,results='asis'}
-print(knitr::kable(gwAudit[which(gwAudit$Agency==agency),],format.args=list(scientific=5))%>%
-        kableExtra::kable_styling(c('bordered','striped'),full_width=T))
+cat('  \n')
+print(knitr::kable(gwAudit[which(gwAudit$Agency==agency),],format.args=list(scientific=5),format = 'html')%>%
+        kableExtra::kable_styling(c('bordered','striped'),full_width=T)%>%htmltools::HTML())
+cat('  \n')
 ```
 
 
@@ -112,7 +117,7 @@ if(any(agencyGWdatan$n>1)){
   reps = agencyGWdatan%>%filter(n>1)%>%distinct
   
     print(knitr::kable(reps,format='html')%>%
-        kableExtra::kable_styling(c('bordered','striped'),full_width=T))
+        kableExtra::kable_styling(c('bordered','striped'),full_width=T)%>%htmltools::HTML())
   
   }
 ```
@@ -122,27 +127,27 @@ if(any(agencyGWdatan$n>1)){
 The following plots show data relative to other councils from whom data has been collected.
 ```{r echo=F,results='asis'}
 cat('  \n### Chloride\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Groundwater/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Groundwater/Audit",
                                  pattern="Chloride.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### DRP\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Groundwater/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Groundwater/Audit",
                                  pattern="DissolvedReactive.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### ECOLI\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Groundwater/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Groundwater/Audit",
                                  pattern="Ecoli.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### Conductivity/Salinity\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Groundwater/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Groundwater/Audit",
                                  pattern="Electrical.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### Nitrate nitrogen\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Groundwater/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Groundwater/Audit",
                                  pattern="Nitratenitrogen.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### Ammoniacal nitrogen\n')
-knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2020/Groundwater/Audit",
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Groundwater/Audit",
                                  pattern="Ammoniacal.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 ```
@@ -186,8 +191,8 @@ for(msm in unique(agencyGWdata$Measurement)){
 ```{r echo=F,results='asis'}
 print(knitr::kable(spread(data=ss%>%
                             dplyr::select(median,LawaSiteID,Measurement)%>%
-                            dplyr::mutate(median=signif(median,2)),Measurement,median))%>%
-        kableExtra::kable_styling(c('bordered','striped'),full_width=T))
+                            dplyr::mutate(median=signif(median,2)),Measurement,median),format = 'html')%>%
+        kableExtra::kable_styling(c('bordered','striped'),full_width=T)%>%htmltools::HTML())
 ```
 
 
@@ -196,12 +201,12 @@ print(knitr::kable(spread(data=ss%>%
 Trends are in 5 categories, with -2 meaning a likely degrading trend, and 2 meaning a likely improving trend. 0 is indeterminate, and NA when there is insufficient data to calculate a trend. For 5 year trends we need 54 measures, for 10 year trends we need 108 measures, and for 15 year trends we need 162 measures.  There is a fallback for ten and fifteen year trends, which can be calculated with quarterly rather than monthly data, if  54 quarterly measures (for 15 year) or 36 quarterly (for 10 year) measures are available.  In all cases, 90% of years need representation in that measurement set.  That is, missing measures can not all be missing from the same year.
 I'll first print out the filename of the trend data file. Its datestamp should match the one we see on the wall calendar today.
 ```{r echo=F,results='asis'}
-cat(tail(dir(path = "h:/ericg/16666LAWA/LAWA2020/Groundwater/Analysis",
+cat(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Groundwater/Analysis",
                           pattern="ITEGWTrend*.*",
                           full.names=T,recursive=T,ignore.case=T),1),' \n\n')
 if(!is.null(GWtrend)){
-print(knitr::kable(GWtrend)%>%
-        kableExtra::kable_styling(c('bordered','striped'),full_width=T))
+print(knitr::kable(GWtrend,format = 'html')%>%
+        kableExtra::kable_styling(c('bordered','striped'),full_width=T)%>%htmltools::HTML())
 }else{
     print("No trends for this region")
   }

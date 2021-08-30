@@ -23,24 +23,23 @@ for(i in 1:length(sites)){
   cat('\n',sites[i],i,'out of',length(sites),'\n')
   siteDat=NULL
   for(j in 1:length(Measurements)){
-    url <- paste0("http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&Procedure=Sample.Results.LAWA&",
-                  "Service=SOS&version=2.0.0&request=getObservation&", #correct as to 08/07/2021 email VP
+    url <- paste0("http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&Procedure=Sample.Results.LAWA",
+                  "&Service=SOS&version=2.0.0&request=getObservation", #correct as to 08/07/2021 email VP
                   "&observedProperty=",Measurements[j],
                   "&featureOfInterest=",sites[i],
                   "&temporalfilter=om:phenomenonTime,P25Y/2020-12-31")
-    'http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&Procedure=Sample.Results.LAWA&
-      Service=SOS&version=2.0.0&request=GetObservation&
-      observedProperty=Cyanobacteria%20BioVolume%20(mm3/L)&
-      featureOfInterest=44616&
-      temporalfilter=om:phenomenonTime,P25Y/2020-12-31'
+    # 'http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&Procedure=Sample.Results.LAWA&Service=SOS&version=2.0.0&request=GetObservation&observedProperty=Cyanobacteria%20BioVolume%20(mm3/L)&featureOfInterest=44616&temporalfilter=om:phenomenonTime,P25Y/2020-12-31'
+    # 'http://aklc.hydrotel.co.nz:8080/KiWIS/KiWIS?datasource=3&Procedure=Sample.Results.LAWA&Service=SOS&version=2.0.0&request=GetObservation&observedProperty=Total%20Phosphorus&featureOfInterest=44616&temporalfilter=om:phenomenonTime,P25Y/2020-12-31'
     
     url <- URLencode(url)
     url <- gsub(pattern = '\\+',replacement = '%2B',x = url)
-    dl=try(download.file(url,destfile="D:/LAWA/2021/tmpLac.xml",method='curl',quiet=T),silent = T)
+    dl=try(download.file(url,destfile="D:/LAWA/2021/tmpLac.xml",method='wininet',quiet=T),silent = T)
     Data=xml2::read_xml("D:/LAWA/2021/tmpLac.xml")
     Data = xml2::as_list(Data)[[1]]
     if(length(Data)>0){
       Data=Data$observationData$OM_Observation$result$MeasurementTimeseries
+      units = attributes(Data[[1]]$DefaultTVPMeasurementMetadata$uom)$code
+      cat(units)
       
       Data=do.call(rbind, unname(sapply(Data,FUN=function(listItem){
         if("MeasurementTVP"%in%names(listItem)){
@@ -55,6 +54,7 @@ for(i in 1:length(sites)){
       })))
       if(!is.null(Data)){
       Data$measurement=Measurements[j]
+      Data$units = units
       siteDat=rbind(siteDat,Data)
       }
     }
@@ -63,6 +63,10 @@ for(i in 1:length(sites)){
   siteDat$CouncilSiteID = sites[i]
   acLWQ=rbind(acLWQ,siteDat)
 }
+
+save(acLWQ,file='acLraw.rData')
+
+
 acLWQ=data.frame(CouncilSiteID=acLWQ$CouncilSiteID,
                  Date=format(lubridate::ymd_hms(acLWQ$time),'%d-%b-%y'),
                  Value=acLWQ$value,
@@ -92,6 +96,7 @@ acLWQ$centype=as.character(factor(acLWQ$centype,
                                   labels=c('Left','FALSE','Right')))
 
 table(acLWQ$Measurement)
+acLWQ$Measurement[acLWQ$Measurement == "Chlorophyll"] <- "CHLA"
 acLWQ$Measurement[acLWQ$Measurement == "Transpar.-secchi (m)"] <- "Secchi"
 acLWQ$Measurement[acLWQ$Measurement == 'E. coli (CFU/100ml)'] <- "ECOLI"
 acLWQ$Measurement[acLWQ$Measurement == 'Tot P (mg/l)'] <- "TP"
@@ -99,7 +104,11 @@ acLWQ$Measurement[acLWQ$Measurement == 'NH3+NH4 as N (mg/l)'] <- "NH4N"
 acLWQ$Measurement[acLWQ$Measurement == 'Tot N (mg/l)'] <- "TN" 
 acLWQ$Measurement[acLWQ$Measurement == 'pH (pH units)'] <- "pH"
 acLWQ$Measurement[acLWQ$Measurement == 'Cyanobacteria BioVolume (mm3/L)'] <- "CYANOTOT"
+acLWQ$Measurement[acLWQ$Measurement == 'Toxic Cyanobacteria BioVolume (mm3/L)'] <- "CYANOTOX"
 table(acLWQ$Measurement)
+
+#Covert from delivered g/m3 (mg/L) to desired mg/m3
+acLWQ$Value[acLWQ$Measurement=="CHLA"] <- as.numeric(acLWQ$Value[acLWQ$Measurement=="CHLA"])*1000
 
 # By this point, we have all the data downloaded from the council, in a data frame called Data.
 write.csv(acLWQ,file = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names = F)

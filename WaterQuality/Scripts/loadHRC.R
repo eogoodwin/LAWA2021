@@ -7,7 +7,7 @@ agency='hrc'
 
 Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
-Measurements=c(Measurements,'WQ Sample')
+# Measurements=c(Measurements,'WQ Sample')
 
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
@@ -60,8 +60,10 @@ for(i in 1:length(sites)){
 } #i
 
 save(Data, file=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),file="/hrcout.rData"))
+load(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",pattern='hrcout',recursive = T,full.names = T),1),verbose=T)
 
-hrc <- Data%>%transmute(CouncilSiteID=Site,Date=format(as.Date(time),'%d-%b-%y'),Value=value,Measurement,Units)
+hrc <- Data%>%filter(Measurement!="WQ Sample")%>%
+  transmute(CouncilSiteID=Site,Date=format(as.Date(time),'%d-%b-%y'),Value=value,Measurement,Units)
                          
 hrc$Censored = grepl('<|>',hrc$Value)
 hrc$CenType = FALSE
@@ -81,12 +83,14 @@ transfers <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Trans
   filter(Agency=='hrc')
 
 hrc$Measurement <- as.character(factor(hrc$Measurement,levels=transfers$CallName,labels=transfers$LAWAName))
+table(hrc$Measurement,useNA = 'a')
 
 write.csv(hrc,"D:/LAWA/2021/hrcSWQ.csv",row.names=F)
 file.copy(from=paste0("D:/LAWA/2021/hrcSWQ.csv"),
            to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/hrc.csv"),
           overwrite = T)
-# write.csv(hrc,paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),file="/hrc.csv"),row.names = F)
+rm(hrc)
+
 
  
 # 

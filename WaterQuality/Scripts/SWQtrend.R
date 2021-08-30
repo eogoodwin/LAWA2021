@@ -22,15 +22,9 @@ riverSiteTable=loadLatestSiteTableRiver()
 
 #Load the latest made 
 if(!exists('wqdata')){
-  wqdataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
-  cat(wqdataFileName)
-  wqdata=read_csv(wqdataFileName,guess_max = 100000)%>%as.data.frame
-  rm(wqdataFileName)
-  # wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')] = as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')]),'%d-%b-%y'))
-  
+  wqdata=loadLatestDataRiver()
+
   wqdata$myDate <- as.Date(dmy(wqdata$Date),"%d-%b-%Y")
-  
-  # wqdata$myDate[which(dmy(wqdata$myDate)<as.Date('2000-01-01'))] <- as.Date(as.character(wqdata$Date[wqdata$myDate<as.Date('2000-01-01')]),"%d-%b-%y")
   
   wqdata <- GetMoreDateInfo(wqdata)
   wqdata$monYear = format(wqdata$myDate,"%b-%Y")
@@ -43,17 +37,14 @@ if(!exists('wqdata')){
 }
 
 #15 year trend ####
-datafor15=wqdata%>%filter(Year>=startYear15 & Year <= EndYear & !Measurement%in%c("PH","TURBFNU","WQSAMPLE","WQ Sample"))
- # datafor15=wqdata%>%filter(Year>=startYear15 & Year <= EndYear & Measurement=="BDISC")
+datafor15=wqdata%>%filter(Year>=startYear15 & Year <= EndYear & !Measurement%in%c("PH","TURBFNU"))
 usites=unique(datafor15$LawaSiteID)
 uMeasures=unique(datafor15$Measurement)
 
-if("TURBFNU"%in%uMeasures){uMeasures=uMeasures[-which(uMeasures=="TURBFNU")]}
-if("WQSAMPLE"%in%uMeasures){uMeasures=uMeasures[-which(uMeasures=="WQSAMPLE")]}
-if("WQ Sample"%in%uMeasures){uMeasures=uMeasures[-which(uMeasures=="WQ Sample")]}
 cat('\n',length(usites),'\n')
 usite=1
-workers <- makeCluster(5)
+
+workers <- makeCluster(6)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   library(magrittr)
@@ -123,13 +114,10 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
   return(siteTrendTable15)
 }-> trendTable15
 stopCluster(workers)
-cat(Sys.time()-startTime) #Jun282021 5.01 mins 7 cores  7 mins 4 cores 6.7 mins 5 cores.
+cat(Sys.time()-startTime) #Aug20 6.2 mins 6 cores
 rm(workers)
 
 rm(usites,uMeasures,usite,datafor15)
-
-
-
 
 
 
@@ -153,20 +141,19 @@ rm(trendTable15)
 
 
 
+
+
+
+
 #10 year trend ####
-datafor10=wqdata%>%filter(Year>=startYear10 & Year <= EndYear & !Measurement%in%c("PH","TURBFNU","WQSAMPLE","WQ Sample"))%>%drop_na(LawaSiteID)
+datafor10=wqdata%>%filter(Year>=startYear10 & Year <= EndYear & !Measurement%in%c("PH","TURBFNU"))%>%drop_na(LawaSiteID)
 
 usites=unique(datafor10$LawaSiteID)
 uMeasures=unique(datafor10$Measurement)
-if("TURBFNU"%in%uMeasures){uMeasures=uMeasures[-which(uMeasures=="TURBFNU")]}
-if("WQSAMPLE"%in%uMeasures){uMeasures=uMeasures[-which(uMeasures=="WQSAMPLE")]}
-if("WQ Sample"%in%uMeasures){uMeasures=uMeasures[-which(uMeasures=="WQ Sample")]}
-
 
 cat('\n',length(usites),'\n')
 usite=1
-library(parallel)
-library(doParallel)
+
 workers <- makeCluster(7)
 registerDoParallel(workers)
 clusterCall(workers,function(){
@@ -185,7 +172,7 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
                               Median=NA, Sen_VarS=NA,AnnualSenSlope=NA, Intercept=NA, Sen_Lci=NA,
                               Sen_Uci=NA, SSAnalysisNote=NA,Sen_Probability=NA, Sen_Probabilitymax=NA,
                               Sen_Probabilitymin=NA, Percent.annual.change=NA,
-                              standard=NA,ConfCat=NA, period=15, frequency=NA)
+                              standard=NA,ConfCat=NA, period=10, frequency=NA)
   subDat=datafor10%>%dplyr::filter(LawaSiteID==usites[usite])
   for(uparam in 1:length(uMeasures)){
     subSubDat=subDat%>%filter(subDat$Measurement==uMeasures[uparam])
@@ -240,8 +227,10 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
   return(siteTrendTable10)
 }-> trendTable10
 stopCluster(workers)
-cat(Sys.time()-startTime) #4.5 mins 23July2021
+cat(Sys.time()-startTime) #5.2 mins 20Aug2021
 rm(workers,usites,uMeasures,usite,datafor10)
+
+
 
 rownames(trendTable10) <- NULL
 trendTable10$Sen_Probability[trendTable10$Measurement!="BDISC"]=1-(trendTable10$Sen_Probability[trendTable10$Measurement!="BDISC"])
@@ -262,19 +251,19 @@ rm(trendTable10)
 
 
 #5 year trend ####
-datafor5=wqdata%>%filter(Year>=startYear5 & Year <= EndYear & !Measurement%in%c("PH","TURBFNU","WQSAMPLE","WQ Sample"))
+datafor5=wqdata%>%filter(Year>=startYear5 & Year <= EndYear & !Measurement%in%c("PH","TURBFNU"))
 
 usites=unique(datafor5$LawaSiteID)
 uMeasures=unique(datafor5$Measurement)
 cat('\n',length(usites),'\n')
 usite=1
+
 workers <- makeCluster(7)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   library(magrittr)
   library(plyr)
   library(dplyr)
-  
 })
 startTime=Sys.time()
 foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar%{
@@ -286,7 +275,7 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
                              Median=NA, Sen_VarS=NA,AnnualSenSlope=NA, Intercept=NA, Sen_Lci=NA,
                              Sen_Uci=NA, SSAnalysisNote=NA,Sen_Probability=NA, Sen_Probabilitymax=NA,
                              Sen_Probabilitymin=NA, Percent.annual.change=NA,
-                             standard=NA,ConfCat=NA, period=15, frequency=NA)
+                             standard=NA,ConfCat=NA, period=5, frequency=NA)
   subDat=datafor5%>%dplyr::filter(LawaSiteID==usites[usite])
   for(uparam in 1:length(uMeasures)){
     subSubDat=subDat%>%filter(subDat$Measurement==uMeasures[uparam])
@@ -300,7 +289,7 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
       siteTrendTable5$numQuarters[uparam]=length(unique(subSubDat$qtrYear[!is.na(subSubDat$Value)]))#dim(subSubDat)[1]
       siteTrendTable5$numYears[uparam]=length(unique(subSubDat$Year[!is.na(subSubDat$Value)]))
       
-      #For 5 year monthly we want 90% of measures 
+      #For 5 year monthly we want 90% of measures (54)
       if(siteTrendTable5$numMonths[uparam] >= 0.9*12*5){
         siteTrendTable5$frequency[uparam]='monthly'
       }else{
@@ -332,7 +321,9 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
 }-> trendTable5
 stopCluster(workers)
 rm(workers,usites,uMeasures,usite,datafor5)
-cat(Sys.time()-startTime) #2.7mins 29Jun2021 
+cat(Sys.time()-startTime) #3.2mins 13Aug2021 
+
+
 
 rownames(trendTable5) <- NULL
 trendTable5$Sen_Probability[trendTable5$Measurement!="BDISC"]=1-(trendTable5$Sen_Probability[trendTable5$Measurement!="BDISC"])
@@ -352,6 +343,14 @@ trendTable5$TrendScore[is.na(trendTable5$TrendScore)]<-(NA)
 save(trendTable5,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend5Year.rData"))
 rm(trendTable5)
 
+
+
+
+
+
+
+
+#Combine trend results to combination ####
 
 riverSiteTable=loadLatestSiteTableRiver()
 load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
@@ -373,27 +372,23 @@ trendTable15%>%group_by(Agency)%>%dplyr::select(Agency,frequency)%>%table
 
 
 
-MCItrend=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis",
-                           pattern='MacroMCI_Trend',full.names = T,recursive = T,ignore.case = T),1),stringsAsFactors = F)
-MCItrend%>%group_by(Agency)%>%dplyr::select(Agency,frequency)%>%table
-
 # #Remove MDC DRP and ECOLI
 # #See email Steffi Henkel 14/9/2018 to Kati Doehring, Eric Goodwin, Abi Loughnan and Peter Hamill
 if(any(trendTable10$Agency=="mdc" & trendTable10$Measurement=="DRP")){
   trendTable10 <- trendTable10[-which(trendTable10$Agency=='mdc'& trendTable10$Measurement=="DRP"),]
-  # 7760 to 7728
+  # 10540 to 10508
 }
 if(any(trendTable10$Agency=="mdc" & trendTable10$Measurement=="ECOLI")){
   trendTable10 <- trendTable10[-which(trendTable10$Agency=='mdc'& trendTable10$Measurement=="ECOLI"),]
-  # 7728 to 7696
+  # 10408 to 10476
 }
 if(any(trendTable15$Agency=="mdc" & trendTable15$Measurement=="DRP")){
   trendTable15 <- trendTable15[-which(trendTable15$Agency=='mdc'& trendTable15$Measurement=="DRP"),]
-  # 7760 to 7728
+  # 10440 to 10408
 }
 if(any(trendTable15$Agency=="mdc" & trendTable15$Measurement=="ECOLI")){
   trendTable15 <- trendTable15[-which(trendTable15$Agency=='mdc'& trendTable15$Measurement=="ECOLI"),]
-  #7728 to 7696
+  #10408 to 10476
 }
 
 
@@ -404,6 +399,8 @@ combTrend$CouncilSiteID = riverSiteTable$CouncilSiteID[match(tolower(gsub('_NIWA
 #24664 21Aug
 #23144 29June2021
 #31122 23/7/21
+#31422 13/8/21
+#31422 20/8/21
 
 #Save for ITE
 combTrend$SWQAltitude=pseudo.titlecase(combTrend$SWQAltitude)
@@ -427,18 +424,21 @@ MCItrend=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/
 MCItrend$TrendScore[is.na(MCItrend$TrendScore)] <- -99
 combTrend <- rbind(combTrend%>%
                      dplyr::select(LawaSiteID,CouncilSiteID,Agency,Region,Measurement,
-                                   nMeasures,frequency,period,TrendScore,ConfCat,MKAnalysisNote,SSAnalysisNote,everything()),
+                                   nMeasures,frequency,period,TrendScore,ConfCat,
+                                   MKAnalysisNote,SSAnalysisNote,everything(),-numQuarters),
                    MCItrend%>%
                      dplyr::filter(period>=10)%>%
                      dplyr::select(LawaSiteID,CouncilSiteID,Agency,Region,Measurement,
-                                   nMeasures,frequency,period,TrendScore,ConfCat,MKAnalysisNote,SSAnalysisNote,everything()))
+                                   nMeasures,frequency,period,TrendScore,ConfCat,
+                                   MKAnalysisNote,SSAnalysisNote,everything(),-numBiAnns,-seasonal))
 table(combTrend$frequency,combTrend$period)
+#38118
 
 write.csv(combTrend,
           paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
                  "/RiverWQ_Trend",format(Sys.time(),"%d%b%Y"),".csv"),row.names = F)
 
-# combTrend=read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/","RiverWQ_Trend",	recursive = T,full.names = T,ignore.case=T),1),stringsAsFactors = F)
+# combTrend=read_csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/","RiverWQ_Trend",	recursive = T,full.names = T,ignore.case=T),1),guess_max=2000)
 
 if(0){
 #Audit trend attrition

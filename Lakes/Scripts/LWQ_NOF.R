@@ -57,7 +57,8 @@ EndYear <- lubridate::year(Sys.Date())-1
 StartYear5 <- EndYear - 5 + 1
 StartYear15 <- EndYear - 15 + 1
 firstYear = min(lakesMonthlyMedians$Year,na.rm=T)
-yr <- c(as.character(StartYear15:EndYear),paste0(as.character(StartYear15:(EndYear-4)),'to',as.character((StartYear15+4):EndYear)))
+yr <- c(as.character(StartYear15:EndYear),
+        paste0(as.character(StartYear15:(EndYear-4)),'to',as.character((StartYear15+4):EndYear)))
 rollyrs=which(grepl('to',yr))
 reps <- length(yr)
 
@@ -66,29 +67,23 @@ lakesMonthlyMedians$Measurement=toupper(lakesMonthlyMedians$Measurement)
 
 
 
-# Subset to just have the variables that are tested against NOF standards
-sub_lwq <- lakesMonthlyMedians%>%dplyr::filter(Year>=StartYear15)%>%#filter(Region=='auckland')%>%
+# Subset to just have the variables that are tested against NOF standards ####
+sub_lwq <- lakesMonthlyMedians%>%dplyr::filter(Year>=StartYear15)%>%
   dplyr::select(c("LawaSiteID","CouncilSiteID","Measurement","Value","Date","Year"))%>%
-  dplyr::filter(tolower(Measurement)%in%tolower(c("NH4N","TN","TP","ECOLI","PH","SECCHI","CHLA")))
+  dplyr::filter(tolower(Measurement)%in%tolower(c("NH4N","TN","TP","ECOLI","PH","SECCHI","CHLA","CYANOTOT","CYANOTOX")))
+#63082 from 66483
 sub_lwq$Measurement[sub_lwq$Measurement=="NH4N"] <- "NH4"
-
 sub_lwq$YearQuarter=paste0(quarters(sub_lwq$Date),year(sub_lwq$Date))
-
-
 lakeSiteTable$uclid=paste(tolower(trimws(lakeSiteTable$LawaSiteID)),
                           tolower(trimws(lakeSiteTable$CouncilSiteID)),sep='||')
 sub_lwq$uclid      =paste(tolower(trimws(sub_lwq$LawaSiteID)),
                           tolower(trimws(sub_lwq$CouncilSiteID)),sep='||')
 
-# lakeSiteTable$uclid[which(!lakeSiteTable$uclid%in%sub_lwq$uclid)]=paste(lakeSiteTable$LawaSiteID,lakeSiteTable$SiteID,sep='||')[which(!lakeSiteTable$uclid%in%sub_lwq$uclid)]
-
 uclids = unique(sub_lwq$uclid)
+cat(length(uclids),'\t')
 
 if(exists("NOFSummaryTable")) { rm("NOFSummaryTable") }
 
-cat(length(uclids),'\t')
-library(parallel)
-library(doParallel)
 workers=makeCluster(4)
 registerDoParallel(workers)
 clusterCall(workers,function(){
@@ -96,10 +91,10 @@ clusterCall(workers,function(){
 })
 startTime=Sys.time()
 foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
-  suppressWarnings(rm(tnsite,tpsite,nh4site,ecosite,rightSite,value,Value)  )
+    suppressWarnings(rm(tnsite,tpsite,nh4site,ecosite,rightSite,value,Value)  )
   rightSite=sub_lwq[(sub_lwq$uclid==uclids[i]),]
   rightSite=rightSite[!is.na(rightSite$Value),]
-  # create table of compliance with proposed National Objectives Framework
+  # create table of compliance with proposed National Objectives Framework ####
   Com_NOF <- data.frame (LawaSiteID               = rep(unique(rightSite$LawaSiteID),reps),
                          CouncilSiteID            = rep(unique(rightSite$CouncilSiteID),reps),
                          Year                     = yr,
@@ -124,7 +119,6 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
                          ChlAMax_Band             = rep(as.character(NA),reps),
                          ChlASummaryBand          = rep(as.character(NA),reps),
                          ChlAAnalysisNote         = rep('',reps),
-                         # EcoliPeriod              = rep(as.numeric(NA),reps),
                          EcoliMedian              = rep(as.numeric(NA),reps),
                          EcoliBand                = rep(NA,reps),
                          Ecoli95                  = rep(as.numeric(NA),reps),
@@ -135,6 +129,9 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
                          EcoliRecHealth260_Band   = rep(NA,reps),
                          EcoliSummaryBand         = rep(as.character(NA),reps),
                          EcoliAnalysisNote        = rep('',reps),
+                         CyanoTOX80th              = rep(as.numeric(NA),reps),
+                         CyanoTOT80th              = rep(as.numeric(NA),reps),
+                         CyanoBand                = rep(NA,reps),
                          stringsAsFactors = FALSE)
 
   
@@ -242,7 +239,7 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
   if(dim(annualMedian)[1]!=0){
     Com_NOF$EcoliMedian <- annualMedian$value[match(Com_NOF$Year,annualMedian$Year)]
     # Com_NOF$EcoliPeriod=ifelse(is.na(Com_NOF$EcoliMedian),NA,1)
-    #rolling 5yr or 6yr median
+    #rolling 5yr median
     rollingMeds=rolling5(ecosite,0.5,nreq=54)
     rollFails=grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
@@ -302,7 +299,7 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
                                             ' have ',count5(ecosite,T))[these]
   }
   
-  
+  rm(ecosite)
   #################### Clarity ############ ####
   clarsite=rightSite[rightSite$Measurement=="SECCHI",]
   annualMedian <- clarsite%>%dplyr::group_by(Year)%>%dplyr::summarise(value=quantile(Value,prob=0.5,type=5,na.rm=T))
@@ -310,7 +307,7 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
   if(length(annualMedian)!=0){
     Com_NOF$ClarityMedian = annualMedian$value[match(Com_NOF$Year,annualMedian$Year)]
     #Rolling 5yr median
-    rollingMeds = rolling5(siteChemSet=clarsite,quantProb=0.5)
+    rollingMeds = rolling5(siteChemSet=clarsite,quantProb=0.5,nreq=30)
     rollFails=grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
     Com_NOF$ClarityMedian[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
@@ -331,7 +328,7 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
   if(length(annualMedian)!=0){
     Com_NOF$ChlAMed = annualMedian$value[match(Com_NOF$Year,annualMedian$Year)]
     #Rolling 5 yr median
-    rollingMeds = rolling5(siteChemSet=chlSite,quantProb=0.5)
+    rollingMeds = rolling5(siteChemSet=chlSite,quantProb=0.5,nreq=30)
     rollFails=grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
     Com_NOF$ChlAMed[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
@@ -349,7 +346,7 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
   if(length(annualMax)!=0){
     Com_NOF$ChlAMax = annualMax$value[match(Com_NOF$Year,annualMax$Year)]
     #Rolling max
-    rollingMax=rolling5(chlSite,quantProb=0.95)
+    rollingMax=rolling5(chlSite,quantProb=0.95,nreq=30)
     rollFails=is.na(as.numeric(rollingMax))
     Com_NOF$ChlAMax[yr%in%names(rollingMax)]=as.numeric(rollingMax)
     Com_NOF$ChlAAnalysisNote[rollyrs[rollFails]] <- paste0("Need 30 values for max, have ",strFrom(s=rollingMax[rollFails],c='y'))
@@ -361,10 +358,48 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
     #------------------Finding the band for ChlA Summary-------------------------------
     Com_NOF$ChlASummaryBand=apply(select(Com_NOF,ChlAMed_Band, ChlAMax_Band),1,max,na.rm=T)
   rm(chlSite,annualMax)
+  
+  ############################ CYANO BACTERIA ########################
+  #Table 10 NPSFM p 49
+  cyanoSite = rightSite%>%filter(Measurement%in%c("CYANOTOX","CYANOTOT"))
+  if(dim(cyanoSite)[1]>0){
+    cyanoSite$Value[which(cyanoSite$Value==0)] <- NA          #DOUBLE CHECK
+    cyanoSite <- cyanoSite%>%group_by(Date,Measurement)%>%
+      summarise(.groups='keep',
+                Value=quantile(Value,prob=0.5,type=5,na.rm=T),
+                Year=first(Year),
+                YearQuarter=first(YearQuarter))%>%
+      ungroup%>%
+      pivot_wider(names_from=Measurement,values_from=Value)
+    annual80th = cyanoSite%>%
+      dplyr::group_by(Year)%>%
+      dplyr::summarise(across(where(is.numeric),quantile,prob=0.8,type=5,na.rm=T))%>%ungroup
+    #   TOX80 = quantile(CYANOTOX,prob=0.8,type=5,na.rm=T),
+    #                  TOT80 = quantile(CYANOTOT,prob=0.8,type=5,na.rm=T))%>%
+    # ungroup
+    if('CYANOTOX'%in%names(annual80th)){
+      Com_NOF$CyanoTOX80th = annual80th$CYANOTOX[match(Com_NOF$Year,annual80th$Year)]
+    }
+    if('CYANOTOX'%in%names(annual80th)){
+      Com_NOF$CyanoTOT80th = annual80th$CYANOTOT[match(Com_NOF$Year,annual80th$Year)]
+    }
+    #And rolling 3 (NPSFM spec)
+    rolling80s = rolling3(cyanoSite = cyanoSite,quantProb = 0.8,nreq = 12)
+    suppressWarnings({rollfails = which(apply(rolling80s%>%select(-Year),1,FUN=function(c)all(is.na(as.numeric(c)))))})
+    Com_NOF$CyanoTOX80th = as.numeric(rolling80s$TOX[match(Com_NOF$Year,rolling80s$Year)])
+    Com_NOF$CyanoTOT80th = as.numeric(rolling80s$TOT[match(Com_NOF$Year,rolling80s$Year)])
+    # if(sum(!is.na(cyanoSite$CYANOTOT))>12|sum(!is.na(cyanoSite$CYANOTOX))>12)browser()
+    Com_NOF$CyanoBand[which(Com_NOF$CyanoTOX80th>1.8|Com_NOF$CyanoTOT80th>10)] <- "D"
+    Com_NOF$CyanoBand[which((Com_NOF$CyanoTOX80th>1&Com_NOF$CyanoTOX80th<=1.8)|
+                              (Com_NOF$CyanoTOT80th>1&Com_NOF$CyanoTOX80th<=10))] <- "C"
+    Com_NOF$CyanoBand[which((Com_NOF$CyanoTOX80th<=1|is.na(Com_NOF$CyanoTOX80th)) & Com_NOF$CyanoTOT80th<=1)] <- "B"
+    Com_NOF$CyanoBand[which((Com_NOF$CyanoTOX80th<=1|is.na(Com_NOF$CyanoTOX80th)) & Com_NOF$CyanoTOT80th<=0.5)] <- "A"
+  }
   return(Com_NOF)
 }->NOFSummaryTable
 stopCluster(workers)
 rm(workers)
+
 
 Sys.time()-startTime
 rm(startTime)
@@ -456,16 +491,19 @@ write.csv(LakeSiteNOF%>%transmute(LAWAID=LawaSiteID,
                                   BandingRule=variable,
                                   #Parameter=parameter,
                                   Year=Year,
-                                  NOFMedian=value)%>%filter(Year=="2015to2019"),
+                                  NOFMedian=value)%>%filter(Year=="2016to2020"),
           file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITELakeSiteNOF",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
+# itelakesitenof=read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/","ITELakeSiteNOF[[:digit:]]",recursive=T,full.names = T),1))
 rm(LakeSiteNOF)
 
 #LakeSiteNOFGraph
-write.csv(lakesMonthlyMedians%>%transmute(LAWAID=LawaSiteID,
-                                          Parameter=Measurement,
-                                          NOFDate=format(Date,'%Y-%m-%d'),
-                                          NOFValue=Value),
+write.csv(lakesMonthlyMedians%>%
+            transmute(LAWAID=LawaSiteID,
+                      Parameter=Measurement,
+                      NOFDate=format(Date,'%Y-%m-%d'),
+                      NOFValue=Value)%>%
+            filter(Parameter!="CYANOTOX"),
           file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITELakeSiteNOFGraph",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 # itelakesitenofgraph=read.csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/","ITELakeSiteNOFGraph",recursive=T,full.names = T),1))

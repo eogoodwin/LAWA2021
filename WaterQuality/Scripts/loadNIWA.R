@@ -21,7 +21,7 @@ Measurements = c("NH4-N (Dis)","Turbidity (Nephelom)",
                  "E Coli","N (Tot)",
                  "P (Tot)","NO3+NO2 as N","pH")
 siteTable=loadLatestSiteTableRiver()
-# sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
+sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
 
 
@@ -71,6 +71,10 @@ for(i in 1:length(sites)){
     }
   }
 }
+
+
+
+#Write here to CSV
 
 
 

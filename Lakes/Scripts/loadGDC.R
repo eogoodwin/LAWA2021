@@ -12,7 +12,7 @@ sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 lakeDataColumnLabels=NULL
 
-setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
+setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 
 con <- xmlOutputDOM("Hilltop")
 con$addTag("Agency", "GDC")

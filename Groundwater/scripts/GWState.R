@@ -2,17 +2,28 @@
 rm(list=ls())
 library(tidyverse)
 source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
-EndYear <- 2019#year(Sys.Date())-1
+source('H:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R')
+EndYear <- 2020#year(Sys.Date())-1
 startYear5 <- EndYear - 5+1
 startYear10 <- EndYear - 10+1
 startYear15 <- EndYear - 15+1
 plotto=F
 applyDataAbundanceFilters=F
 
+
+
+
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/Groundwater/Data/", format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 
-GWdata = readxl::read_xlsx(paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/Groundwater Quality/",
-                                  "GWExport_20210914.xlsx"),sheet=1,guess_max = 50000)%>%
+# GWdata = readxl::read_xlsx(paste0("C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/Groundwater Quality/",
+#                                   "GWExport_20210914.xlsx"),sheet=1,guess_max = 50000)%>%
+#   filter(Variable_aggregated%in%c("Nitrate nitrogen","Chloride",
+#                                   "Dissolved reactive phosphorus",
+#                                   "Electrical conductivity/salinity",
+#                                   "E.coli","Ammoniacal nitrogen"))%>%as.data.frame
+GWdata = readxl::read_xlsx(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/Groundwater/Data/",
+                                    pattern="GWExport_.*xlsx",full.names = T,recursive = T),1),
+                           sheet=1,guess_max = 50000)%>%
   filter(Variable_aggregated%in%c("Nitrate nitrogen","Chloride",
                                   "Dissolved reactive phosphorus",
                                   "Electrical conductivity/salinity",
@@ -36,9 +47,15 @@ rm(these)
 #261854 28-8-20
 #262749 04-9-20
 #216873 14-9-20
+#197088 3/8/21
+#194562 6/8/21
+#215206 13/8/21
+#208293 20/8/21
+#213592 27/8/21 
 
 GWdata%>%split(f=.$Source)%>%purrr::map(.f = function(x)any(apply(x,2,FUN=function(y)any(grepl('<|>',y,ignore.case=T)))))
-
+#ECAN GDC HBRC HRC MDC ORC ES TRC TDC GWRC WCRC do
+#AC BOPRC NCC NRC WRC dont
 
 #Auckland censoring info
 #PK at WRC says bit posns 13 and 14 are < and >
@@ -47,6 +64,7 @@ table(GWdata$Source,bitwAnd(2^14,as.numeric(GWdata$Qualifier))==2^14)
 
 if(bitwAnd(2^13,as.numeric(GWdata$Qualifier))==2^13){}
 if(bitwAnd(2^14,as.numeric(GWdata$Qualifier))==2^14){}
+
 CensLeft = which(bitwAnd(2^14,as.numeric(GWdata$Qualifier))==2^14)  
 CensRight = which(bitwAnd(2^13,as.numeric(GWdata$Qualifier))==2^13)  
 
@@ -201,13 +219,18 @@ GWdata <- GWdata%>%dplyr::filter(!Qualifier%in%c(42,151))  #42 means poor qualit
 #261832 of 23 28-8-20
 #262727  4/9/20
 #263248 of 23 14/9/2021
+#197063 of 23 3/8/2021
+#194537 6/8/21
+#215184 13/8/21
+#208268 20/8/21
+#213567 27/8/21
 
 
 noActualData = which(is.na(GWdata$Site_ID)&is.na(GWdata$`Result-raw`)&is.na(GWdata$Date))
 if(length(noActualData)>0){
   GWdata <- GWdata[-noActualData,]
 }
-rm(noActualData) #216843
+rm(noActualData) #215176
 GWdata <- GWdata%>%distinct
 #214254 of 31 11-7
 #212401 of 31 11-14
@@ -223,6 +246,11 @@ GWdata <- GWdata%>%distinct
 #261775 of 23 28-8-20
 #262670  4/9/20
 #216665 14-9-20
+#196964 3/8/21
+#194437 6/8/21
+#215097 13/8/21
+#208174 20/8/21
+#213480 27/8/21
 
 GWdata$Value[which(GWdata$`Result-prefix`=='<')] <- GWdata$`Result-edited`[which(GWdata$`Result-prefix`=='<')]*0.5
 GWdata$Value[which(GWdata$`Result-prefix`=='>')] <- GWdata$`Result-edited`[which(GWdata$`Result-prefix`=='>')]*1.1
@@ -239,7 +267,7 @@ GWdata$CenType='not'
 GWdata$CenType[grepl(pattern = '^<',GWdata$`Result-prefix`)]='lt'
 GWdata$CenType[grepl(pattern = '^>',GWdata$`Result-prefix`)]='gt'
 
-table(GWdata$CenType)
+table(GWdata$Source,GWdata$CenType)
 
 if(plotto){
   table(GWdata$Region,GWdata$Measurement)
@@ -257,15 +285,15 @@ with(GWdata[GWdata$Variable_aggregated=="Electrical conductivity/salinity"&GWdat
 these = which(GWdata$Variable_units%in%c('µS/cm','us/cm','uS/cm'))
 GWdata$Variable_units[these] <- 'µS/cm'
 
-these = which(GWdata$Variable_units%in%c('mS/cm','ms/cm'))
-GWdata$Variable_units[these] <- 'µS/cm'
-GWdata$Value[these] = GWdata$Value[these]*1000
+# these = which(GWdata$Variable_units%in%c('mS/cm','ms/cm'))
+# GWdata$Variable_units[these] <- 'µS/cm'
+# GWdata$Value[these] = GWdata$Value[these]*1000
 
 these = which(GWdata$Variable_units=='mS/m')
 GWdata$Variable_units[these] <- 'µS/cm'
 GWdata$Value[these] = GWdata$Value[these]*1000/100
 
-these = which(GWdata$Variable_units%in%c('mS/m @25 deg C','mS/m @25°C','ms/m@25C','mS/m@20C'))
+these = which(GWdata$Variable_units%in%c('mS/m @25 deg C','mS/m @25°C','ms/m@25C','mS/m@20C','mS/m@25C'))
 GWdata$Variable_units[these] <- 'µS/cm'
 GWdata$Value[these] = GWdata$Value[these]*1000/100
 
@@ -278,11 +306,12 @@ mtext(side = 1,text='µS/cm')
 #FreqCheck expects a one called "Date" ####
 GWdata$myDate <- as.Date(as.character(GWdata$Date))
 GWdata <- GetMoreDateInfo(GWdata)
-GWdata$monYear = format(GWdata$myDate,"%b-%Y")
-GWdata$quYear = paste0(quarters(GWdata$myDate),'-',format(GWdata$myDate,'%Y'))
+GWdata$monYear = base::format.Date(GWdata$myDate,"%b-%Y")
+GWdata$quYear = paste0(quarters(GWdata$myDate),'-',base::format.Date(GWdata$myDate,'%Y'))
 
-write.csv(GWdata,paste0('h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/',format(Sys.Date(),'%Y-%m-%d'),'/GWdata.csv'),row.names=F)
-# GWdata = read.csv(tail(dir('h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/','GWdata.csv',recursive=T,full.names=T))[1],stringsAsFactors=F,check.names = F)
+write.csv(GWdata,paste0('h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/',
+                        format(Sys.Date(),'%Y-%m-%d'),'/GWdata.csv'),row.names=F)
+# GWdata = read_csv(tail(dir('h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/','GWdata.csv',recursive=T,full.names=T),1),guess_max = 5000)
 
 
 
@@ -295,16 +324,31 @@ GWdataRelevantVariables <- GWdata%>%
                           "Dissolved reactive phosphorus",
                           "Electrical conductivity/salinity",
                           "E.coli","Ammoniacal nitrogen"))%>%
-  filter(`Result-raw`!='*')%>%
+  filter(`Result-raw`!='*')%>%         #This excludes non-results discussed by Carl Hanson by email April 2020
   dplyr::filter(lubridate::year(myDate)>=(EndYear-periodYrs+1)&lubridate::year(myDate)<=EndYear)%>%  
-  dplyr::group_by(LawaSiteID,Measurement,monYear)%>%
-  select(-'Result-raw',-'Result-edited',-'Result-metadata',-'Variable')%>%
-  dplyr::mutate(Value=mean(Value,na.rm=T),
-                Date=first(Date,1),
-                myDate=first(myDate,1))%>%
+  select(-'Result-raw',-'Result-metadata',-'Variable')%>%
+  dplyr::group_by(siteMeas,monYear)%>%  #Month and year
+  dplyr::summarise(.groups='keep',
+                   LawaSiteID=unique(LawaSiteID),
+                   Measurement=unique(Measurement),
+                   Year=unique(Year),
+                   Qtr=unique(Qtr),
+                   Month=unique(Month),
+                   Value=median(Value,na.rm=T),
+                   Date=first(Date,1),
+                   myDate=first(myDate,1),
+                   LcenLim = suppressWarnings({max(`Result-edited`[`Result-prefix`=='<'],na.rm=T)}),
+                   RcenLim = suppressWarnings({min(`Result-edited`[`Result-prefix`=='>'],na.rm=T)}),
+                   CenType = ifelse(Value<LcenLim,'lt',ifelse(Value>RcenLim,'gt',NA)))%>%
   ungroup%>%distinct
 #68163
-freqs <- split(x=GWdataRelevantVariables,f=GWdataRelevantVariables$siteMeas)%>%purrr::map(~freqCheck(.))%>%unlist
+#32382 3/8/21
+#65305 13/8/21
+#62173 20/8/21
+#64958 207/8/21
+
+freqs <- split(x=GWdataRelevantVariables,
+               f=GWdataRelevantVariables$siteMeas)%>%purrr::map(~freqCheck(.))%>%unlist
 table(freqs)
 # freqs
 # bimonthly    monthly quarterly     
@@ -323,6 +367,11 @@ table(freqs)
 #        43       134       5355    28-8-20
 #        42       134       5356
 #        42       134       5366    14-9-20
+#        14       58        3041     3-8-21
+#        32       65        4758     6-8-21
+#        32       77        5245    13-8-21
+#        32       74        5004    20-8-21
+#        32       75        5214    27/8/21
 GWdataRelevantVariables$Frequency=freqs[GWdataRelevantVariables$siteMeas]  
 rm(freqs)
 
@@ -336,7 +385,8 @@ GWdataRelevantVariables$CenBin[GWdataRelevantVariables$CenType=='gt'] = 2
 #Get a median value per site/Measurement combo
 GWmedians <- GWdataRelevantVariables%>%
   group_by(LawaSiteID,Measurement)%>%
-  dplyr::summarise(median=quantile(Value,probs = 0.5,type=5,na.rm=T),
+  dplyr::summarise(.groups='keep',
+                   median=quantile(Value,probs = 0.5,type=5,na.rm=T),
                    MAD = quantile(abs(median-Value),probs=0.5,type=5,na.rm=T),
                    count = n(),
                    minPerYear = min(as.numeric(table(factor(as.character(lubridate::year(myDate)),
@@ -344,11 +394,13 @@ GWmedians <- GWdataRelevantVariables%>%
                    nYear = length(unique(Year)),
                    nQuart=length(unique(Qtr)),
                    nMonth=length(unique(Month)),
-                   censoredCount = sum(!is.na(`Result-prefix`)),
+                   # censoredCount = sum(!is.na(CenType)),
+                   censoredCount = sum(Value<=(0.5*LcenLim) | Value>=(1.1*RcenLim)),
                    CenType = Mode(CenBin),
                    Frequency=unique(Frequency))%>%
   ungroup%>%
   mutate(censoredPropn = censoredCount/count)
+#5321 of 13
 
 GWmedians$CenType = as.character(GWmedians$CenType)
 GWmedians$CenType[GWmedians$CenType==1] <- '<'
@@ -361,37 +413,60 @@ GWmedians$censMedian[GWmedians$censoredPropn>=0.5 & GWmedians$CenType=='>'] <-
 
 #E coli detection ####
 #1 is detect, 2 is non-detect
-GWmedians$EcoliDetect=NA
-GWmedians$EcoliDetect[which(GWmedians$Measurement=="E.coli")] <- "1"  #Detect
-GWmedians$EcoliDetect[which(GWmedians$Measurement=="E.coli"&(GWmedians$censoredPropn>0.5|GWmedians$median==0|is.na(GWmedians$median)))] <- "2"  #Non-detect
-table(GWmedians$EcoliDetect)   #72 699
+# GWmedians$EcoliDetect=NA
+# GWmedians$EcoliDetect[which(GWmedians$Measurement=="E.coli")] <- "1"  #Detect
+# GWmedians$EcoliDetect[which(GWmedians$Measurement=="E.coli"&
+#                               (GWmedians$censoredPropn>0.5|
+#                                  GWmedians$median==0|
+#                                  is.na(GWmedians$median)))] <- "2"  #Non-detect
+# table(GWmedians$EcoliDetect)   
+#Changing the 'censoredCount' above.  
+#When it's based on censoredCount = sum(!is.na(CenType)), I get 88 detects, 688 non detects
+#When it's based on censoredCount = sum(Value<=(0.5*LcenLim) | Value>=(1.1*RcenLim)) I get 89 detects, 687 non detects
+
+
 GWmedians$EcoliDetectAtAll=NA
 GWmedians$EcoliDetectAtAll[which(GWmedians$Measurement=="E.coli")] <- "1"  #Detect
-GWmedians$EcoliDetectAtAll[which(GWmedians$Measurement=="E.coli"&(GWmedians$censoredPropn==1|GWmedians$median==0|is.na(GWmedians$median)))] <- "2"  #Non-detect
-table(GWmedians$EcoliDetectAtAll) #367 404
+GWmedians$EcoliDetectAtAll[which(GWmedians$Measurement=="E.coli"&
+                                   (GWmedians$censoredPropn==1|
+                                      GWmedians$median==0|
+                                      is.na(GWmedians$median)))] <- "2"  #Non-detect
+table(GWmedians$EcoliDetectAtAll)
+#Changing the 'censoredCount' above.
+#When it's based on censoredCount = sum(!is.na(CenType)), I get 391 detects, 385 non detects
+#When it's based on censoredCount = sum(Value<=(0.5*LcenLim) | Value>=(1.1*RcenLim)) I get 394 detects, 382 non detects
 
-table(GWmedians$EcoliDetect,GWmedians$EcoliDetectAtAll)
+
+
+# table(GWmedians$EcoliDetect,GWmedians$EcoliDetectAtAll)
 
 
 #3845 of 11 11-7
 #3756 of 11 11-14
 #3882 of 11 11-22
 #4057 of 11 11-25
-#4228 of 11 03-06-2021
+#4228 of 11 03-06-20
 #4208 of 12 03-13-20
-#4208 of 13 03-20-20  Added ecoliDetect
+#4208 of 13 03-20-20  Added ecoliDetect   Emails in LAWA 2019 groudnwater folder
 #4209 of 15 03-27-20
-#4208 of 16 04-23-2021 added ecoliDetectAtAll
-#4319 of 16 04/08/2021
+#4208 of 16 04-23-20 added ecoliDetectAtAll
+#4319 of 16 04/08/20
 #5053 of 16 10/8/20
 #5473       14/8/20
 #5527       24/8/20
 #5532       28
 #5532
 #5542       14-9-20
+#3113       3-8-21
+#4855    6-8-21
+#5354   13/8/21
+#5321  27/8/21
 
 
-GWmedians$meas = factor(GWmedians$Measurement,labels=c("NH4","Cl","DRP","ECOLI","NaCl","NO3"))
+GWmedians$meas = factor(GWmedians$Measurement,
+                        levels=c("Ammoniacal nitrogen","Chloride","Dissolved reactive phosphorus",
+                                 "E.coli","Electrical conductivity/salinity","Nitrate nitrogen"),
+                        labels=c("NH4","Cl","DRP","ECOLI","NaCl","NO3"))
 
 
 #Plotting
@@ -422,119 +497,6 @@ if(plotto){
   with(GWmedians%>%filter(Frequency=='bimonthly'),hist(nMonth,main='bimonthly',breaks=12));abline(v=5,lwd=2,col='red')
   with(GWmedians%>%filter(Frequency=='quarterly'),hist(nQuart,main='quarterly'));abline(v=3.5,lwd=2,col='red')
 }
-
-GWmedians$Exclude<-FALSE
-if(applyDataAbundanceFilters){
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=="bimonthly" & GWmedians$count<(0.5*6*periodYrs))] <- TRUE   #15 ouf ot 6*5 = 30
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=="monthly" & GWmedians$count<(0.5*12*periodYrs))] <- TRUE    #30 out of 5*12 = 60
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=="quarterly" & GWmedians$count<(0.5*4*periodYrs))] <- TRUE   #10 out of 5*4 = 20
-  table(GWmedians$Exclude)
-  # FALSE  TRUE 
-  # 2577   1268 11-7
-  # 2489   1267 11-14
-  # 2473   1409 11-22
-  # 2627   1430 11-25
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=="bimonthly" & GWmedians$minPerYear<(0.5*6))] <- TRUE   #3 out of 6
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=="monthly" & GWmedians$minPerYear<(0.5*12))] <- TRUE    #6 out of 12
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=="quarterly" & GWmedians$minPerYear<(0.5*4))] <- TRUE   #2 out of 4
-  table(GWmedians$Exclude)
-  # FALSE  TRUE 
-  # 2086   1759
-  # 2096   1660
-  # 2009   1873
-  # 2154   1903 11-25
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=='bimonthly' & GWmedians$nMonth<6)] <- TRUE  #Need representation in each bimonth
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=='monthly' & GWmedians$nMonth<12)] <- TRUE  #Need representation in each month
-  GWmedians$Exclude[which(tolower(GWmedians$Frequency)=='quarterly' & GWmedians$nQuart<4)] <- TRUE  #Need representation in each quarter
-  table(GWmedians$Exclude)
-  # FALSE  TRUE 
-  # 2006  1839 
-  # 2016  1740
-  # 1925  1957
-  # 2074  1983 11-25
-  
-  #Get the monthly ones that were excluded by the above rules, reduce them to quarterly resolution and try again ####
-  GWdataReducedTemporalResolution <- GWdata%>%filter(LawaSiteID%in%(GWmedians%>%filter(Exclude&Frequency=="monthly")%>%select(LawaSiteID)%>%unlist)&
-                               Measurement%in%(GWmedians%>%filter(Exclude&Frequency=="monthly")%>%select(Measurement)%>%unlist))%>%
-    dplyr::filter(lubridate::year(myDate)>=(EndYear-periodYrs+1)&lubridate::year(myDate)<=EndYear)%>%
-    dplyr::group_by(LawaSiteID,Measurement,quYear)%>%
-    select(-'Result-raw',-'Result-edited',-'Result-metadata',-'Variable',-'monYear',-'Month')%>%
-    dplyr::summarise(siteMeas=first(siteMeas),
-                     Value=quantile(Value,probs=0.5,type=5,na.rm=T),  #was mean
-                     Date=first(Date,1),
-                     myDate=first(myDate,1),
-                     Qtr = first(Qtr,1),
-                     `Result-prefix`=any(!is.na(`Result-prefix`)))%>%
-    ungroup%>%distinct
-  freqs <- split(x=GWdataReducedTemporalResolution,f=GWdataReducedTemporalResolution$siteMeas)%>%purrr::map(~freqCheck(.))%>%unlist
-  table(freqs)
-  # freqs
-  # quarterly   
-  #  191 11-7
-  #  191 11-14
-  #  202 11-22
-  #  196 11-25
-  
-  GWdataReducedTemporalResolution$Frequency=freqs[GWdataReducedTemporalResolution$siteMeas]  
-  rm(freqs)
-  
-  #Calcualte medians on this set that was reduced from monthly to quarterly
-  GWmediansOfReducedTemporalResolution <- GWdataReducedTemporalResolution%>%group_by(LawaSiteID,Measurement)%>%
-    dplyr::summarise(median=quantile(Value,probs = 0.5,type=5,na.rm=T),
-                     MAD = quantile(abs(median-Value),probs=0.5,type=5,na.rm=T),
-                     count = n(),
-                     minPerYear = min(as.numeric(table(lubridate::year(myDate)))),
-                     nQuart=length(unique(Qtr)),
-                     nMonth=NA,
-                     censoredCount = sum(`Result-prefix`),
-                     Frequency=unique(Frequency))%>%
-    ungroup%>%
-    mutate(censoredPropn = censoredCount/count)
-  
-  GWmediansOfReducedTemporalResolution$meas = factor(GWmediansOfReducedTemporalResolution$Measurement,labels=c("NH4","Cl","DRP","ECOLI","NaCl","NO3"))
-  #191 of
-  #202
-  #196
-  
-  with(GWmediansOfReducedTemporalResolution[GWmediansOfReducedTemporalResolution$Frequency=='quarterly',],table(minPerYear,count))
-  GWmediansOfReducedTemporalResolution[which(GWmediansOfReducedTemporalResolution$Frequency=='quarterly'&GWmediansOfReducedTemporalResolution$count==20),]
-  
-  #Check whether the reduced time resolution set now have enough data to stand in as quarterly or bimonthly, where they failed as monthly
-  GWmediansOfReducedTemporalResolution$Exclude<-FALSE
-  GWmediansOfReducedTemporalResolution$Exclude[which(tolower(GWmediansOfReducedTemporalResolution$Frequency)=="bimonthly" & GWmediansOfReducedTemporalResolution$count<(0.5*6*periodYrs))] <- TRUE   #15 ouf ot 6*5 = 30
-  GWmediansOfReducedTemporalResolution$Exclude[which(tolower(GWmediansOfReducedTemporalResolution$Frequency)=="quarterly" & GWmediansOfReducedTemporalResolution$count<(0.5*4*periodYrs))] <- TRUE   #10 out of 5*4 = 20
-  table(GWmediansOfReducedTemporalResolution$Exclude)
-  # FALSE  TRUE 
-  # 144    47
-  # 153    49
-  # 147    49 11-25
-  GWmediansOfReducedTemporalResolution$Exclude[which(tolower(GWmediansOfReducedTemporalResolution$Frequency)=="bimonthly" & GWmediansOfReducedTemporalResolution$minPerYear<(0.5*6))] <- TRUE   #3 out of 6
-  GWmediansOfReducedTemporalResolution$Exclude[which(tolower(GWmediansOfReducedTemporalResolution$Frequency)=="quarterly" & GWmediansOfReducedTemporalResolution$minPerYear<(0.5*4))] <- TRUE   #2 out of 4
-  table(GWmediansOfReducedTemporalResolution$Exclude)
-  # FALSE  TRUE 
-  # 104     87
-  # 110     92
-  # 104    94
-  GWmediansOfReducedTemporalResolution$Exclude[which(tolower(GWmediansOfReducedTemporalResolution$Frequency)=='bimonthly' & GWmediansOfReducedTemporalResolution$nMonth<6)] <- TRUE  #Need representation in each bimonth
-  GWmediansOfReducedTemporalResolution$Exclude[which(tolower(GWmediansOfReducedTemporalResolution$Frequency)=='quarterly' & GWmediansOfReducedTemporalResolution$nQuart<4)] <- TRUE  #Need representation in each quarter
-  table(GWmediansOfReducedTemporalResolution$Exclude)
-  # FALSE  TRUE 
-  # 104     87 
-  # 110     92
-  # 104    92
-  
-  #Label them as reduced from montnly resolution
-  GWmediansOfReducedTemporalResolution$Frequency = paste0(GWmediansOfReducedTemporalResolution$Frequency,'_redFromMonthly')
-  GWmediansOfReducedTemporalResolution <- GWmediansOfReducedTemporalResolution[!GWmediansOfReducedTemporalResolution$Exclude,]
-  
-  
-  #Drop these out of the original (unreduced) dataset, to replace with the reduced-resolution substitute
-  these = which(paste0(GWmedians$LawaSiteID,GWmedians$Measurement)%in%
-                  paste0(GWmediansOfReducedTemporalResolution$LawaSiteID,GWmediansOfReducedTemporalResolution$Measurement))
-  GWmedians = GWmedians[-these,]
-  GWmedians = rbind(GWmedians,GWmediansOfReducedTemporalResolution)
-  rm(GWmediansOfReducedTemporalResolution)
-}  # section only done when filtering by data abundance
 if(plotto){
   par(mfrow=c(3,3))
   plot(GWmedians$median,GWmedians$MAD/(GWmedians$median*GWmedians$count^0.5),
@@ -563,25 +525,6 @@ if(plotto){
   
   table(GWmedians$count)
 }
-
-GWmedians <- GWmedians%>%filter(!Exclude)
-#3845 to 2073  11-7
-#3756 to 2072  11-14
-#3882 to 1985  11-22
-#4057 to 2130  11-25
-#4228 unfiltered 03-06-2021
-#4208          03-13-20
-#4208          03-20-20
-#4209          03-27-20
-#4208          04-23-20
-#4319          04/08/2021
-#5053         10/8/20
-#5476
-#5527
-#5532
-#5532
-#5542
-
 if(plotto){
   table(GWmedians$count)
   table(GWmedians$count,GWmedians$meas)
@@ -628,6 +571,8 @@ if(plotto){
 
 GWmedians$Source = GWdata$Source[match(GWmedians$LawaSiteID,GWdata$LawaSiteID)]
 
+GWmedians$StateVal = GWmedians$median
+GWmedians$StateVal[GWmedians$Measurement=="E.coli"] <- GWmedians$EcoliDetectAtAll[GWmedians$Measurement=="E.coli"]
 
 #Export Median values
 dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/Groundwater/Analysis/",format(Sys.Date(),"%Y-%m-%d")))
@@ -639,6 +584,11 @@ rm(GWdataRelevantVariables)
 if(exists('GWdataReducedTemporalResolution')){rm(GWdataReducedTemporalResolution)}
 
 GWmedians <- read.csv(tail(dir(path='./Analysis',pattern='ITEGWState',full.names = T,recursive = T),1),stringsAsFactors = F)
+
+
+
+
+
 ######################################################################################
 #Calculate trends ####
 GWtrendData <- GWdata%>%filter(Measurement%in%c("Nitrate nitrogen","Chloride",
@@ -660,19 +610,14 @@ clusterCall(workers,function(){
 foreach(py = c(10,15),.combine=rbind,.errorhandling="stop")%dopar%{
   pn=0.75
   tredspy <- split(GWtrendData,GWtrendData$siteMeas)%>%
-    purrr::map(~trendCore(.,periodYrs=py,proportionNeeded=pn)) #Proportion needed is greater or equal
+    purrr::map(~trendCore(.,periodYrs=py,proportionNeeded=pn,valToUse = 'Result-edited')) #Proportion needed is greater or equal
   tredspy <- do.call(rbind.data.frame,tredspy)
   row.names(tredspy)=NULL
-  
-  # treds10 <- split(GWtrendData,GWtrendData$siteMeas)%>%purrr::map(~trendCore(.,periodYrs=10,proportionNeeded=pn))
-  # treds10=do.call(rbind.data.frame,treds10)
-  # row.names(treds10)=NULL
-  
   return(tredspy)
 }->GWtrends
 stopCluster(workers)
 rm(workers)
-Sys.time()-startTime           #2.7 mins
+Sys.time()-startTime           #2.9 mins 13/8/21
 #8592 of 39  11-11
 #8382 of 39  14-11
 #8478 of 39  22-11
@@ -685,17 +630,24 @@ Sys.time()-startTime           #2.7 mins
 #11524
 #11534    28-8-20
 #11544
+#6354      3-8-21
+#9928   6*8*21
+#10986 13/8/21
+#10456 20/8/21
+#10916 27/8/21
 
 GWtrends$Source = GWdata$Source[match(GWtrends$LawaSiteID,GWdata$LawaSiteID)]
 
 
-GWtrends$ConfCat <- cut(GWtrends$MKProbability, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
+GWtrends$ConfCat <- cut(GWtrends$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
                         labels = rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
 GWtrends$ConfCat=factor(GWtrends$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
 GWtrends$TrendScore=as.numeric(GWtrends$ConfCat)-3
 GWtrends$TrendScore[is.na(GWtrends$TrendScore)]<-(NA)
 
-fGWt = GWtrends%>%filter(!grepl('^unassess',GWtrends$frequency)&!grepl('^Insufficient',GWtrends$AnalysisNote))
+fGWt = GWtrends%>%dplyr::filter(!grepl('^unassess',GWtrends$frequency)&
+                                  !grepl('^Insufficient',GWtrends$MKAnalysisNote)&
+                                  !grepl('^Insufficient',GWtrends$SSAnalysisNote))
 
 # 2476 of 41  11-7
 # 2515 of 41  11-14
@@ -710,6 +662,11 @@ fGWt = GWtrends%>%filter(!grepl('^unassess',GWtrends$frequency)&!grepl('^Insuffi
 # 1935 28-8-20
 # 1977
 # 2252 14-9-20
+# 757 3-8-21
+# 2265 6-8-21
+# 2594 13-8-21
+# 2543 20/8/21
+# 2580 27/8/21
 
 #    nitrate nitrogen, chloride, DRP, electrical conductivity and E. coli.
 # fGWt = fGWt%>%filter(Measurement %in% c("Nitrate nitrogen","Chloride","Dissolved reactive phosphorus",
@@ -719,7 +676,8 @@ fGWt = GWtrends%>%filter(!grepl('^unassess',GWtrends$frequency)&!grepl('^Insuffi
 # knitr::kable(table(fGWt$proportionNeeded,fGWt$period),format='rst')
 
 if(plotto){
-  with(fGWt,knitr::kable(table(AnalysisNote,period),format='rst'))
+  with(fGWt,knitr::kable(table(MKAnalysisNote,period),format='rst'))
+  with(fGWt,knitr::kable(table(SSAnalysisNote,period),format='rst'))
   
   knitr::kable(with(fGWt%>%filter(period==10 & proportionNeeded==0.75)%>%
                       droplevels,table(Measurement,TrendScore)),format='rst')

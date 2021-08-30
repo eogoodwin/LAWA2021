@@ -23,7 +23,8 @@ suppressWarnings(rm(Data))
 for(i in 1:length(sites)){
   cat('\n',sites[i],i,'out of',length(sites),'\t')
   for(j in 1:length(Measurements)){
-    url <- paste0("http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?service=SOS&version=2.0.0&request=GetObservation&",
+    url <- paste0("http://sos.boprc.govt.nz/service?",
+                  "service=SOS&version=2.0.0&request=GetObservation&",
                   "observedProperty=",Measurements[j],
                   "&featureOfInterest=",sites[i],
                   "&temporalfilter=om:phenomenonTime,P15Y/2021-01-01")

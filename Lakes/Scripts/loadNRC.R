@@ -20,7 +20,7 @@ con$addTag("Agency", toupper(agency))
 for(i in 1:length(sites)){
   cat("\n",sites[i],i,"out of",length(sites))
   for(j in 1:length(Measurements)){
-    url <- paste0("http://hilltop.nrc.govt.nz/SOELakeWQ.hts?service=Hilltop&request=GetData",
+    url <- paste0("http://hilltop.nrc.govt.nz/SOEFinalArchive.hts?service=Hilltop&request=GetData",
                   "&Site=",sites[i],
                   "&Measurement=",Measurements[j],
                   "&From=2004-01-01",

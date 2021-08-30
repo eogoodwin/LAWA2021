@@ -695,6 +695,7 @@ StateScore <- function(df,scopeIn,altitude,LandcoverIn,wqparam,comparison){
 calcScore <- function(df1,df2,wqparam){
   #Pretty sure this could be recoden as a Hmisc::cut2 call
   df1 <- na.omit(df1) #scope
+  if(dim(df1)[1]==0){return(NULL)}
   df2 <- na.omit(df2) #baseline
   for(i in 1:length(df1[,1]))
     if(wqparam=="BDISC"){

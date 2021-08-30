@@ -12,18 +12,20 @@ EndYear <- lubridate::year(Sys.Date())-1    #2020
 urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 
 wqdata=loadLatestDataRiver()
+siteTable=loadLatestSiteTableRiver()
 
-wqdata <- wqdata%>%filter(!Measurement%in%c("WQSAMPLE","WQ Sample"))
-# wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')] = as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')]),'%d-%b-%y'))
-#Overall audit xmlAge, start, stop, n, nSite, mean, max, min audit ####
+
+
 wqAudit=data.frame(agency=NULL,xmlAge=NULL,var=NULL,nMeas=NULL,nSite=NULL,earliest=NULL,latest=NULL,minMeas=NULL,meanMeas=NULL,maxMeas=NULL,nNA=NULL)
 for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
-   xmlAge = checkXMLageRiver(agency)
+   # xmlAge = checkXMLageRiver(agency)
+   csvAge= checkCSVageRiver(agency)
   agencyWQdata=loadLatestCSVRiver(agency)
   if(!is.null(agencyWQdata)&&dim(agencyWQdata)[1]>0){
     nPar=length(unique(agencyWQdata$Measurement))
     newRows=data.frame(agency=rep(agency,nPar),
-                       xmlAge=rep(xmlAge,nPar),
+                       # xmlAge=rep(xmlAge,nPar),
+                       csvAge=rep(csvAge,nPar),
                        var=sort(unique(agencyWQdata$Measurement)),
                        nMeas=rep(NA,nPar),
                        nMeas5=rep(NA,nPar),
@@ -50,25 +52,11 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
       newRows$nNA[v]=sum(is.na(agencyWQdata$Value[these]))
     }
     wqAudit <- rbind.data.frame(wqAudit,newRows)
-  }
-}
-write.csv(wqAudit,paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),
-                     "/WQAudit",format(Sys.Date(),'%d%b%y'),".csv"),row.names = F)
-
-wqAudit%>%dplyr::group_by(agency)%>%dplyr::summarise(xmlAge=mean(xmlAge,na.rm=T),
-                                                     endDate=max(lubridate::dmy(latest),na.rm=T))%>%knitr::kable(format='rst')
-
-
+    
 #Per agency audit site/measurement start, stop, n and range ####
-for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
-  agencyWQdata=loadLatestCSVRiver(agency,maxHistory = 40)
-  if(!is.null(agencyWQdata)&&dim(agencyWQdata)[1]>0){
-    # if(agency=='niwa'){
-    #   agencyWQdata$Value[agencyWQdata$Measurement%in%c("DRP","NH4","TN","TP")]=agencyWQdata$Value[agencyWQdata$Measurement%in%c("DRP","NH4","TN","TP")]/1000
-    # }
     nvar=length(uvars <- unique(agencyWQdata$Measurement))
-      nsite=length(usites <- unique(agencyWQdata$CouncilSiteID))
-      siteTerm="CouncilSiteID"
+    nsite=length(usites <- unique(agencyWQdata$CouncilSiteID))
+    siteTerm="CouncilSiteID"
     agencyDeets=as.data.frame(matrix(nrow=nvar*nsite,ncol=7))
     names(agencyDeets)=c("Site","Var","StartDate","EndDate","nMeas","MinVal","MaxVal")
     r=1
@@ -87,18 +75,34 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
     }
     write.csv(agencyDeets,paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),
                                  "/",agency,format(Sys.Date(),'%d%b%y'),"audit.csv"),row.names = F)
+    
   }
-rm(agencyWQdata)
 }
+write.csv(wqAudit,paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit/",format(Sys.Date(),"%Y-%m-%d"),
+                     "/WQAudit",format(Sys.Date(),'%d%b%y'),".csv"),row.names = F)
+
+
+wqAudit%>%dplyr::group_by(agency)%>%
+  dplyr::summarise(csvAge=mean(csvAge,na.rm=T),
+                   endDate=max(lubridate::dmy(latest),na.rm=T))%>%knitr::kable(format='rst')
+
 
 
 
 #Audit plots to allow comparison between agencies - check units consistency etc  ####
-wqd=doBy::summaryBy(data=wqdata,
-                    formula=Value~LawaSiteID+Measurement+Date,
-                    id=~Agency,
-                    FUN=median)
-wqds=spread(wqd,Measurement,Value.median)
+# wqd=doBy::summaryBy(data=wqdata,
+#                     formula=Value~LawaSiteID+Measurement+Date,
+#                     id=~Agency,
+#                     FUN=median)
+# wqds = pivot_wider(data = wqd,names_from = Measurement,values_from = Value.median)%>%as.data.frame
+
+wqds <- wqdata%>%
+  group_by(LawaSiteID,Measurement,Date)%>%
+  dplyr::summarise(.groups='keep',
+            Agency=first(Agency),
+            median=median(Value,na.rm=T))%>%ungroup%>%
+  pivot_wider(names_from = Measurement,values_from = median)%>%as.data.frame
+
 
 params=unique(wqdata$Measurement)
 for(param in 1:length(params)){
@@ -114,32 +118,41 @@ for(param in 1:length(params)){
   if(names(dev.cur())=='png'){dev.off()}
 }
 
-
-#Change in trend results over time ####
-tlist = dir(path = 'h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',
-            pattern = 'RiverWQ_Trend',recursive = T,full.names = T)
-mostRecent = tail(tlist,1)
-nextMost = head(tail(tlist,2),1)
-thirdLast = head(tail(tlist,3),1)
-
-mostRecent = read_csv(mostRecent)
-nextMost   = read_csv(nextMost)
-thirdLast = read_csv(thirdLast)
-
-nextMost$nmCC = nextMost$ConfCat
-nextMost$nmMK = nextMost$MKProbability
-thirdLast$tlCC = thirdLast$ConfCat
-thirdLast$tlMK = thirdLast$MKProbability
-
-
-mostRecent = merge(x=mostRecent,nextMost%>%select(LawaSiteID,Measurement,period,nmCC,nmMK),all.x=T)
-nextMost   = merge(x=nextMost,thirdLast%>%select(LawaSiteID,Measurement,period,tlCC,tlMK),all.x=T)
-
-table(mostRecent$ConfCat,mostRecent$nmCC,useNA='a')
-table(nextMost$ConfCat,nextMost$tlCC,useNA='a')
-plot(mostRecent$Cd,mostRecent$nmMK,pch=46)
-plot(nextMost$MKProbability,nextMost$tlMK,pch=46)
-
+# 
+# #Change in trend results over time ####
+# tlist = dir(path = 'h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',
+#             pattern = 'RiverWQ_Trend',recursive = T,full.names = T)
+# # tlist = dir(path = 'h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',
+# #             pattern = 'Trend15Year',recursive = T,full.names = T)
+# mostRecent = tail(tlist,1)
+# nextMost = head(tail(tlist,3),1)
+# thirdLast = head(tail(tlist,4),1)
+# 
+# mostRecent = read_csv(mostRecent)
+# nextMost   = read_csv(nextMost)
+# thirdLast = read_csv(thirdLast)
+#  # load(mostRecent,verbose=T);mostRecent=trendTable15
+#  # load(nextMost,verbose=T);nextMost=trendTable15
+#  # load(thirdLast,verbose=T);thirdLast=trendTable15
+# 
+# nextMost$nmCC = nextMost$ConfCat
+# nextMost$nmMK = nextMost$MKProbability
+# thirdLast$tlCC = thirdLast$ConfCat
+# thirdLast$tlMK = thirdLast$MKProbability
+# 
+# nextMost   = merge(x=nextMost,thirdLast%>%select(LawaSiteID,Measurement,period,tlCC,tlMK),all.x=T)
+# plot(nextMost$MKProbability,nextMost$tlMK,pch=46)
+# mostRecent = merge(x=mostRecent,nextMost%>%select(LawaSiteID,Measurement,period,nmCC,nmMK,tlCC,tlMK),all.x=T)
+# plot(mostRecent$nmMK,mostRecent$tlMK,pch=46)
+# plot(mostRecent$Cd,mostRecent$nmMK,pch=46)
+# plot(mostRecent$Cd,mostRecent$tlMK,pch=46)
+# 
+# table(mostRecent$ConfCat,mostRecent$nmCC,useNA='a')
+# table(nextMost$ConfCat,nextMost$tlCC,useNA='a')
+# 
+# with(mostRecent%>%filter(Measurement=="NH4"),plot(Cd,nmMK,pch=46))
+# 
+# mostRecent%>%filter(Measurement=="NH4",Cd>0.975,nmMK<0.025)%>%select(LawaSiteID,Agency,period)->toCheck
 
 
 #And the ubercool html summary audit report doncuments per council! ####

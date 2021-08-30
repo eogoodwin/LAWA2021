@@ -9,8 +9,8 @@ tab="\t"
 setwd("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/")
 
 df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/",agency,"Macro_config.csv"),sep=",",stringsAsFactors=FALSE)
-
 Measurements <- subset(df,df$Type=="Measurement")[,1]
+
 siteTable=loadLatestSiteTableMacro()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 

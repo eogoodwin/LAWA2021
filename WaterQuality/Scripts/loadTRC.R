@@ -115,9 +115,8 @@ for(i in 1:length(sites)){
     }
   }
   # saveXML(con$value(), paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"))
-  saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"SWQ.xml"))
-  file.copy(from=paste0("D:/LAWA/2021/",agency,"SWQ.xml"),
-            to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
-                      format(Sys.Date(),"%Y-%m-%d"),"/",agency,"SWQ.xml"),
+  saveXML(con$value(), paste0("D:/LAWA/2021/trcSWQ.xml"))
+  file.copy(from=paste0("D:/LAWA/2021/trcSWQ.xml"),
+            to=paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/trcSWQ.xml"),
             overwrite=T)
   

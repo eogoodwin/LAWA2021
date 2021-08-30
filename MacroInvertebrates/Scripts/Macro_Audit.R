@@ -25,9 +25,9 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
   if(!siteTerm%in%names(forcsv)){
     siteTerm="CouncilSiteID"
   }
-  if(agency=='ac'){
-    forcsv$Date = format(lubridate::ymd(forcsv$Date),'%d-%b-%Y')
-  }
+  # if(agency=='ac'){
+  #   forcsv$Date = format(lubridate::ymd(forcsv$Date),'%d-%b-%Y')
+  # }
   newRows=data.frame(agency=rep(agency,length(unique(forcsv$Measurement))),
                      xmlAge=rep(xmlAge,length(unique(forcsv$Measurement))),
                      var=sort(unique(forcsv$Measurement)),
@@ -59,7 +59,7 @@ write.csv(macroAudit,paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audi
 macroAudit%>%dplyr::group_by(agency)%>%dplyr::summarise(xmlAge=mean(xmlAge,na.rm=T),
                                                         endDate=max(lubridate::dmy(latest),na.rm=T))%>%knitr::kable(format='rst')
 
-# lawaIDs=read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/R/lawa_state/2018_csv_config_files/LAWAMasterSiteListasatMarch2018.csv",stringsAsFactors = F)
+# lawaIDs=read.csv("H:/ericg/16666LAWA/LAWA2021/macroinvertebrates/R/lawa_state/2018_csv_config_files/LAWAMasterSiteListasatMarch2018.csv",stringsAsFactors = F)
 
 
 table(unique(tolower(macroData$CouncilSiteID))%in%tolower(c(macroSiteTable$SiteID,macroSiteTable$CouncilSiteID)))

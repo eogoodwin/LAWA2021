@@ -1,9 +1,11 @@
 library(tidyverse)
+
 checkXMLFile <- function(regionName,siteName,propertyName){
-  xmlfile<-read_xml(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+  fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
+  xmlfile<-read_xml(fname)
   if('ows'%in%names(xml_ns(xmlfile)) && length(xml_find_all(xmlfile,'ows:Exception'))>0){
     #Dont wanna keep exception files
-    file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+    file.remove(fname)
     return(1);#next
   }
   #Got Data
@@ -13,28 +15,39 @@ checkXMLFile <- function(regionName,siteName,propertyName){
       return(2);#hoorah break
     }else{
       #Dont wanna keep empty files
-      file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+      file.remove(fname)
     }
     return(1);#next
   }else{
-    if(propertyName=="WQ.sample"){
+    if(propertyName=="wq.sample"){
       pvals=xml_find_all(xmlfile,'//Parameter')
       if(length(pvals)>0){
         return(2);
       }else{
-        file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+        file.remove(fname)
         return(1);
       }
       rm(pvals)
     }else{
       #Remove non WML files
-      file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
-      return(1);#next
+      if(regionName!="Taranaki"){
+        file.remove(fname)
+        return(1);#next
+      }else{
+        if(file.info(fname)$size>2000){
+          return(2)
+        }else{
+          file.remove(fname)
+          return(1);#next
+        }
+      }
     }
   }
 }
 readXMLFile <- function(regionName,siteName,propertyName,property){
-  xmlfile<-read_xml(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+  fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
+  require(xml2)
+  xmlfile<-read_xml(fname)
   #Check for exceptions
   if('ows'%in%names(xml_ns(xmlfile)) && length(xml_find_all(xmlfile,'ows:Exception'))>0){
     cat('-')
@@ -45,7 +58,7 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
       commentToAdd='exception'
     }
     #Dont wanna keep exception files
-    file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+    file.remove(fname)
     return(1);#next
   }
   #Check for Data
@@ -61,23 +74,20 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
       if(any(rCens<-unlist(lapply(mvals,FUN = function(x)length(grepRaw(pattern = '>',x=x))>0)))){
         faceVals[rCens]=readr::parse_number(mvals[rCens])
       }
-      
       mT<-xml_find_all(xmlfile,'//wml2:time')
       mT<-xml_text(mT)  # get time text
       mT <- strptime(mT,format='%Y-%m-%dT%H:%M:%S')
       siteDat=data.frame(region=SSMregion,
-                         # LawaSiteID=trimws(ssm$LawaId[siteNum]),
                          siteName=siteName,
-                         # siteType=trimws(ssm$SiteType[siteNum]),
                          propertyName=propertyName,
                          property=property,
                          dateCollected=mT,
                          val=faceVals,
                          lCens=lCens,
                          rCens=rCens)%>%
-        plyr::mutate(week=lubridate::isoweek(mT),
+        plyr::mutate(week=lubridate::week(mT),
                      month=lubridate::month(mT),
-                     year=lubridate::isoyear(mT),
+                     year=lubridate::year(mT),
                      YW=paste0(year,week))
       eval(parse(text=paste0(make.names(paste0(regionName,siteName,propertyName)),"<<-siteDat")))
       dataToCombine <<- c(dataToCombine,make.names(paste0(regionName,siteName,propertyName)))
@@ -85,18 +95,18 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
       return(2)#        break
     }else{
       #Dont wanna keep empty files
-      file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+      file.remove(fname)
     }
     return(1);#next
   }else{
     #Check is it WQSample
-    if(propertyName=="WQ.sample"){
-      xmlfile=xmlParse(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
+    if(propertyName=="wq.sample"){
+      xmlfile=xmlParse(fname)
       xmltop<-xmlRoot(xmlfile)
       m<-xmltop[['Measurement']]
       if(!is.null(m)){
-        dtV <- xpathApply(m,"//T",xmlValue)
-        dtV <- unlist(dtV)
+        dtV <- xpathSApply(m,"//T",xmlValue)
+        # dtV <- unlist(dtV)
         siteMetaDat=data.frame(regionName=regionName,siteName=siteName,property=property,SampleDate=dtV)
         for(k in 1:length(dtV)){
           p <- m[["Data"]][[k]]
@@ -126,8 +136,68 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
       rm(siteMetaDat)
       return(2)#        break
     }else{
-      file.remove(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))
-      return(1);#next
+      if(regionName!="Taranaki"){
+        file.remove(fname)
+        return(1);#next
+      }else{
+        #Curstom read code for taranaki needs to get a siteDat and siteMetaDat together
+        xmlfile=xmlParse(fname)
+        xmltop<-xmlRoot(xmlfile)
+        m<-xmltop[['Measurement']]
+        if(!is.null(m)){
+          dtV <- xpathSApply(m,"//T",xmlValue)
+          dtV <- strptime(dtV,format='%Y-%m-%dT%H:%M:%S')
+          siteMetaDat=NULL
+          for(k in 1:length(dtV)){
+            p <- m[["Data"]][[k]]
+            c <- length(xmlSApply(p, xmlSize))
+            if(c==1){next}
+            newDF=data.frame(regionName=regionName,siteName=siteName,property=property,SampleDate=dtV[k])
+            for(n in 2:c){   
+              if(!is.null(p[[n]])&!any(xmlToList(p[[n]])=="")){
+                if(length(xmlToList(p[[n]]))==1){
+                  metaName  <- "Value"
+                  metaValue <- as.character(xmlToList(p[[n]])[1])   ## Getting the value attribute
+                }else{
+                  metaName  <- as.character(xmlToList(p[[n]])[1])   ## Getting the name attribute
+                  metaValue <- as.character(xmlToList(p[[n]])[2])   ## Getting the value attribute
+                }
+                metaValue <- gsub('\\"|\\\\','',metaValue)
+                eval(parse(text=paste0("newDF$`",metaName,"`=\"",metaValue,"\"")))
+                rm(metaName,metaValue)
+              }
+            }
+            siteMetaDat=merge(siteMetaDat,newDF,all = T)
+            rm(newDF)
+          }
+          mtCols = which(apply(siteMetaDat,2,function(x)all(is.na(x)|x=="NA")))
+          if(length(mtCols)>0){
+            siteMetaDat=siteMetaDat[,-mtCols]
+          }
+          eval(parse(text=paste0(make.names(paste0(regionName,siteName,propertyName,"MD")),"<<-siteMetaDat")))
+          metaToCombine <<- c(metaToCombine,make.names(paste0(regionName,siteName,propertyName,"MD")))
+          
+          siteDat=siteMetaDat%>%dplyr::select(region=regionName,siteName,property=property,
+                                              dateCollected=SampleDate,val=Value)
+          siteDat$lCens<-sapply(siteDat$val,FUN = function(x)length(grepRaw(pattern = '<',x=x))>0)
+          siteDat$rCens<-sapply(siteDat$val,FUN = function(x)length(grepRaw(pattern = '>',x=x))>0)
+          siteDat$val = readr::parse_number(siteDat$val)
+          
+          siteDat <- siteDat%>%
+            plyr::mutate(week=lubridate::week(dateCollected),
+                         month=lubridate::month(dateCollected),
+                         year=lubridate::year(dateCollected),
+                         YW=paste0(year,week))
+          eval(parse(text=paste0(make.names(paste0(regionName,siteName,propertyName)),"<<-siteDat")))
+          dataToCombine <<- c(dataToCombine,make.names(paste0(regionName,siteName,propertyName)))
+          rm(siteMetaDat)
+          rm(siteDat)
+          return(2)#        break
+        }else{
+          file.remove(fname)
+          return(1);#next
+        }
+      }
     }
   }
 }
@@ -182,7 +252,7 @@ for (renminbi in 1:length(CISHdata)){
     recData <- recData%>%dplyr::rename(LawaSiteID=lawaSiteID)
   }
   # recData$LawaSiteID = tolower(recData$LawaSiteID)
-  collectCISH = merge(collectCISH,recData,all.y=T)
+  collectCISH = merge(collectCISH,recData,all=T)
   cat(dim(collectCISH),'\n')
 }
 rm(recData,CISHdata,renminbi)
@@ -191,11 +261,11 @@ rm(recData,CISHdata,renminbi)
 #Compare the number of sites retrieved via SSM with that via WFS enquiry.
 WFSsiteTable = read.csv(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data",pattern='SiteTable',
                                  recursive=T,full.names=T,ignore.case=T),1),stringsAsFactors = F)
-length(unique(ssm$LawaId))              #654
-length(unique(collectCISH$LawaSiteID))  #587
+length(unique(ssm$LawaId))              #653
+length(unique(collectCISH$LawaSiteID))  #622
 length(unique(WFSsiteTable$LawaSiteID)) #577
 
-length(unique(c(unique(tolower(ssm$LawaId)),unique(tolower(WFSsiteTable$LawaSiteID)))))              #739
+length(unique(c(unique(tolower(ssm$LawaId)),unique(tolower(WFSsiteTable$LawaSiteID)))))              #738
 
 
 sort(unique((unlist(sapply(X = ssm$TimeseriesUrl,FUN = function(x)unlist(strsplit(x,split='&')))))))

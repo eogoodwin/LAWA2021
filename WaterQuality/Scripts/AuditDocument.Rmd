@@ -168,7 +168,7 @@ MCINOF$NOF2021Band = cut(MCINOF$rollMCI,breaks = c(0,90,110,130,200),right = F,l
 nfts <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",
                           pattern = 'NOFSummaryTable_Rolling.csv',  #Was ~_Overall until 2 July2021
                           full.names=T,recursive=T,ignore.case=T),1),stringsAsFactors=F)
-nfts <- nfts%>%filter(LawaSiteID%in%agencyLIDs) #filter(Year=="2015to2019")%>%
+nfts <- nfts%>%filter(LawaSiteID%in%agencyLIDs) 
 
 #Replace the NIWA siteID names with the council siteID names, getting them from the siteTable after excluding NIWA
 if(any(nfts$Agency=='niwa')){
@@ -182,8 +182,8 @@ nfts$Catchment = siteTable$Catchment[match(nfts$LawaSiteID,siteTable$LawaSiteID)
 wqtrend=read_csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",
                           pattern="RiverWQ_Trend*.*",
                           full.names=T,recursive=T,ignore.case=T),1),guess_max = 20000)
-wqtrend <- wqtrend[which(wqtrend$LawaSiteID%in%agencyLIDs),]
-wqtrend <- wqtrend%>%filter(Measurement!="MCI")
+wqtrend <- wqtrend[which(tolower(wqtrend$LawaSiteID)%in%agencyLIDs),]
+wqtrend <- wqtrend%>%filter(!Measurement%in%c("MCI","QMCI","ASPM"))
 wqtrend$SiteID <- siteTable$SiteID[siteTable$Agency!='niwa'][match(wqtrend$LawaSiteID,
                                                                    siteTable$LawaSiteID[siteTable$Agency!='niwa'])]
 
@@ -215,7 +215,7 @@ We hope to report on BDISC, TURB, NH4, PH, TON, TN, DRP, TP, ECOLI, DIN and NO3N
 Do we have your DIN and NO3N measurement names?  These indicators are new in this year.
 
 ```{r measurementAudit,echo=F,results='asis'}
-knitr::kable(table(wqdata$Agency,wqdata$Measurement)/table(wqdata$Agency,wqdata$Measurement))
+knitr::kable(table(wqdata$Agency,wqdata$Measurement)/table(wqdata$Agency,wqdata$Measurement),,format = "html", table.attr = "style='width:90%;'")
 ```
 
 # WFS sites announced
@@ -326,7 +326,8 @@ names(tab2)=c('Unit','Measurement','count')
 tab2=tab2%>%pivot_wider(names_from = c('Measurement'),values_from='count')
 DT::datatable(tab2,rownames=F)
 rm(tab2)
-if(!is.na(unique(wqdata$Units[wqdata$Agency==agency]))){
+
+if(!all(is.na(unique(wqdata$Units[wqdata$Agency==agency])))){
   cat("\nUnits used by this council for different measurements\n")
   tab3=as.matrix(table(wqdata$Units[wqdata$Agency==agency],wqdata$Measurement[wqdata$Agency==agency]))
   tab3=as.data.frame(tab3)
@@ -413,6 +414,10 @@ cat('  \n### BDisc\n')
 knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="BDISC.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
+cat('  \n  \n### DIN\n')
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
+                                 pattern="DIN.*png",
+                                 recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### DRP\n')
 knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="DRP.*png",
@@ -424,6 +429,10 @@ knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/
 cat('  \n  \n### NH4\n')
 knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
                                  pattern="NH4.*png",
+                                 recursive = T,full.names = T,ignore.case = T),1))
+cat('  \n  \n### NO3N\n')
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
+                                 pattern="NO3N.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### PH\n')
 knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
@@ -443,7 +452,11 @@ knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/
                                  recursive = T,full.names = T,ignore.case = T),1))
 cat('  \n  \n### TURB\n')
 knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
-                                 pattern="TURB.*png",
+                                 pattern="TURB[[:digit:]].*png",
+                                 recursive = T,full.names = T,ignore.case = T),1))
+cat('  \n  \n### TURBFNU\n')
+knitr::include_graphics(tail(dir(path="H:/ericg/16666LAWA/LAWA2021/WaterQuality/Audit",
+                                 pattern="TURBFNU.*png",
                                  recursive = T,full.names = T,ignore.case = T),1))
 ```
 
@@ -466,19 +479,19 @@ for(msm in unique(agencyWQdata$Measurement)){
       bpDat <- bpDat%>%filter(Value>0)
     }
   }
-  if(agency=='wrc'){
+  if(agency%in%c('wrc')){
     boxplot(data=bpDat,
             Value~factor(SiteID),
-            main=msm,log=yLog,las=2)
+            main=msm,log=yLog,las=2,xlab='')
   }else{
     boxplot(data=bpDat,
             Value~factor(CouncilSiteID),
-            main=msm,log=yLog,las=2)
+            main=msm,log=yLog,las=2,xlab='')
   }
   yrng=range(bpDat$Value[bpDat$Value>0],na.rm=T)
   xrng=range(bpDat$Date,na.rm=T)
   par(mfrow=c(4,4),mar=c(3,4,2,1))
-  if(agency=='wrc'){
+  if(agency%in%c('wrc')){
     for(csi in sort(unique(agencyWQdata$SiteID))){
       tsDat=bpDat%>%filter(SiteID==csi)
       if(dim(tsDat)[1]>0){
@@ -637,6 +650,7 @@ cat(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",
              pattern="RiverWQ_Trend*.*",
              full.names=F,recursive=T,ignore.case=T),1),' \n\n')
 DT::datatable(wqtrend,extensions=c('Buttons','ColReorder','FixedColumns'),
-              options=list(dom='Bfrtip',colReorder=T,buttons=c('colvis','copy','csv','excel'),scrollX=TRUE,fixedColumns=list(leftColumns=5)),
+              options=list(dom='Bfrtip',colReorder=T,buttons=c('colvis','copy','csv','excel'),
+                           scrollX=TRUE,fixedColumns=list(leftColumns=5)),
               filter='top',rownames=F)
 ```

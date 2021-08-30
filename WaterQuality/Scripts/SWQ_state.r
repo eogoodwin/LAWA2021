@@ -13,12 +13,7 @@ dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/", format(S
 riverSiteTable=loadLatestSiteTableRiver()
 
 if(!exists('wqdata')){
-  wqDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",pattern = "AllCouncils.csv",recursive = T,full.names = T),1)
-  cat(wqDataFileName)
-  wqdata=readr::read_csv(wqDataFileName,guess_max=150000)%>%as.data.frame
-  rm(wqDataFileName)
-
-   # wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')] = as.character(format(lubridate::ymd_hms(wqdata$Date[wqdata$Agency%in%c('ac','ecan','hbrc')]),'%d-%b-%y'))
+  wqdata=loadLatestDataRiver()
   
   #Write out for ITEffect
   wqdata$DetectionLimit=1
@@ -36,18 +31,16 @@ if(!exists('wqdata')){
             file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                         "/ITERiversRawData",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F,na="NULL")
   options(scipen=storeSci);rm(storeSci)
-  wqdata <- wqdata%>%dplyr::select(-DetectionLimit)
+
+# delved=read_csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
+#                          pattern="ITERiversRawData",full.names = T,recursive = T),1),guess_max=350000)
+}
   wqdYear=lubridate::year(dmy(wqdata$Date))
   wqdata <- wqdata[which((wqdYear>=(StartYear5) & wqdYear<=EndYear)),]
   rm(wqdYear)
-  #532181
-}
+  #561842
 
-
-
-wqparam <- c("BDISC","TURB","NH4",
-             "PH","TON","TN",
-             "DRP","TP","ECOLI","DIN","NO3N") 
+wqparam <- c("BDISC","DIN","DRP","ECOLI","NH4","NO3N","PH","TN","TON","TP","TURB","TURBFNU") 
 
 suppressWarnings(rm(wqdata_A,wqdata_med,wqdata_n,lawadata,lawadata_q))
 library(parallel)
@@ -65,36 +58,20 @@ startTime=Sys.time()
 foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
   wqdata_A = wqdata%>%filter(tolower(Measurement)==tolower(wqparam[i]))
   if(dim(wqdata_A)[1]==0){return(NULL)}
-  #CENSORING
-  #Previously for state, left-censored was repalced by half the limit value, and right-censored was imputed
-  #left-censored replacement value is the maximum of left-censored values, per site
+  # #CENSORING
+  # #Previously for state, left-censored was repalced by half the limit value, and right-censored was imputed
+  # #left-censored replacement value is the maximum of left-censored values, per site
   wqdata_A$origValue=wqdata_A$Value
-  if(any(wqdata_A$CenType=='Left')){
-    wqdata_A$Value[wqdata_A$CenType=="Left"] <- wqdata_A$Value[wqdata_A$CenType=="Left"]/2
-    options(warn=-1)
-    lcenreps=wqdata_A%>%split(.$CouncilSiteID)%>%purrr::map(~max(.$Value[.$CenType=='Left'],na.rm=T))
-     options(warn=0)
-    wqdata_A$lcenrep=unlist(unname(lcenreps[match(wqdata_A$CouncilSiteID,names(lcenreps))]))
-    wqdata_A$Value[wqdata_A$CenType=='Left'] <- wqdata_A$lcenrep[wqdata_A$CenType=='Left']
-    wqdata_A <- wqdata_A%>%dplyr::select(-lcenrep)
-    rm(lcenreps)
+   #CENSORING from 12/8/2021
+  #left-censored replacement value is half the face value
+  if(any(wqdata_A$CenType=="Left")){
+    wqdata_A$Value[wqdata_A$CenType=="Left"] <- wqdata_A$origValue[wqdata_A$CenType=="Left"]/2
   }
-  if(any(wqdata_A$CenType=='Right')){
-    wqdata_A$Value[wqdata_A$CenType=="Right"] <- wqdata_A$Value[wqdata_A$CenType=="Right"]*1.1
-    options(warn=-1)
-    rcenreps=wqdata_A%>%split(.$CouncilSiteID)%>%purrr::map(~min(.$Value[.$CenType=="Right"],na.rm=T))
-    options(warn=0)
-    wqdata_A$rcenrep=as.numeric(rcenreps[match(wqdata_A$CouncilSiteID,names(rcenreps))])
-    wqdata_A$Value[wqdata_A$CenType=='Right'] <- wqdata_A$rcenrep[wqdata_A$CenType=='Right']
-    wqdata_A <- wqdata_A%>%dplyr::select(-rcenrep)
-    rm(rcenreps)
+  if(any(wqdata_A$CenType=="Right")){
+    wqdata_A$Value[wqdata_A$CenType=="Right"] <- wqdata_A$origValue[wqdata_A$CenType=="Right"]*1.1
   }
   wqdata_A <- as.data.frame(wqdata_A)  
-  
   wqdata_A$Date=lubridate::dmy(wqdata_A$Date)
-  
-  #Medianing was removed from here, because it was only ever used as an export for the NOF stage. 
-  #The medianed data wasnt used in state calculation
   
   freqs <- wqdata_A%>%split(.$LawaSiteID)%>%purrr::map(~freqCheck(.))%>%unlist
   wqdata_A$Frequency=freqs[wqdata_A$LawaSiteID]  
@@ -115,7 +92,7 @@ foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
 }->sa
 stopCluster(workers)
 rm(workers)
-cat(Sys.time()-startTime)  #16 seconds 23July2021
+cat(Sys.time()-startTime)  #19 seconds 13Aug2021
 
 # State Analysis output contains quantiles for each Measurement by site.
 names(sa) <-   c("LawaSiteID", "Measurement", "Q0", "Q25", "Q50","Q75", "Q100",
@@ -124,67 +101,32 @@ names(sa) <-   c("LawaSiteID", "Measurement", "Q0", "Q25", "Q50","Q75", "Q100",
 sa <- sa%>%dplyr::select(LawaSiteID,CouncilSiteID,SiteID,Region,Agency,SWQAltitude,SWQLanduse,Measurement,Scope,Q0,Q25,Q50,Q75,Q100,N)
 # filter sa to remove any LawaSiteIDS that are NA
 sa <- sa[!is.na(sa$LawaSiteID),]
+
 write.csv(sa,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
                          "/sa",StartYear5,"-",EndYear,".csv"),row.names = F)
 # sa <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern=paste0("^sa",StartYear5,"-",EndYear,".csv"),recursive=T,full.names=T,ignore.case=T),1),stringsAsFactors = F)
-if(0){
-cat("LAWA Water QUality State Analysis\tAssigning State Scores\n")
-# ' //   In assigning state scores, the routine needs to process each combination of altitude
-# ' // and Landcover and compare to the National levels for the same combinations.
-# ' //   These combinations are:
 
-# ' //   National data set - no factors
-# ' //       Each site (all altitude and Landcovers) compared to overall National medians
+#As of 2018 we're only doing it at site
 
-# ' //   Single factor comparisons
-# ' //       Each upland site (all Landcovers) compared to upland National medians
-# ' //       Each lowland site (all Landcovers) compared to lowland National medians
-# ' //       Each rural site (all altitudes) compared to rural National medians
-# ' //       Each forest site (all altitudes) compared to forest National medians
-# ' //       Each urban site (all altitudes) compared to urban National medians
-
-# ' //   Multiple factor comparisons
-# ' //      For each Altitude
-# ' //        Each rural site compared to rural National medians
-# ' //        Each forest site compared to forest National medians
-# ' //        Each urban site compared to urban National medians
-
-# ' //      For each Landcover
-# ' //        Each upland site compared to upland National medians
-# ' //        Each lowland site compared to lowland National medians
-}
-
-#Now as of 2018 we're only doing it at site
-scope <- c("Site","Catchment","Region")  #(No NZ-wide, as this is where you're comparing against other groups. Nothing to compare whole-of-NZ against)
-i=1
-#  comparision = 1,2,3,4
-#              1 = All -                 AltitudeGroup=="All"    & LandcoverGroup=="All"   & Scope=="NZ"
-#              2 = Altitude -            AltitudeGroup==altitude & LandcoverGroup=="All"   & Scope=="NZ"
-#              3 = Land use -            AltitudeGroup=="All"    & LandcoverGroup==Landcover & Scope=="NZ"
-#              4 = Altitude & Land use - AltitudeGroup==altitude & LandcoverGroup==Landcover & Scope=="NZ"
-
-ss1 <-   StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "",Landcover = "",wqparam = wqparam,comparison=1)
-ss21 <-  StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "upland",Landcover = "",wqparam,comparison=2)
-ss22 <-  StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "lowland",Landcover = "",wqparam,comparison=2)
-ss31 <-  StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "",Landcover = "rural",wqparam,comparison=3)
-ss32 <-  StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "",Landcover = "forest",wqparam,comparison=3)
-ss33 <-  StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "",Landcover = "urban",wqparam,comparison=3)
-ss411 <- StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "upland",Landcover = "rural",wqparam,comparison=4)
-ss412 <- StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "upland",Landcover = "forest",wqparam,comparison=4)
-ss413 <- StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "upland",Landcover = "urban",wqparam = wqparam,comparison=4)
-ss421 <- StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "lowland",Landcover = "rural", wqparam = wqparam,comparison=4)
-ss422 <- StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "lowland",Landcover = "forest",wqparam = wqparam,comparison=4)
-ss423 <- StateScore(df = sa,scopeIn = tolower(scope[i]),altitude = "lowland",Landcover = "urban", wqparam = wqparam,comparison=4)
+ss1 <-   StateScore(df = sa,scopeIn = 'site',altitude = "",Landcover = "",wqparam = wqparam,comparison=1)
+ss21 <-  StateScore(df = sa,scopeIn = 'site',altitude = "upland",Landcover = "",wqparam,comparison=2)
+ss22 <-  StateScore(df = sa,scopeIn = 'site',altitude = "lowland",Landcover = "",wqparam,comparison=2)
+ss31 <-  StateScore(df = sa,scopeIn = 'site',altitude = "",Landcover = "rural",wqparam,comparison=3)
+ss32 <-  StateScore(df = sa,scopeIn = 'site',altitude = "",Landcover = "forest",wqparam,comparison=3)
+ss33 <-  StateScore(df = sa,scopeIn = 'site',altitude = "",Landcover = "urban",wqparam,comparison=3)
+ss411 <- StateScore(df = sa,scopeIn = 'site',altitude = "upland",Landcover = "rural",wqparam,comparison=4)
+ss412 <- StateScore(df = sa,scopeIn = 'site',altitude = "upland",Landcover = "forest",wqparam,comparison=4)
+ss413 <- StateScore(df = sa,scopeIn = 'site',altitude = "upland",Landcover = "urban",wqparam = wqparam,comparison=4)
+ss421 <- StateScore(df = sa,scopeIn = 'site',altitude = "lowland",Landcover = "rural", wqparam = wqparam,comparison=4)
+ss422 <- StateScore(df = sa,scopeIn = 'site',altitude = "lowland",Landcover = "forest",wqparam = wqparam,comparison=4)
+ss423 <- StateScore(df = sa,scopeIn = 'site',altitude = "lowland",Landcover = "urban", wqparam = wqparam,comparison=4)
 #LAWAState 1 is good, 4 is bad, quartiles
 ss <- rbind(ss1,ss21,ss22,ss31,ss32,ss33,ss411,ss412,ss413,ss421,ss422,ss423)
 rm(ss1,ss21,ss22,ss31,ss32,ss33,ss411,ss412,ss413,ss421,ss422,ss423)
 ss=ss[order(ss$LawaSiteID),]
 
-write.csv(ss,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),
-                          "/staHIDDENte",StartYear5,"-",EndYear,".csv"),row.names = F)
 
 #ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",pattern = paste0("^state.*csv"),recursive = T,full.names=T,ignore.case = T),1),stringsAsFactors = F)
-#ss <- read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis",pattern = paste0("staHIDDENte",StartYear5,"-",EndYear,".csv"),recursive = T,full.names = T),1),stringsAsFactors = F)
 
 ss <- ss%>%dplyr::transmute(LawaID=LawaSiteID,
                             CouncilSiteID=CouncilSiteID,

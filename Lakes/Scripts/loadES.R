@@ -1,10 +1,7 @@
 ## Load libraries ------------------------------------------------
-# require(RODBC)   ### ODBC library for SQL connection
 require(dplyr)   ### dply library to manipulate table joins on dataframes
 require(XML)     ### XML library to write hilltop XML
-# require(scales)  ### Graphical scales map data to aesthetics, and provide methods for automatically determining breaks and labels for axes and legends.
-### For this script, it holds the percent function to deal with formatting numbers
-# require(RCurl)
+
 source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 setwd("H:/ericg/16666LAWA/LAWA2021/Lakes")
 agency='es'
@@ -12,8 +9,6 @@ tab="\t"
 df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/MetaData/",agency,"LWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
 Measurements <- subset(df,df$Type=="Measurement")[,1]
 Measurements <- as.vector(Measurements)
-# configsites <- subset(df,df$Type=="Site")[,1]
-# configsites <- as.vector(configsites)
 
 siteTable=loadLatestSiteTableLakes(maxHistory=30)
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
@@ -25,13 +20,22 @@ suppressWarnings(rm(Data))
 for(i in 1:length(sites)){
   cat(sites[i],i,'out of',length(sites),'\n')
   for(j in 1:length(Measurements)){
+    if(j != 11){
     url <- paste("http://odp.es.govt.nz/SOEFreshwater.hts?service=Hilltop&request=GetData",
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
                  "&From=2006-01-01",
                  "&To=2021-01-01",sep="")
       url <- URLencode(url)
-      xmlfile <- ldLWQ(url,agency)
+    }else{
+      url <- paste("http://odp.es.govt.nz/LAWACyano.hts?service=Hilltop&request=GetData",
+                   "&Site=",sites[i],
+                   "&Measurement=",Measurements[j],
+                   "&From=2006-01-01",
+                   "&To=2021-01-01",sep="")
+      url <- URLencode(url)
+    }
+    xmlfile <- ldLWQ(url,agency,method='wininet')
 
 
     if(!is.null(xmlfile)){
@@ -148,7 +152,7 @@ for(i in 1:length(sites)){
     }
   }
 }
-#saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))
+
 saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"LWQ.xml"))
 file.copy(from=paste0("D:/LAWA/2021/",agency,"LWQ.xml"),
           to=paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"LWQ.xml"))

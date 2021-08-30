@@ -5,19 +5,19 @@ require(RCurl)
 source('H:/ericg/16666LAWA/LAWA2021/scripts/LAWAFunctions.R')
 
 agency='ecan'
-tab="\t"
 
 df <- read.csv("H:/ericg/16666LAWA/LAWA2021/Lakes/Metadata/ecanLWQ_config.csv",sep=",",stringsAsFactors=FALSE)
+Measurements <- subset(df,df$Type=="Measurement")[,1]
+Measurements <- as.vector(Measurements)
 
 siteTable=loadLatestSiteTableLakes(maxHistory = 30)
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
-Measurements <- subset(df,df$Type=="Measurement")[,1]
-Measurements <- as.vector(Measurements)
 lakeDataColumnLabels=NULL
 
 
 ecanLWQ=NULL
-for(i in 1:length(sites)){
+i=1
+for(i in i:length(sites)){
   cat('\n',sites[i],i,'out of',length(sites),'\n')  
   siteDat=data.frame(T=NA,Measurement=NA)
   for(j in 1:length(Measurements)){
@@ -93,10 +93,15 @@ if(length(mtCols)>0){
 }
 rm(mtCols)
 
-   
-if(0){
-  save(ecanLWQ,file = 'ecanLWQraw.rData')
+mtRows = which(apply(ecanLWQ[,c(1,3)],1,function(r){
+  is.na(r[1])&is.na(r[2])
+}))
+if(length(mtRows)>0){
+  ecanLWQ = ecanLWQ[-mtRows,]
 }
+rm(mtRows)
+   
+  save(ecanLWQ,file = 'ecanLWQraw.rData')
 
 ecanLWQ=data.frame(CouncilSiteID=ecanLWQ$CouncilSiteID,
                  Date=format(lubridate::ymd_hms(ecanLWQ$T),'%d-%b-%y'),
@@ -125,5 +130,6 @@ table(ecanLWQ$Measurement)
 if(any(is.na(ecanLWQ$Date)&is.na(ecanLWQ$Value))){
   ecanLWQ <- ecanLWQ[-which(is.na(ecanLWQ$Date)&is.na(ecanLWQ$Value)),]
 }
+
 write.csv(ecanLWQ,file = paste0("H:/ericg/16666LAWA/LAWA2021/Lakes/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,".csv"),row.names = F)
 

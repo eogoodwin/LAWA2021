@@ -18,7 +18,7 @@ require(Hmisc)#For hiding TOC
 source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableMacro()
 siteTable$LawaSiteID <- gsub(pattern = ' *- *',replacement = '-',x = siteTable$LawaSiteID)
-agency=params$agency
+if(!exists('agency'))agency=params$agency
 urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
 c("% EPT Richness", "Total Richness", "MCI", "TaxaRichness", "PercentageEPTTaxa","QMCI","ASPM")
 
@@ -141,7 +141,7 @@ macroTrend$Catchment = siteTable$Catchment[match(macroTrend$CouncilSiteID,siteTa
 macroTrend=macroTrend%>%distinct%>%
 	select(-ConfCat,-frequency,-nMeasures,-note,-nReq)%>%
   pivot_wider(names_from =  'Measurement',values_from = "TrendScore")
-# ,'period'
+
 ```
 `r Hmisc::hidingTOC(tocSide='right')`
 # Measurement names
@@ -372,9 +372,9 @@ rownames = F,extensions='Buttons',options=list(dom='Bfpl',buttons=c('copy','csv'
 
 ## Trend scores per site
 
-Trends are in 5 categories, with -2 meaning a very likely degrading trend, and 2 meaning a very likely improving trend. 0 is indeterminate, and NA when there is insufficient data to calculate a trend. For 10 year trends we need 9 years to be represented, and for 15 year trends we need 13 years with data.
+Trends are in 5 categories, with -2 meaning a very likely degrading trend, and 2 meaning a very likely improving trend. 0 is indeterminate, and NA when there is insufficient data to calculate a trend. For 10 year trends we need 8 years to be represented, and for 15 year trends we need 13 years with data.
 There are requirements for the number of 'unique' values - that is, if you have 15 years' measurements, but they're all 132, or they're all either 126 or 144 (examples), the trend function will reject the data.  Likewise, if there is a long run of the same value the data will be rejected and no trend calculated.
-Other requirements are around diversity of values.  If n requirements appear to be met, check the timeseries plots for many of teh same value in a row, or simply a low variety of values per timeseries.
+Other requirements are around diversity of values.  If n requirements appear to be met, check the timeseries plots for many of the same value in a row, or simply a low variety of values per timeseries.
 ```{r echo=F,results='asis'}
 DT::datatable(macroTrend,
 extensions=c('Buttons','ColReorder','FixedColumns'),

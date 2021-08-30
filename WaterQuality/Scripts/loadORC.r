@@ -8,7 +8,7 @@ agency='orc'
 tab="\t"
 Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
   filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
-Measurements=c(Measurements,'WQ Sample')
+# Measurements=c(Measurements,'WQ Sample')
 
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
@@ -19,7 +19,7 @@ if(exists("Data"))rm(Data)
 for(i in 1:length(sites)){
   cat(sites[i],i,'out of',length(sites),'\n')
   for(j in 1:length(Measurements)){
-    url <- paste0("http://gisdata.orc.govt.nz/hilltop/ORCWQ.hts?service=Hilltop&request=GetData", #&agency=LAWA WQGlobal.hs
+    url <- paste0("http://gisdata.orc.govt.nz/hilltop/ORCWQ.hts?service=Hilltop&request=GetData&agency=LAWA", #&agency=LAWA WQGlobal.hs
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
                  "&From=2004-01-01",

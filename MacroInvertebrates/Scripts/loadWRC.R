@@ -53,7 +53,6 @@ for(i in 1:length(sites)){
       xmldata <- xmlfile
     }
     
-    
     #Create vector of units
     myPath<-"//wml2:uom"
     c<-getNodeSet(xmldata, path=myPath)
@@ -64,122 +63,172 @@ for(i in 1:length(sites)){
     df$Units <- u
     df <- df[,c(3,4,1,2,5)]
     
-    
-    
     if(!exists("Data")){
       Data <- df
     } else{
       Data <- rbind.data.frame(Data, df)
     }
-    
-    
-    
+
   }
 }
 
 
 
 
+###########
+wrcM = Data
+save(wrcM,file = 'wrcMraw.rData')
+# load('wrcMraw.rData')
 
-con <- xmlOutputDOM("Hilltop")
-con$addTag("Agency", agency)
 
-max<-nrow(Data)
-#max<-nrows(datatbl)
+wrcM <- wrcM%>%select(CouncilSiteID=Site,Date=time,Value=value,Measurement)
 
-i<-1
-#for each site
-while(i<=max){
-  s<-Data$Site[i]
-  # store first counter going into while loop to use later in writing out sample values
-  start<-i
-  
-  cat(i,Data$Site[i],"\n")   ### Monitoring progress as code runs
-  
-  while(Data$Site[i]==s){
-    #for each measurement
-    con$addTag("Measurement",  attrs=c(SiteName=Data$Site[i]), close=FALSE)  #Until 21/6/19 this was CouncilSiteID=Data$Site, which yeah it should be, but, consistency with other agencies
-    con$addTag("DataSource",  attrs=c(Name=Data$Measurement[i],NumItems="2"), close=FALSE)
-    con$addTag("TSType", "StdSeries")
-    con$addTag("DataType", "WQData")
-    con$addTag("Interpolation", "Discrete")
-    con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
-    con$addTag("ItemName", Data$Measurement[i])
-    con$addTag("ItemFormat", "F")
-    con$addTag("Divisor", "1")
-    con$addTag("Units", Data$Units[i])
-    con$addTag("Format", "#.###")
-    con$closeTag() # ItemInfo
-    con$closeTag() # DataSource
-    
-    # for the TVP and associated measurement water quality parameters
-    con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="2"),close=FALSE)
-    d<- Data$Measurement[i]
-    
-    cat("       - ",Data$Measurement[i],"\n")   ### Monitoring progress as code runs
-    
-    while(Data$Measurement[i]==d&Data$Site[i]==s){
-      # for each tvp
-      con$addTag("E",close=FALSE)
-      con$addTag("T",Data$time[i])
-      con$addTag("I1", Data$value[i])
-      con$addTag("I2", paste("Units", Data$Units[i], sep="\t"))
-      
-      con$closeTag() # E
-      i<-i+1 # incrementing overall for loop counter
-      if(i>max){break}
-    }
-    # next
-    con$closeTag() # Data
-    con$closeTag() # Measurement
-    
-    if(i>max){break}
-    # Next 
-  }
-  # store last counter going out of while loop to use later in writing out sample values
-  end<-i-1
-  
-  # Adding WQ Sample Datasource to finish off this Site
-  # along with Sample parameters
-  con$addTag("Measurement",  attrs=c(SiteName=Data$Site[start]), close=FALSE)
-  con$addTag("DataSource",  attrs=c(Name="WQ Sample", NumItems="1"), close=FALSE)
-  con$addTag("TSType", "StdSeries")
-  con$addTag("DataType", "WQSample")
-  con$addTag("Interpolation", "Discrete")
-  con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
-  con$addTag("ItemName", "WQ Sample")
-  con$addTag("ItemFormat", "S")
-  con$addTag("Divisor", "1")
-  con$addTag("Units")
-  con$addTag("Format", "$$$")
-  con$closeTag() # ItemInfo
-  con$closeTag() # DataSource
-  
-  # for the TVP and associated measurement water quality parameters
-  con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="1"),close=FALSE)
-  # for each tvp
-  ## LOAD SAMPLE PARAMETERS
-  ## SampleID, ProjectName, SourceType, SamplingMethod and mowsecs
-  sample<-Data[start:end,3]
-  sample<-unique(sample)
-  sample<-sample[order(sample)]
-  ## THIS NEEDS SOME WORK.....
-  for(a in 1:length(sample)){ 
-    con$addTag("E",close=FALSE)
-    con$addTag("T",sample[a])
-    #put metadata in here when it arrives
-    con$addTag("I1", "")
-    con$closeTag() # E
-  }
-  
-  con$closeTag() # Data
-  con$closeTag() # Measurement    
-  
-}
 
-#saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
-saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"Macro.xml"))
-file.copy(from=paste0("D:/LAWA/2021/",agency,"Macro.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),
-          overwrite=T)
 
+wrcMb=data.frame(CouncilSiteID=wrcM$CouncilSiteID,
+                  Date=as.character(format(lubridate::ymd_hms(wrcM$Date),'%d-%b-%y')),
+                  Value=wrcM$Value,
+                  Measurement=wrcM$Measurement,
+                  Censored=grepl(pattern = '<|>',x = wrcM$Value),
+                  CenType=F,
+                  CollMeth=NA,ProcMeth=NA)
+wrcMb$CenType[grep('<',wrcMb$Value)] <- 'Left'
+wrcMb$CenType[grep('>',wrcMb$Value)] <- 'Right'
+
+wrcMb$Value = readr::parse_number(wrcMb$Value)
+
+
+
+
+wrcMb$measName=wrcMb$Measurement
+table(wrcMb$Measurement,useNA = 'a')
+wrcMb$Measurement <- as.character(factor(wrcMb$Measurement,
+                                          levels = c("Taxa_Richness",
+                                                     "MCI_HB","MCI_SB",
+                                                     "EPT_TaxaMedian",
+                                                     "QMCI_HB","QMCI_SB",
+                                                     "ASPM_HB","ASPM_SB"),
+                                          labels = c('TaxaRichness',
+                                                     "MCI","MCI",
+                                                     "PercentageEPTTaxa",
+                                                     "QMCI","QMCI",
+                                                     "ASPM","ASPM")))
+table(wrcMb$Measurement,wrcMb$measName,useNA='a')
+
+
+# wrcMb <- merge(wrcMb,siteTable,by='CouncilSiteID')
+
+
+write.csv(wrcMb,file = paste0("D:/LAWA/2021/wrcM.csv"),row.names = F)
+file.copy(from=paste0("D:/LAWA/2021/wrcM.csv"),
+          to = paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/wrc.csv"),
+          overwrite = T)
+rm(wrcM,wrcMb)
+
+########
+
+
+
+
+# con <- xmlOutputDOM("Hilltop")
+# con$addTag("Agency", agency)
+# 
+# max<-nrow(Data)
+# #max<-nrows(datatbl)
+# 
+# i<-1
+# #for each site
+# while(i<=max){
+#   s<-Data$Site[i]
+#   # store first counter going into while loop to use later in writing out sample values
+#   start<-i
+#   
+#   cat(i,Data$Site[i],"\n")   ### Monitoring progress as code runs
+#   
+#   while(Data$Site[i]==s){
+#     #for each measurement
+#     con$addTag("Measurement",  attrs=c(SiteName=Data$Site[i]), close=FALSE)  #Until 21/6/19 this was CouncilSiteID=Data$Site, which yeah it should be, but, consistency with other agencies
+#     con$addTag("DataSource",  attrs=c(Name=Data$Measurement[i],NumItems="2"), close=FALSE)
+#     con$addTag("TSType", "StdSeries")
+#     con$addTag("DataType", "WQData")
+#     con$addTag("Interpolation", "Discrete")
+#     con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
+#     con$addTag("ItemName", Data$Measurement[i])
+#     con$addTag("ItemFormat", "F")
+#     con$addTag("Divisor", "1")
+#     con$addTag("Units", Data$Units[i])
+#     con$addTag("Format", "#.###")
+#     con$closeTag() # ItemInfo
+#     con$closeTag() # DataSource
+#     
+#     # for the TVP and associated measurement water quality parameters
+#     con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="2"),close=FALSE)
+#     d<- Data$Measurement[i]
+#     
+#     cat("       - ",Data$Measurement[i],"\n")   ### Monitoring progress as code runs
+#     
+#     while(Data$Measurement[i]==d&Data$Site[i]==s){
+#       # for each tvp
+#       con$addTag("E",close=FALSE)
+#       con$addTag("T",Data$time[i])
+#       con$addTag("I1", Data$value[i])
+#       con$addTag("I2", paste("Units", Data$Units[i], sep="\t"))
+#       
+#       con$closeTag() # E
+#       i<-i+1 # incrementing overall for loop counter
+#       if(i>max){break}
+#     }
+#     # next
+#     con$closeTag() # Data
+#     con$closeTag() # Measurement
+#     
+#     if(i>max){break}
+#     # Next 
+#   }
+#   # store last counter going out of while loop to use later in writing out sample values
+#   end<-i-1
+#   
+#   # Adding WQ Sample Datasource to finish off this Site
+#   # along with Sample parameters
+#   con$addTag("Measurement",  attrs=c(SiteName=Data$Site[start]), close=FALSE)
+#   con$addTag("DataSource",  attrs=c(Name="WQ Sample", NumItems="1"), close=FALSE)
+#   con$addTag("TSType", "StdSeries")
+#   con$addTag("DataType", "WQSample")
+#   con$addTag("Interpolation", "Discrete")
+#   con$addTag("ItemInfo", attrs=c(ItemNumber="1"),close=FALSE)
+#   con$addTag("ItemName", "WQ Sample")
+#   con$addTag("ItemFormat", "S")
+#   con$addTag("Divisor", "1")
+#   con$addTag("Units")
+#   con$addTag("Format", "$$$")
+#   con$closeTag() # ItemInfo
+#   con$closeTag() # DataSource
+#   
+#   # for the TVP and associated measurement water quality parameters
+#   con$addTag("Data", attrs=c(DateFormat="Calendar", NumItems="1"),close=FALSE)
+#   # for each tvp
+#   ## LOAD SAMPLE PARAMETERS
+#   ## SampleID, ProjectName, SourceType, SamplingMethod and mowsecs
+#   sample<-Data[start:end,3]
+#   sample<-unique(sample)
+#   sample<-sample[order(sample)]
+#   ## THIS NEEDS SOME WORK.....
+#   for(a in 1:length(sample)){ 
+#     con$addTag("E",close=FALSE)
+#     con$addTag("T",sample[a])
+#     #put metadata in here when it arrives
+#     con$addTag("I1", "")
+#     con$closeTag() # E
+#   }
+#   
+#   con$closeTag() # Data
+#   con$closeTag() # Measurement    
+#   
+# }
+# 
+# #saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
+# saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"Macro.xml"))
+# file.copy(from=paste0("D:/LAWA/2021/",agency,"Macro.xml"),
+#           to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"),
+#           overwrite=T)
+# 

@@ -11,10 +11,8 @@ library(doParallel)
 source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F,recursive = T)
 
-lmsl=read_csv("H:/ericg/16666LAWA/LAWA2021/Masterlist of sites in LAWA Umbraco as at 1 June 2021.csv")
-
 checkXMLFile <- function(regionName,siteName,propertyName){
-  fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
+  fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName,'/',propertyName,'.xml')
   xmlfile<-read_xml(fname)
   if('ows'%in%names(xml_ns(xmlfile)) && length(xml_find_all(xmlfile,'ows:Exception'))>0){
     #Dont wanna keep exception files
@@ -58,7 +56,7 @@ checkXMLFile <- function(regionName,siteName,propertyName){
   }
 }
 readXMLFile <- function(regionName,siteName,propertyName,property){
-  fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
+  fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName,'/',propertyName,'.xml')
   require(xml2)
   xmlfile<-read_xml(fname)
   #Check for exceptions
@@ -215,6 +213,7 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
   }
 }
 
+# lmsl=read_csv("H:/ericg/16666LAWA/LAWA2021/Masterlist of sites in LAWA Umbraco as at 1 June 2021.csv")
 
 if(0){
   '
@@ -242,6 +241,14 @@ ssm = readxl::read_xlsx(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/CanISwimHere/
                                  recursive = T,full.names = T),1),
                         sheet=1)%>%as.data.frame%>%unique
 
+# if(Sys.Date()=="2021-08-06"){
+length(grep('nrc.govt.nz/SOESwimmingCoastal.hts',ssm$TimeseriesUrl))
+length(grep('nrc.govt.nz/SOESwimmingFW.hts',ssm$TimeseriesUrl))
+ssm$TimeseriesUrl <- gsub('nrc.govt.nz/SOESwimmingCoastal.hts','nrc.govt.nz/SOESwimming.hts',ssm$TimeseriesUrl)
+ssm$TimeseriesUrl <- gsub('nrc.govt.nz/SOESwimmingFW.hts','nrc.govt.nz/SOESwimming.hts',ssm$TimeseriesUrl)
+# }
+
+
 ssm$callID =  NA
 ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
                                           FUN = function(x)unlist(strsplit(x,split='&')))))%>%
@@ -259,7 +266,7 @@ RegionTable=data.frame(ssm=unique(ssm$Region),
 #Download data to XML files ####
 agencyURLtable=data.frame(region="",server="",property='',feature='')
 startTime=Sys.time()
-workers <- makeCluster(8)
+workers <- makeCluster(7)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   dataToCombine=NULL
@@ -271,6 +278,8 @@ clusterCall(workers,function(){
   library(xml2)
 })
 foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dopar%{
+  # for(SSMregion in unique(ssm$Region)){
+
   regionName=make.names(word(SSMregion,1,1))
   # WFSregion=RegionTable$wfs[RegionTable$ssm==SSMregion]
   cat('\n\n\n',SSMregion,'\n')
@@ -314,7 +323,9 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   }
 
   #Find agency properties from the SSM file
-  observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,TimeseriesUrl!='')%>%select(TimeseriesUrl),
+  observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,
+                                              TimeseriesUrl!='')%>%
+                               select(TimeseriesUrl),
                              FUN = function(x){gsub('(.+)http.+','\\1',x=x)%>%
                                  strsplit(split='&')%>%unlist%>%
                                  grep('observedproperty',x = .,ignore.case=T,value=T)%>%
@@ -353,8 +364,10 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
     siteName=make.names(agSites[agSite])
     for(ap in seq_along(agProps$observedProperty)){
       propertyName=make.names(tolower(agProps$observedProperty[ap]))
-      
-      fname = paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml')
+      if(!dir.exists(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName))){
+        dir.create(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName),recursive = T)
+      }
+      fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName,'/',propertyName,'.xml')
       if(propertyName!="wq.sample"&file.exists(fname)&&file.info(fname)$size>2000){
         next
       }else{
@@ -423,6 +436,8 @@ Sys.time()-startTime
 #5mins 14/7/2021
 rm(startTime)
 rm(workers)
+
+
 
 if(0){
 #Investigate the yield of metadata files ####
@@ -503,8 +518,9 @@ foreach(SSMregion = unique(ssm$Region))%dopar%{
     for(ap in seq_along(agProps$observedProperty)){
       property=agProps$propertyType[ap]
       propertyName=make.names(tolower(agProps$observedProperty[ap]))
-      if(file.exists(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))&
-         file.info(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,siteName,propertyName,'.xml'))$size>2000){
+      fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName,'/',propertyName,'.xml')
+      if(file.exists(fname)&
+         file.info(fname)$size>2000){
         readXMLFile(regionName,siteName,propertyName,property) #returns 1 or 2, and builds 'dataToCombine' and 'metaToCombine' lists
       }
     }
@@ -538,6 +554,7 @@ Sys.time()-startTime
 #38 s 2/7/2021
 #41s  14/7/21
 #48s 29/7/21
+#2.0mins 13/8/2021
 rm(startTime)
 
 
@@ -668,6 +685,12 @@ MDlist[sapply(MDlist,is.null)] <- NULL
 sapply(MDlist,names)
 recMetaData=Reduce(function(x,y) dplyr::full_join(x,y%>%distinct),MDlist)
 print(dim(recMetaData))
+
+#88765 75    5/8/21
+#114281 86   13/8/21
+#114338 86  20/8
+#114310
+
 save(recMetaData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                            "/RecMetaData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
 rm(list=ls(pattern='MD$'))
@@ -678,6 +701,13 @@ Dlist[sapply(Dlist,is.null)] <- NULL
 sapply(Dlist,names)
 recData=Reduce(function(x,y) dplyr::full_join(x,y%>%distinct),Dlist)
 print(dim(recData))
+
+# 76686 13    5/8/21
+# 81971 13    6/8/21
+# 81900 13   13/8/21
+# 82080 13   20/8/21
+# 82306
+
 save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                                "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
 rm(list=ls(pattern='D$'))

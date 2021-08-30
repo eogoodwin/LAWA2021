@@ -25,8 +25,8 @@ for(i in 1:length(sites)){
     url <- paste0("http://hilltop.gw.govt.nz/Data.hts?service=Hilltop&request=GetData",
                  "&Site=",sites[i],
                  "&Measurement=",Measurements[j],
-                  "&From=2005-01-01&To=2021-06-01")#,
-                 # "&tstype=stdqualseries")
+                  "&From=2005-01-01",
+                 "&To=2021-06-01")
     url <- URLencode(url)
     
     xmlfile <- ldMWQ(url,agency,method='wininet')
