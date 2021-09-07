@@ -5,15 +5,17 @@ NH4adj<-function(sub_swq,meas=c("NH4","PH"),csv){
   A<-read.csv(csv,stringsAsFactors = FALSE)
   A <- rbind(A,c(NA,1))
   
-  D <- sub_swq[toupper(sub_swq$Measurement)%in%meas,] 
-  D <- D%>%spread(Measurement,Value)          
+  D <- sub_swq[toupper(sub_swq$Measurement)%in%meas,] %>%mutate(Value=as.numeric(Value))
+  D <- D%>%pivot_wider(names_from = Measurement,values_from=Value,
+                       id_cols = c("Agency","LawaSiteID","CouncilSiteID","Date"),
+                       values_fn = median)%>%as.data.frame          
   if('PH'%in%names(D)){
     D$Ratio=approx(x = A$PH,y = A$Ratio,xout = D$PH,rule=2)$y  #rule=2 allows extrapolation by nearest neighbour
     D$NH4adj<-D$NH4/D$Ratio
   }else{
     D$NH4adj='-99'  #Numeric code, representing 'no pH available for NH4 adjustment' #19/7/2019
   }    
-  D <- D%>%dplyr::select("LawaSiteID","CouncilSiteID","Date","NH4adj")
+  D <- D%>%dplyr::select("Agency","LawaSiteID","CouncilSiteID","Date","NH4adj")
   # Dg <- D%>%gather(key="Measurement",value="Value",...="NH4adj")%>%drop_na()
   Dg <- D%>%pivot_longer("NH4adj",names_to ="Measurement",values_to = "Value")
   
@@ -67,11 +69,37 @@ NOF_FindBand <- function(value, bandColumn){
   # e.g. 2.2 is true only for the second (2.2<=1.0 is FALSE byt 2.2<=2.4 is TRUE etc)
   # e.g. 5 is true only for the third (5<=1.0 is FALSE, 5<=2.4 is FALSE but 5<=6.9 is TRUE)
   # e.g. 8 is true only for the fourth
-  paste(LETTERS[which(unlist(lapply(gsub(pattern = 'x',replacement = value,x = bandColumn),FUN = function(x){eval(parse(text=x))})))],collapse='')
+  # pattern, replacement, x
+  paste(LETTERS[which(unlist(lapply(gsub('x',value,bandColumn),FUN = function(x){eval(parse(text=x))})))],collapse='')
 }
 #=======================================================================================================
 
-
+rolling3 <- function(cyanoSite,quantProb=0.8,nreq=12){
+  #For CYANOBACTERIA judging under NPSFM table 10 p 49
+  retVal=data.frame(t(sapply(yr[!grepl('to',yr)],FUN=function(y){
+    y=as.numeric(y)
+    startYear = y-2;stopYear=y
+    inTimeTOX = cyanoSite$Year>=startYear & cyanoSite$Year<=stopYear & !is.na(cyanoSite$CYANOTOX)
+    inTimeTOT = cyanoSite$Year>=startYear & cyanoSite$Year<=stopYear & !is.na(cyanoSite$CYANOTOT)
+    nAvailableTOX=sum(inTimeTOX)
+    nAvailableTOT=sum(inTimeTOT)
+    if(nAvailableTOX>=nreq){
+      TOX80=as.character(round(quantile(cyanoSite$CYANOTOX[inTimeTOX],prob=quantProb,type=5,na.rm=T,names=F),4))
+    }else{
+      TOX80=paste0("n=",nAvailableTOX,",need ",nreq)
+    }
+    if(nAvailableTOT>=nreq){
+      TOT80=as.character(round(quantile(cyanoSite$CYANOTOT[inTimeTOT],prob=quantProb,type=5,na.rm=T,names=F),4))
+    }else{
+      TOT80=paste0("n=",nAvailableTOT,",need ",nreq)
+    }
+    return(data.frame(TOX=TOX80,TOT=TOT80))
+  })))
+  yrs=rownames(retVal)
+  retVal=data.frame(apply(retVal,2,function(c)as.character(c)))
+  retVal$Year=yrs
+  return(retVal)
+}
 
 rolling5 <- function(siteChemSet,quantProb,nreq=30,quReq=0){ 
   sapply(yr[grepl('to',yr)],FUN=function(dt){
@@ -81,7 +109,7 @@ rolling5 <- function(siteChemSet,quantProb,nreq=30,quReq=0){
     nAvailable=sum(inTime)
     nQuarters=length(unique(siteChemSet$YearQuarter[inTime]))
     if(nAvailable>=nreq&nQuarters>=quReq){
-      as.character(quantile(siteChemSet$Value[inTime],prob=quantProb,type=5,na.rm=T,names=F))
+      as.character(round(quantile(siteChemSet$Value[inTime],prob=quantProb,type=5,na.rm=T,names=F),4))
     }else{
         paste0('n=',nAvailable,', q=',nQuarters)
     }

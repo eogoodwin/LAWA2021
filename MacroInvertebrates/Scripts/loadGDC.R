@@ -134,6 +134,7 @@ for(i in 1:length(sites)){
 #saveXML(con$value(), file=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
 saveXML(con$value(), paste0("D:/LAWA/2021/",agency,"Macro.xml"))
 file.copy(from=paste0("D:/LAWA/2021/",agency,"Macro.xml"),
-          to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
+          to=paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/",
+                    format(Sys.Date(),"%Y-%m-%d"),"/",agency,"Macro.xml"))
 
 

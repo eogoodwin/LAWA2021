@@ -38,7 +38,7 @@ if(!exists('wqdata')){
   wqdYear=lubridate::year(dmy(wqdata$Date))
   wqdata <- wqdata[which((wqdYear>=(StartYear5) & wqdYear<=EndYear)),]
   rm(wqdYear)
-  #561842
+  #576344
 
 wqparam <- c("BDISC","DIN","DRP","ECOLI","NH4","NO3N","PH","TN","TON","TP","TURB","TURBFNU") 
 

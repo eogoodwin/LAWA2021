@@ -115,14 +115,14 @@ clusterCall(workers,function(){
   library(tidyr)
 })
 
-if(exists("Data"))rm(Data)
+rm(Data,datasource,RetProperty,RetCID)
 esSWQ=NULL
 for(i in 1:length(sites)){
   cat('\n',sites[i],i,'out of ',length(sites))
   rm(siteDat)
   foreach(j = 1:length(translate$CallName),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
     destFile=paste0("D:/LAWA/2021/ES/",make.names(sites[i]),"/",make.names(translate$CallName[j]),"WQ.xml")
-    if(file.exists(destFile)&&file.info(destFile)$size>2000){
+    if(file.exists(destFile)&&file.info(destFile)$size>1000){
       Data=try(xml2::read_xml(destFile),silent=T)
       if('try-error'%in%attr(Data,'class')){
         file.remove(destFile)

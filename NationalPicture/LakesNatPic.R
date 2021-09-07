@@ -10,10 +10,12 @@ setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality/")
 source("h:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R")
 source("K:/R_functions/nztm2WGS.r")
 
-dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
+dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),showWarnings = F)
 lakeSiteTable=loadLatestSiteTableLakes()
 library(rgdal)
 nzmap <- readOGR('S:/New_S/Basemaps_Vector/NZ_Coastline/WGS_84/coast_wgs84.shp')
+
+FENZlake = read.csv("D:/RiverData/FENZLake.txt",stringsAsFactors = F)#[,c(2,3,13,14,15,17,26,27,32,33,34,35,36,38)]
 
 
 #Get elevation and distance to sea data for these lakes
@@ -73,7 +75,7 @@ TLI = read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
 TLIbyFENZ = read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
                               pattern="ITELakeTLIBYFENZ",recursive=T,full.names=T),1),stringsAsFactors = F)
 
-NOFSummaryTable <- NOFSummaryTable%>%filter(!Year%in%c('2005to2009'))  #Just, you see this way we're left with a single decade
+NOFSummaryTable <- NOFSummaryTable%>%filter(!Year%in%c('2005to2009','2006to2010'))  #Just, you see this way we're left with a single decade
 NOFSummaryTable <- NOFSummaryTable%>%filter(SiteID%in%unique(lakeTable$SiteID)) #And this way, we have only representative sites per lake
 
 NOFSummaryTable <- merge(lakeTable%>%select(LawaSiteID,SiteID,CouncilSiteID,LFENZID,LType,GeomorphicLType,Region,Agency,Long,Lat,Elevation,DistToSea),all.x=F,
@@ -109,72 +111,74 @@ NOFSummaryTable$TLIBand = cut(NOFSummaryTable$TLI,c(-1,2,3,4,5,700),labels = c("
 
 NOFlatest = droplevels(NOFSummaryTable%>%filter(Year=="2015to2019"))%>%drop_na(TLI)
 
-if(0){
+
   #Export files to recreate these plots ####
   NitrLTypeexport <- NOFlatest%>%select(Region,NitrogenMed_Band)%>%filter(NitrogenMed_Band!="NA")%>%
-    group_by(Region,LandCover)%>%dplyr::summarise(A=sum(NitrogenMed_Band=="A"),
+    group_by(Region)%>%dplyr::summarise(A=sum(NitrogenMed_Band=="A"),
                                                   B=sum(NitrogenMed_Band=="B"),
                                                   C=sum(NitrogenMed_Band=="C"),
                                                   D=sum(NitrogenMed_Band=="D"))%>%
     ungroup%>%pivot_longer(cols = A:D,names_to = 'Band',values_to = 'Count')%>%
-    mutate(Indicator="Nitr")%>%select(Region,LandCover,Indicator,Band,Count)
+    mutate(Indicator="Nitr")%>%select(Region,Indicator,Band,Count)
   
   PhosLTypeexport <- NOFlatest%>%select(Region,PhosphorusMed_Band)%>%filter(PhosphorusMed_Band!="NA")%>%
-    group_by(Region,LandCover)%>%dplyr::summarise(A=sum(PhosphorusMed_Band=="A"),
+    group_by(Region)%>%dplyr::summarise(A=sum(PhosphorusMed_Band=="A"),
                                                   B=sum(PhosphorusMed_Band=="B"),
                                                   C=sum(PhosphorusMed_Band=="C"),
                                                   D=sum(PhosphorusMed_Band=="D"))%>%
     ungroup%>%pivot_longer(cols = A:D,names_to = 'Band',values_to = 'Count')%>%
-    mutate(Indicator="Phos")%>%select(Region,LandCover,Indicator,Band,Count)
+    mutate(Indicator="Phos")%>%select(Region,Indicator,Band,Count)
   
     AmmonLTypeexport <- NOFlatest%>%select(Region,Ammonia_Toxicity_Band)%>%filter(Ammonia_Toxicity_Band!="NA")%>%
-    group_by(Region,LandCover)%>%dplyr::summarise(A=sum(Ammonia_Toxicity_Band=="A"),
+    group_by(Region)%>%dplyr::summarise(A=sum(Ammonia_Toxicity_Band=="A"),
                                                   B=sum(Ammonia_Toxicity_Band=="B"),
                                                   C=sum(Ammonia_Toxicity_Band=="C"),
                                                   D=sum(Ammonia_Toxicity_Band=="D"))%>%
     ungroup%>%pivot_longer(cols = A:D,names_to = 'Band',values_to = 'Count')%>%
-    mutate(Indicator="Ammonia")%>%select(Region,LandCover,Indicator,Band,Count)
+    mutate(Indicator="Ammonia")%>%select(Region,Indicator,Band,Count)
   
   ClarLTypeexport <- NOFlatest%>%select(Region,ClarityMedian_Band)%>%filter(ClarityMedian_Band!="NA")%>%
-    group_by(Region,LandCover)%>%dplyr::summarise(A=sum(ClarityMedian_Band=="A"),
+    group_by(Region)%>%dplyr::summarise(A=sum(ClarityMedian_Band=="A"),
                                                   B=sum(ClarityMedian_Band=="B"),
                                                   C=sum(ClarityMedian_Band=="C"),
                                                   D=sum(ClarityMedian_Band=="D"))%>%
     ungroup%>%pivot_longer(cols=A:D,names_to = 'Band',values_to = 'Count')%>%
-    mutate(Indicator="Clarity")%>%select(Region,LandCover,Indicator,Band,Count)
+    mutate(Indicator="Clarity")%>%select(Region,Indicator,Band,Count)
   
   ChlLTypeexport <- NOFlatest%>%select(Region,ChlASummaryBand)%>%filter(ChlASummaryBand!="NA")%>%
-    group_by(Region,LandCover)%>%dplyr::summarise(A=sum(ChlASummaryBand=="A"),
+    group_by(Region)%>%dplyr::summarise(A=sum(ChlASummaryBand=="A"),
                                                   B=sum(ChlASummaryBand=="B"),
                                                   C=sum(ChlASummaryBand=="C"),
                                                   D=sum(ChlASummaryBand=="D"))%>%
     ungroup%>%pivot_longer(cols=A:D,names_to = 'Band',values_to = 'Count')%>%
-    mutate(Indicator="Chlorophyll")%>%select(Region,LandCover,Indicator,Band,Count)
+    mutate(Indicator="Chlorophyll")%>%select(Region,Indicator,Band,Count)
   
   ECOLILTypeexport <- NOFlatest%>%select(Region,EcoliSummaryBand)%>%filter(EcoliSummaryBand!="NA")%>%
-    group_by(Region,LandCover)%>%dplyr::summarise(A=sum(EcoliSummaryBand=="A"),
+    group_by(Region)%>%dplyr::summarise(A=sum(EcoliSummaryBand=="A"),
                                                   B=sum(EcoliSummaryBand=="B"),
                                                   C=sum(EcoliSummaryBand=="C"),
                                                   D=sum(EcoliSummaryBand=="D"),
                                                   E=sum(EcoliSummaryBand=="E"))%>%
     ungroup%>%pivot_longer(cols = A:E,names_to = 'Band',values_to = 'Count')%>%
-    mutate(Indicator="ECOLI")%>%select(Region,LandCover,Indicator,Band,Count)
+    mutate(Indicator="ECOLI")%>%select(Region,Indicator,Band,Count)
   
 NOFLTypeexport <- do.call(rbind,list(NitrLTypeexport,PhosLTypeexport,AmmonLTypeexport,ClarLTypeexport,ChlLTypeexport,ECOLILTypeexport))
 
 # rm(PhosLTypeexport,ECOLILTypeexport,AmmonLTypeexport,ClarLTypeexport)
-write.csv(NOFLTypeexport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes/',
+write.csv(NOFLTypeexport,paste0('C:/users/ericg/Otago Regional Council/',
+                                'Abi Loughnan - LAWA Annual Water Refresh 2021/NationalPicture/Lakes/',
                              'NOFResultsLatestByRegion.csv'),row.names=F)
 
 #Now the time history one ####
 NitrNOFs = NOFSummaryTable%>%drop_na(NitrogenMed_Band)%>%filter(NitrogenMed_Band!="NA")%>%
   select(-starts_with(c('Ecoli','Ammonia','Nitra'),ignore.case = T))%>%
   dplyr::rename(Band=NitrogenMed_Band,LakeType=LType)%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY==10)%>%ungroup%>%
-  group_by(Region,Year)%>%dplyr::summarise(A=sum(Band=="A"),
-                                                     B=sum(Band=="B"),
-                                                     C=sum(Band=="C"),
-                                                     D=sum(Band=="D"))%>%ungroup%>%
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY>=10)%>%ungroup%>%
+  group_by(Region,Year)%>%dplyr::summarise(.groups='keep',
+                                           A=sum(Band=="A"),
+                                           B=sum(Band=="B"),
+                                           C=sum(Band=="C"),
+                                           D=sum(Band=="D"))%>%ungroup%>%
   pivot_longer(cols=A:D,names_to='Band',values_to='Count')%>%
   mutate(Indicator="Nitr")%>%
   dplyr::select(Region,Indicator,Year,Band,Count)
@@ -182,67 +186,71 @@ NitrNOFs = NOFSummaryTable%>%drop_na(NitrogenMed_Band)%>%filter(NitrogenMed_Band
 PhosNOFs = NOFSummaryTable%>%drop_na(PhosphorusMed_Band)%>%filter(PhosphorusMed_Band!="NA")%>%
   select(-starts_with(c('Ecoli','Ammonia','Nitra'),ignore.case = T))%>%
   dplyr::rename(Band=PhosphorusMed_Band,LakeType=LType)%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY==10)%>%ungroup%>%
-  group_by(Region,Year)%>%dplyr::summarise(A=sum(Band=="A"),
-                                                     B=sum(Band=="B"),
-                                                     C=sum(Band=="C"),
-                                                     D=sum(Band=="D"))%>%ungroup%>%
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY>=10)%>%ungroup%>%
+  group_by(Region,Year)%>%dplyr::summarise(.groups='keep',
+                                           A=sum(Band=="A"),
+                                           B=sum(Band=="B"),
+                                           C=sum(Band=="C"),
+                                           D=sum(Band=="D"))%>%ungroup%>%
   pivot_longer(cols=A:D,names_to='Band',values_to='Count')%>%
   mutate(Indicator="Phos")%>%
   dplyr::select(Region,Indicator,Year,Band,Count)
 NH4NOFs = NOFSummaryTable%>%drop_na(Ammonia_Toxicity_Band)%>%filter(Ammonia_Toxicity_Band!="NA")%>%
   select(-starts_with(c('Ecoli','Phos','Nitra'),ignore.case = T))%>%
   dplyr::rename(Band=Ammonia_Toxicity_Band,LakeType=LType)%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY==10)%>%ungroup%>%
-  group_by(Region,Year)%>%dplyr::summarise(A=sum(Band=="A"),
-                                                     B=sum(Band=="B"),
-                                                     C=sum(Band=="C"),
-                                                     D=sum(Band=="D"))%>%ungroup%>%
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY>=10)%>%ungroup%>%
+  group_by(Region,Year)%>%dplyr::summarise(.groups='keep',
+                                           A=sum(Band=="A"),
+                                           B=sum(Band=="B"),
+                                           C=sum(Band=="C"),
+                                           D=sum(Band=="D"))%>%ungroup%>%
   pivot_longer(cols=A:D,names_to='Band',values_to='Count')%>%
   mutate(Indicator="Ammonia")%>%
   dplyr::select(Region,Indicator,Year,Band,Count)
 ClarNOFs = NOFSummaryTable%>%drop_na(ClarityMedian_Band)%>%filter(ClarityMedian_Band!="NA")%>%
   select(-starts_with(c('Ecoli','Phos','Nitra'),ignore.case = T))%>%
   dplyr::rename(Band=ClarityMedian_Band,LakeType=LType)%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY==10)%>%ungroup%>%
-  group_by(Region,Year)%>%dplyr::summarise(A=sum(Band=="A"),
-                                                    B=sum(Band=="B"),
-                                                    C=sum(Band=="C"),
-                                                    D=sum(Band=="D"))%>%ungroup%>%
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY>=10)%>%ungroup%>%
+  group_by(Region,Year)%>%dplyr::summarise(.groups='keep',
+                                           A=sum(Band=="A"),
+                                           B=sum(Band=="B"),
+                                           C=sum(Band=="C"),
+                                           D=sum(Band=="D"))%>%ungroup%>%
   pivot_longer(cols=A:D,names_to='Band',values_to='Count')%>%
   mutate(Indicator="Ammonia")%>%
   dplyr::select(Region,Indicator,Year,Band,Count)
 ChlNOFs = NOFSummaryTable%>%drop_na(ChlASummaryBand)%>%filter(ChlASummaryBand!="NA")%>%
   select(-starts_with(c('Ecoli','Phos','Nitra'),ignore.case = T))%>%
   dplyr::rename(Band=ChlASummaryBand,LakeType=LType)%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY==10)%>%ungroup%>%
-  group_by(Region,Year)%>%dplyr::summarise(A=sum(Band=="A"),
-                                                    B=sum(Band=="B"),
-                                                    C=sum(Band=="C"),
-                                                    D=sum(Band=="D"))%>%ungroup%>%
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY>=10)%>%ungroup%>%
+  group_by(Region,Year)%>%dplyr::summarise(.groups='keep',
+                                           A=sum(Band=="A"),
+                                           B=sum(Band=="B"),
+                                           C=sum(Band=="C"),
+                                           D=sum(Band=="D"))%>%ungroup%>%
   pivot_longer(cols=A:D,names_to='Band',values_to='Count')%>%
   mutate(Indicator="Ammonia")%>%
   dplyr::select(Region,Indicator,Year,Band,Count)
-
-
 ECOLINOFs = NOFSummaryTable%>%drop_na(EcoliSummaryBand)%>%filter(EcoliSummaryBand!="NA")%>%
   select(-starts_with(c('Phos','Ammonia','Nitra'),ignore.case = T))%>%
   dplyr::rename(Band=EcoliSummaryBand,LakeType=LType)%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY==10)%>%ungroup%>%
-  group_by(Region,Year)%>%dplyr::summarise(A=sum(Band=="A"),
-                                                     B=sum(Band=="B"),
-                                                     C=sum(Band=="C"),
-                                                     D=sum(Band=="D"),
-                                                     E=sum(Band=="E"))%>%ungroup%>%
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)),Year=strFrom(Year,'to'))%>%filter(nY>=10)%>%ungroup%>%
+  group_by(Region,Year)%>%dplyr::summarise(.groups='keep',
+                                           A=sum(Band=="A"),
+                                           B=sum(Band=="B"),
+                                           C=sum(Band=="C"),
+                                           D=sum(Band=="D"),
+                                           E=sum(Band=="E"))%>%ungroup%>%
   pivot_longer(cols=A:E,names_to='Band',values_to='Count')%>%
   mutate(Indicator="ECOLI")%>%
   dplyr::select(Region,Indicator,Year,Band,Count)
 
 NOFHistoryExport <- do.call(rbind,list(NitrNOFs,PhosNOFs,NH4NOFs,ClarNOFs,ChlNOFs,ECOLINOFs))
-write.csv(NOFHistoryExport,paste0('C:/users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes/',
+write.csv(NOFHistoryExport,paste0('C:/users/ericg/Otago Regional Council/',
+                                  'Abi Loughnan - LAWA Annual Water Refresh 2021/NationalPicture/Lakes/',
                                   'NOFResultsHistoryCompleteSites.csv'),row.names=F)
 rm(NitrNOFs,PhosNOFs,NH4NOFs,ClarNOFs,ChlNOFs,ECOLINOFs)
-}
+
 
 
 if(!'source'%in%font_families()){
@@ -273,6 +281,7 @@ OLPalette=c('#cccccc','#f2f2f2')
 plot(1:9,1:9,col=LAWAPalette,cex=5,pch=16)
 points(c(6,4),c(3,7),col=OLPalette,cex=7.5,pch=16)
 
+par(mfrow=c(1,1),mar=c(5,4,4,2))
 
 plotLatest=NOFlatest%>%
   select(LawaSiteID,
@@ -288,13 +297,14 @@ plot(NOFlatest$TLIBand,(NOFlatest$Elevation)^(1/6))
 plot(NOFlatest$TLI,(NOFlatest$Elevation),xlab='TLI value',ylab='Elevation, m',
      col=LAWAPalette[c(3,8,7,6,5)][as.numeric(NOFlatest$TLIBand)],pch=16)
 
+suppressMessages({
 for(TLIthresh in seq(1.6,
                      max(NOFlatest$TLI,na.rm=T),length.out = 100)){
   altroc=pROC::roc(response=NOFlatest$TLI>=TLIthresh,
                    predictor=NOFlatest$Elevation)
   highlow=pROC::coords(roc=altroc,'best')[1]$threshold[1]
   points(TLIthresh,highlow,col='red')  
-}
+}})
 
 
 plot(NOFlatest$TLI,(NOFlatest$Elevation))
@@ -305,15 +315,15 @@ rm(altroc)
 abline(h=highlow,lty=2,lwd=2)
 abline(v=4.5,lty=2,lwd=2)
 
-stopifnot(abs(highlow-170)<5)
+# stopifnot(abs(highlow-170)<5)
+highlow = 170
 
 
 
 
 
 
-if(0){
-  tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakeLocations.tif"),
+  tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakeLocations.tif"),
        width = 6,height=7.5,units='in',res=300,compression='lzw',type='cairo')
   par(mar=c(1,1,1,1))
   plot(nzmap,col=OLPalette[1],border=NA,
@@ -322,8 +332,8 @@ if(0){
   
   if(names(dev.cur())=='tiff'){dev.off()}
   
-  file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakeLocations.tif"),
-            to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+  file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakeLocations.tif"),
+            to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
             overwrite=T)
   
   
@@ -337,7 +347,7 @@ if(0){
   
   measCounts <- apply(plotLatest,2,function(c)sum(!c%in%c("NA","<NA>")))
   
-  tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakes.tif"),
+  tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakes.tif"),
        width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
   par(mfrow=c(1,1),xpd=T,mar=c(5,6,4,2),col.main=LAWAPalette[2],
       col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],family='source',
@@ -363,10 +373,10 @@ if(0){
   # points(plotLatest$Long,plotLatest$Lat,pch=16,cex=0.75)
   if(names(dev.cur())=='tiff'){dev.off()}
   
-  file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakes.tif"),
-            to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+  file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFLakes.tif"),
+            to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
             overwrite=T)
-}
+
 
 
 
@@ -379,13 +389,13 @@ barTLI=apply(plotLatest%>%select(TLI),2,FUN=function(c){
 })
 
 write.csv(barTLI,
-            paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakesLatest2019Proportions.csv"),
+            paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakesLatest2019Proportions.csv"),
           row.names=c("really poor","poor","average","good","really good"))
 
 TLICounts <- sum(!is.na(plotLatest%>%select(TLI)%>%unlist))
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakes.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakes.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,6,4,2),col.main=LAWAPalette[2],
     col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],family='source',
@@ -399,7 +409,7 @@ barplot(barTLI,main="",
         ylab="",border = NA,cex.lab=4,cex.main=5,cex.names=4,
         names.arg=c(as.expression(bquote(atop(.(colnames(barTLI)[1]),'('*.(TLICounts)~'sites)')))))
 par(xpd=T)
-title(main = "Latest TLI grades of monitored lakes (2019)",
+title(main = "Latest TLI grades of monitored lakes (2020)",
       adj = 1,cex.main=5,family='source',col=LAWAPalette[3])
 par(xpd=F)
 axis(side = 2,line = -23,at = seq(0,1,by=0.2),labels = paste(seq(0,1,by=0.2)*100,'%'),las=2,col=LAWAPalette[3],cex.axis=4)
@@ -409,7 +419,7 @@ plotLatest%>%filter(TLI!="NA")%>%select(Long,Lat)%>%points(pch=16,cex=0.75)
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakeswCounts.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakeswCounts.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,6,4,2),col.main=LAWAPalette[2],
     col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],family='source',
@@ -424,7 +434,7 @@ iT <- barplot(barTLI,main="",
         names.arg=c(as.expression(bquote(atop(.(colnames(barTLI)[1]),'('*.(TLICounts)~'sites)')))))
 text(iT,apply(cbind(c(0,head(cumsum(barTLI),length(barTLI)-1)),cumsum(barTLI)),1,mean),barTLI*TLICounts,cex=4)
 par(xpd=T)
-title(main = "Latest TLI grades of monitored lakes (2019)",
+title(main = "Latest TLI grades of monitored lakes (2020)",
       adj = 1,cex.main=5,family='source',col=LAWAPalette[3])
 par(xpd=F)
 axis(side = 2,line = -23,at = seq(0,1,by=0.2),labels = paste(seq(0,1,by=0.2)*100,'%'),las=2,col=LAWAPalette[3],cex.axis=4)
@@ -435,7 +445,7 @@ showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakes_col.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/TLILakes_col.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mfrow=c(1,1),xpd=T,mar=c(5,6,4,2),col.main=LAWAPalette[2],
     col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],family='source',
@@ -449,7 +459,7 @@ barplot(barTLI,main="",
         ylab="",border = NA,cex.lab=4,cex.main=5,cex.names=4,
         names.arg=c(as.expression(bquote(atop(.(colnames(barTLI)[1]),'('*.(TLICounts)~'sites)')))))
 par(xpd=T)
-title(main = "Latest TLI grades of monitored lakes (2019)",
+title(main = "Latest TLI grades of monitored lakes (2020)",
       adj = 1,cex.main=5,family='source',col=LAWAPalette[3])
 par(xpd=F)
 axis(side = 2,line = -23,at = seq(0,1,by=0.2),labels = paste(seq(0,1,by=0.2)*100,'%'),las=2,col=LAWAPalette[3],cex.axis=4)
@@ -459,9 +469,9 @@ with(plotLatest%>%filter(TLI!="NA"),points(Long,Lat,col=rev(LAWAPalette[c(5,6,7,
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 
-file.copy(from = dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+file.copy(from = dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
                      pattern = "^TLILakes",full.names = T),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
           overwrite=T)
 
 
@@ -482,12 +492,12 @@ barTLI = cbind(tabulate(bin=factor(NOFlatest$TLIBand,levels=rev(c('A','B','C','D
                  sum(!is.na(NOFlatest$TLIBand[NOFlatest$Elevation>highlow])))
 
 write.csv(data.frame(barTLI)%>%dplyr::rename("all124"=X1,"lowland77"=X2,"upland47"=X3),
-          paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIElevationPropns.csv"),
+          paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIElevationPropns.csv"),
           row.names=c("Really bad","bad","moderate","great","really great"))
 
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevation.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevation.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mgp=c(4,3,0),family='source',mar=c(5,6,4,2))
 layout(matrix(c(1,1,1,2,2,
@@ -502,7 +512,7 @@ axis(side = 1,at=iT,labels = c(expression(atop(All~elevations,'(124 sites)')),
                     expression(atop(Lowland*' < 170m','(77 sites)')),
                     expression(atop(Upland*" > 170m",'(47 sites)'))),
      lty=0,line = 1.25,col.axis=LAWAPalette[3],cex.axis=ifelse(names(dev.cur())=='tiff',6,1))
-title(main="Latest TLI scores of monitored lakes (2019) by altitude",col.main=LAWAPalette[3],
+title(main="Latest TLI scores of monitored lakes (2020) by altitude",col.main=LAWAPalette[3],
       cex.main=ifelse(names(dev.cur())=='tiff',8,1.5))
 par(mgp=c(4,1.5,0))
 axis(side = 2,at = seq(0,1,by=0.2),labels = paste(seq(0,1,by=0.2)*100,'%'),
@@ -522,7 +532,7 @@ barTLI = cbind(tabulate(bin = factor(NOFlatest$TLIBand[NOFlatest$Elevation<=high
                  sum(!is.na(NOFlatest$TLIBand[NOFlatest$Elevation>highlow])))
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",
             format(Sys.Date(),"%Y-%m-%d"),
             "/LakesTLIbyElevation2band.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
@@ -538,7 +548,7 @@ iT=barplot(barTLI,main="",
 axis(side = 1,at=iT,labels = c(expression(atop(Lowland*' < 170m','(77 sites)')),
                                expression(atop(Upland*" > 170m",'(47 sites)'))),
      lty=0,line = 1.25,col.axis=LAWAPalette[3],cex.axis=ifelse(names(dev.cur())=='tiff',6,1))
-title(main="Latest TLI scores of monitored lakes (2019) by altitude",col.main=LAWAPalette[3],
+title(main="Latest TLI scores of monitored lakes (2020) by altitude",col.main=LAWAPalette[3],
       cex.main=ifelse(names(dev.cur())=='tiff',8,1.5))
 par(mgp=c(4,1.5,0))
 axis(side = 2,at = seq(0,1,by=0.2),labels = paste(seq(0,1,by=0.2)*100,'%'),
@@ -554,10 +564,10 @@ rm(iT)
 
 NOFlatest%>%dplyr::filter(TLI!='NA')%>%
   dplyr::transmute(Long,Lat,uplow=factor((Elevation<=highlow),levels=c("TRUE","FALSE"),labels=c("lowland","upland")))%>%
-write.csv(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakeLocnElevation.csv"),row.names=F)
+write.csv(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/LakeLocnElevation.csv"),row.names=F)
 
 
-tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevationwCounts.tif"),
+tiff(paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevationwCounts.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 par(mgp=c(4,3,0),family='source',cex.lab=6,cex.main=8,mar=c(5,6,4,2))
 layout(matrix(c(1,1,1,2,2,
@@ -567,7 +577,7 @@ showtext_begin()
 #spineplot
 iT=plot(factor(NOFlatest$Elevation<=highlow,levels=c("TRUE","FALSE"),labels=c("Lowland","Upland")),
         NOFlatest$TLIBand,ylevels=c("E","D","C","B","A"),
-        main="Latest TLI scores of monitored lakes (2019) by altitude",
+        main="Latest TLI scores of monitored lakes (2020) by altitude",
            col=LAWAPalette[c(5,6,7,8,3)],axes=F,xlab='',
            ylab="",border = NA)
 axis(side=1,at=c(0.3,0.8),c(expression(atop(Lowland*' < 170m','(77 sites)')),
@@ -583,11 +593,11 @@ showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 rm(iT)
 
-file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevation.tif"),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevation.tif"),
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
           overwrite=T)
-file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevationwCounts.tif"),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/LakesTLIbyElevationwCounts.tif"),
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
           overwrite=T)
 
 
@@ -599,13 +609,13 @@ file.copy(from = paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(S
 xlabpos=(1:10)*0.12-0.07
 
 # TLITrend  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrend.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrend.tif"),
      width = 12,height=8,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 TLINOFs = NOFSummaryTable%>%filter(TLIBand!="NA")%>%drop_na(TLIBand)%>%
   select(-starts_with(c('ecoli','nitrate','phos','ammon','Clar','chl'),ignore.case=T))%>%
   select(-ends_with(c("note","type")))%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY==10)%>%ungroup%>%select(-nY)
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY>=10)%>%ungroup%>%select(-nY)
 nSites=length(unique(TLINOFs$LawaSiteID))
 
 layout(matrix(c(1,1,1,2,2,
@@ -626,17 +636,17 @@ plot(nzmap,col=OLPalette[1],border=OLPalette[1],lwd=NULL)
 points(TLINOFs$Long,TLINOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
-iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrend.csv"),row.names=T)
+iT=rbind(iT,c("Total","of",nSites,"sites"," "))
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrend.csv"),row.names=T)
 rm(TLINOFs,nSites,iT)
 
-tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrendwCounts.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/TLITrendwCounts.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 TLINOFs = NOFSummaryTable%>%filter(TLIBand!="NA")%>%drop_na(TLIBand)%>%
   select(-starts_with(c('ecoli','nitrate','phos','ammon','Clar','chl'),ignore.case=T))%>%
   select(-ends_with(c("note","type")))%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY==10)%>%ungroup%>%select(-nY)
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY>=10)%>%ungroup%>%select(-nY)
 nSites=length(unique(TLINOFs$LawaSiteID))
 
 layout(matrix(c(1,1,1,2,2,
@@ -661,22 +671,22 @@ showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 rm(TLINOFs,nSites,iT)
 
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="TLITrend",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
                    overwrite=T)})
 
 
-if(0){
+
 # NOFTrendTNSum ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTNSum.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTNSum.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 TNNOFs = NOFSummaryTable%>%drop_na(NitrogenMed_Band)%>%filter(NitrogenMed_Band!="NA")%>%
   select(-starts_with(c('Ecoli','Ammonia','Clarity','ChlA','Phos','TLI'),ignore.case = T))%>%
   select(-ends_with(c('Note','Type'),ignore.case=T))%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY==10)%>%ungroup%>%select(-nY)
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY>=10)%>%ungroup%>%select(-nY)
 nSites=length(unique(TNNOFs$LawaSiteID))
 layout(matrix(c(1,1,2,
                 1,1,2,
@@ -697,24 +707,24 @@ with(TNNOFs%>%filter(Year=='2015to2019'),
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 
-iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTN.csv"),row.names=T)
+iT=rbind(iT,c("Total","of",nSites,"sites"," "))
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTN.csv"),row.names=T)
 rm(TNNOFs,nSites,iT)
 
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendTN",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
                    overwrite=T)})
 
 
 # NOFTrendTPSum ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTPSum.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTPSum.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 TPNOFs = NOFSummaryTable%>%drop_na(PhosphorusMed_Band)%>%filter(PhosphorusMed_Band!="NA")%>%
   select(-starts_with(c('Ecoli','Ammonia',"Nitr","Clar","Chl"),ignore.case = T))%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY==10)%>%ungroup%>%select(-nY)
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY>=10)%>%ungroup%>%select(-nY)
 nSites=length(unique(TPNOFs$LawaSiteID))
 
 layout(matrix(c(1,1,2,
@@ -735,27 +745,27 @@ with(TPNOFs%>%filter(Year=='2015to2019'),
 )
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
-iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTP.csv"),row.names=T)
+iT=rbind(iT,c("Total","of",nSites,"sites"," "))
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendTP.csv"),row.names=T)
 rm(TPNOFs,nSites,iT)
 
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendTP",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
                    overwrite=T)})
 
 
 
 # NOFTrendAmmoniacalTox  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmoniacalTox.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmoniacalTox.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 ammonNOFs = NOFSummaryTable%>%filter(Ammonia_Toxicity_Band!="NA")%>%drop_na(Ammonia_Toxicity_Band)%>%
   select(-SiteID,-CouncilSiteID)%>%
   select(-starts_with(c('nitr','ecoli','nitrate','phos','clar','chla','tli'),ignore.case=T))%>%
   select(-ends_with(c('note','type'),ignore.case=T))%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY==10)%>%ungroup%>%select(-nY)
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY>=10)%>%ungroup%>%select(-nY)
 nSites=length(unique(ammonNOFs$LawaSiteID))
 
 layout(matrix(c(1,1,2,
@@ -775,23 +785,23 @@ points(ammonNOFs$Long,ammonNOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
 iT=rbind(iT,c("Total","of",nSites,"sites",""))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmonTox.csv"),row.names=T)
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendAmmonTox.csv"),row.names=T)
 rm(ammonNOFs,nSites,iT)
 
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendAmmon",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
                    overwrite=T)})
 
 
 # NOFTrendClarity  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendClarity.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendClarity.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 clarNOFs = NOFSummaryTable%>%filter(ClarityMedian_Band!="NA")%>%drop_na(ClarityMedian_Band)%>%
   select(-starts_with(c('ecoli','nitrate','phos','ammon','chla'),ignore.case=T))%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY==10)%>%ungroup%>%select(-nY)
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY>=10)%>%ungroup%>%select(-nY)
 nSites=length(unique(clarNOFs$LawaSiteID))
 
 layout(matrix(c(1,1,2,
@@ -810,25 +820,25 @@ plot(nzmap,col=OLPalette[1],border=OLPalette[1],lwd=NULL)
 points(clarNOFs$Long,clarNOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
-iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendClarity.csv"),row.names=T)
+iT=rbind(iT,c("Total","of",nSites,"sites"," "))
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendClarity.csv"),row.names=T)
 rm(clarNOFs,nSites,iT)
 
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendCla",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
                    overwrite=T)})
 
 
 
 # NOFTrendChlA  ####
-tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.tif"),
+tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.tif"),
      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 showtext_begin()
 chlNOFs = NOFSummaryTable%>%filter(ChlASummaryBand!="NA")%>%drop_na(ChlASummaryBand)%>%
   select(-starts_with(c('ecoli','nitrate','phos','ammon','Clar'),ignore.case=T))%>%
-  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY==10)%>%ungroup%>%select(-nY)
+  group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY>=10)%>%ungroup%>%select(-nY)
 nSites=length(unique(chlNOFs$LawaSiteID))
 
 layout(matrix(c(1,1,2,
@@ -847,25 +857,62 @@ plot(nzmap,col=OLPalette[1],border=OLPalette[1],lwd=NULL)
 points(chlNOFs$Long,chlNOFs$Lat,pch=16,cex=0.25,col='black')
 showtext_end()
 if(names(dev.cur())=='tiff'){dev.off()}
-iT=rbind(iT,c("Total","of",nSites,"sites"))
-write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.csv"),row.names=T)
+iT=rbind(iT,c("Total","of",nSites,"sites"," "))
+write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.csv"),row.names=T)
 rm(chlNOFs,nSites,iT)
 
-sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
            pattern="NOFTrendChl",full.names=T),
        FUN=function(f){
-         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+         file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
                    overwrite=T)})
 
 
+# 
+# 
+# # NOFTrendCyano  ####
+# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendCyano.tif"),
+#      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
+# showtext_begin()
+# cyaNOFs = NOFSummaryTable%>%filter(CyanoBand!="NA")%>%drop_na(CyanoBand)%>%
+#   select(-starts_with(c('ecoli','nitrate','phos','ammon','Clar'),ignore.case=T))%>%
+#   group_by(LawaSiteID)%>%dplyr::mutate(nY=length(unique(Year)))%>%filter(nY>=10)%>%ungroup%>%select(-nY)
+# nSites=length(unique(cyaNOFs$LawaSiteID))
+# 
+# layout(matrix(c(1,1,2,
+#                 1,1,2,
+#                 1,1,2),nrow=3,byrow=T))
+# par(col.main=LAWAPalette[2],col.axis=LAWAPalette[3],col.lab=LAWAPalette[3],mar=c(4,3,3,1),mgp=c(1.75,0.5,0),
+#     cex=2,cex.main=2,cex.lab=1.5,cex.axis=1.5)
+# iT=plot(factor(cyaNOFs$Year),cyaNOFs$CyanoBand,ylab='',xlab='',
+#         col=LAWAPalette[c(5,7,8,3)],tol.ylab=0,main="Chlorophyll A",
+#         axes=F,border = NA)
+# axis(2,at=seq(0,1,by=0.2),labels = paste(seq(0,1,by=0.2)*100,'%'),las=2,col=LAWAPalette[3],tck=-0.025)
+# axis(1,at=xlabpos,labels = levels(factor(strFrom(cyaNOFs$Year,'to'))),col=LAWAPalette[3],cex.axis=1.25)
+# mtext(side = 3,paste0("Showing only the ",nSites," complete sites."),line = 0.5,col=LAWAPalette[3],cex=2.5)
+# par(mar=c(1,0,0,0))
+# plot(nzmap,col=OLPalette[1],border=OLPalette[1],lwd=NULL)
+# points(cyaNOFs$Long,cyaNOFs$Lat,pch=16,cex=0.25,col='black')
+# showtext_end()
+# if(names(dev.cur())=='tiff'){dev.off()}
+# iT=rbind(iT,c("Total","of",nSites,"sites"," "))
+# write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendChlA.csv"),row.names=T)
+# rm(cyaNOFs,nSites,iT)
+# 
+# sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
+#            pattern="NOFTrendChl",full.names=T),
+#        FUN=function(f){
+#          file.copy(from = f,to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
+#                    overwrite=T)})
 
 
-}
+
+
 
 # 
 # 
 # # NOFTrendEcoliSummary ####
-# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEcoliSummary.tif"),
+# tiff(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEcoliSummary.tif"),
 #      width = 10,height=6,units='in',res=300,compression='lzw',type='cairo')
 # showtext_begin()
 # ecoliNOFs = NOFSummaryTable%>%filter(EcoliSummaryBand!="NA")%>%drop_na(EcoliSummaryBand)%>%
@@ -890,7 +937,7 @@ sapply(dir(path=paste0("H:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sy
 # showtext_end()
 # if(names(dev.cur())=='tiff'){dev.off()}
 # iT=rbind(iT,c("Total","of",nSites,"sites",""))
-# write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEColi.csv"),row.names=T)
+# write.csv(iT,paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d"),"/NOFTrendEColi.csv"),row.names=T)
 # rm(ecoliNOFs,nSites,iT)
 
 stdise=function(x){
@@ -915,7 +962,7 @@ lines(2011:2021,Modes,col='red',lwd=2)
 
 
 #Copy fioles to sharepoint ####
-file.copy(from = dir(path=paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/L",format(Sys.Date(),"%Y-%m-%d")),
+file.copy(from = dir(path=paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/Lakes/L",format(Sys.Date(),"%Y-%m-%d")),
                      pattern = "tif$|csv$",full.names = T),
-          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Refresh 2021_NationalPicture/Lakes",
+          to = "C:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021 - project team collab/LakesNationalPicture",
           overwrite = T,copy.date = T)

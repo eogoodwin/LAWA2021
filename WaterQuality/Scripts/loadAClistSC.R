@@ -109,6 +109,7 @@ clusterCall(workers,function(){
   library(dplyr)
   library(tidyr)
 })
+rm(Data,datasource,RetProperty,RetCID)
 
 acSWQ=NULL
 for(i in 1:length(sites)){

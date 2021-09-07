@@ -7,9 +7,16 @@ library(doParallel)
 setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
 agency='gdc'
 
-Measurements <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",
-                           sep=',',header=T,stringsAsFactors = F)%>%
-  filter(Agency==agency)%>%select(CallName)%>%unname%>%unlist
+# gdc,Secchi Black Disc (metres) water clarity,BDISC
+
+
+translate <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",
+                           sep=',',header=T,stringsAsFactors = F)%>%filter(Agency==agency)
+translate$retName=c("Ammoniacal Nitrogen as N","Clarity Tube (cm)-Field","Clarity Tube (cm)-Field",
+                    "Dissolved Inorganic Nitrogen (DIN)","Dissolved Reactive Phosphorus","E.Coli CFU/100mL",
+                    "pH (Field)","Nitrate as N","Nitrogen Total",
+                    "Total Oxidised Nitrogen","Total Phosphorus","Turbidity (Lab - NTU)",
+                    "Turbidity (Lab - FNU)")
 
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
@@ -27,24 +34,101 @@ clusterCall(workers,function(){
 })
 
 
-if(exists("Data"))rm(Data)
-gdcSWQ=NULL
 for(i in 1:length(sites)){
+  dir.create(paste0("D:/LAWA/2021/GDC/",make.names(sites[i])),recursive = T,showWarnings = F)
   cat('\n',sites[i],i,'out of ',length(sites))
-  rm(siteDat)
-  foreach(j = 1:length(Measurements),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
+  foreach(j = 1:length(translate$CallName),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
     url <- paste0("http://hilltop.gdc.govt.nz/data.hts?service=Hilltop&request=GetData",
                   "&Site=",sites[i],
-                  "&Measurement=",Measurements[j],
+                  "&Measurement=",translate$CallName[j],
                   "&From=2004-01-01",
                   "&To=2021-01-01")
     url <- URLencode(url)
-    
-    destFile=paste0("D:/LAWA/2021/tmp",gsub(' ','',URLencode(Measurements[j],reserved = T)),"WQgdc.xml")
-    dl=try(download.file(url,destfile=destFile,method='wininet',quiet=T),silent = T)
-    if(!'try-error'%in%attr(dl,'class')){
+    destFile=paste0("D:/LAWA/2021/GDC/",make.names(sites[i]),"/",make.names(translate$CallName[j]),".xml")
+    if(!file.exists(destFile)|file.info(destFile)$size<3500){
+      dl=try(download.file(url,destfile=destFile,method='wininet',quiet=T),silent = T)
+      if(!'try-error'%in%attr(dl,'class')){
+        Data=try(xml2::read_xml(destFile),silent=T)
+        while('try-error'%in%attr(Data,'class')){
+          dl=try(download.file(url,destfile=destFile,method='wininet',quiet=T),silent = T)
+          if(!'try-error'%in%attr(dl,'class')){
+            Data=try(xml2::read_xml(destFile),silent=T)
+          }else{return(NULL)}
+        }
+        Data = xml2::as_list(Data)[[1]]
+        if(length(Data)>0&&names(Data)[1]!='Error'){
+          RetCID = attr(Data$Measurement,'SiteName')
+          RetProperty=attr(Data$Measurement$DataSource,"Name")
+          
+          while(RetProperty!=translate$retName[j]|RetCID!=sites[i]){
+            file.rename(from = destFile,to = paste0('XX',make.names(RetProperty),destFile))
+            file.remove(destFile)
+            dl=download.file(url,destfile=destFile,method='libcurl',quiet=T)
+            Data=xml2::read_xml(destFile)
+            Data = xml2::as_list(Data)[[1]]
+            if(length(Data)>0){
+              RetCID = attr(Data$Measurement,'SiteName')
+              RetProperty=attr(Data$Measurement$DataSource,"Name")
+            }
+          }
+        }else{file.remove(destFile)}
+      }
+    }
+    return(NULL)
+  }->dummyout
+}
+stopCluster(workers)
+rm(workers)
+
+
+
+
+#Check site and measurement returned
+for(i in 1:length(sites)){
+  cat('\n',sites[i],i,'out of ',length(sites))
+  rm(siteDat)
+  for(j in 1:13){
+    destFile=paste0("D:/LAWA/2021/GDC/",make.names(sites[i]),"/",make.names(translate$CallName[j]),".xml")
+    if(file.exists(destFile)&file.info(destFile)$size>2000){
       Data=xml2::read_xml(destFile)
       Data = xml2::as_list(Data)[[1]]
+      if(length(Data)>0&&names(Data)[1]!='Error'){
+        cat('.')
+        RetProperty=Data$Measurement$DataSource$ItemInfo$ItemName[[1]]
+        RetCID = attr(Data$Measurement,'SiteName')
+        
+        if(RetProperty!=translate$retName[j]|RetCID!=sites[i]){
+          browser()
+        }
+      }
+    }
+  }
+}
+
+
+
+
+workers = makeCluster(7)
+registerDoParallel(workers)
+
+clusterCall(workers,function(){
+  library(magrittr)  
+  library(dplyr)
+  library(tidyr)
+})
+
+rm(Data,datasource,RetProperty,RetCID)
+gdcSWQ=NULL
+for(i in 1:length(sites)){
+  cat('\n',sites[i],i,'out of ',length(sites))
+  foreach(j = 1:length(translate$CallName),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
+    destFile=paste0("D:/LAWA/2021/GDC/",make.names(sites[i]),"/",make.names(translate$CallName[j]),".xml")
+    if(file.exists(destFile)&&file.info(destFile)$size>1000){
+      
+      Data=xml2::read_xml(destFile)
+      Data = xml2::as_list(Data)[[1]]
+      RetProperty=Data$Measurement$DataSource$ItemInfo$ItemName[[1]]
+      RetCID = attr(Data$Measurement,'SiteName')
       dataSource = unlist(Data$Measurement$DataSource)
       Data = Data$Measurement$Data
       if(length(Data)>0){
@@ -61,11 +145,12 @@ for(i in 1:length(sites)){
           Data$Units=NA
         }
         if(!is.null(Data)){
-          Data$Measurement=Measurements[j]
+          Data$Measurement=translate$CallName[j]
+          Data$RetProp=RetProperty
+          Data$RetCID = RetCID
         }
       }else{Data=NULL}
     }else{Data=NULL}
-    file.remove(destFile)
     rm(destFile)
     return(Data)
   }->siteDat
@@ -82,15 +167,15 @@ rm(workers)
 
 
 
-
-
+table(gdcSWQ$Measurement==translate$CallName[match(gdcSWQ$RetProp,translate$retName)])
+table(gdcSWQ$CouncilSiteID==gdcSWQ$RetCID)
 
 
 save(gdcSWQ,file = 'gdcSWQraw.rData')
-# load('gdcSWQraw.rData')
-agency='gdc'
+# load('gdcSWQraw.rData') #44296
 
-# gdcSWQ <- gdcSWQ%>%filter(!QualityCode%in%c(100))
+
+gdcSWQ <- gdcSWQ%>%filter(!QualityCode%in%c(400))
 
 gdcSWQ <- gdcSWQ%>%select(CouncilSiteID,Date=T,Value,Measurement,Units,QualityCode)
 
@@ -106,10 +191,6 @@ gdcSWQb$CenType[grep('<',gdcSWQb$Value)] <- 'Left'
 gdcSWQb$CenType[grep('>',gdcSWQb$Value)] <- 'Right'
 
 gdcSWQb$Value = readr::parse_number(gdcSWQb$Value)
-
-
-translate=read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
-  filter(Agency==agency)%>%select(CallName,LAWAName)
 
 
 table(gdcSWQb$Measurement,useNA = 'a')

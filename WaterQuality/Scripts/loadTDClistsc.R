@@ -5,11 +5,11 @@ library(parallel)
 library(doParallel)
 
 setwd("H:/ericg/16666LAWA/LAWA2021/WaterQuality")
-agency='trc'
+agency='tdc'
 
 translate <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",
-                           sep=',',header=T,stringsAsFactors = F)%>%filter(Agency==agency)
-translate$retName=c("BDISC","DRP","ECOL","NH4","NNN","TON","NO3","DIN","pH","TN","TP","TURBY","TURB")
+                        sep=',',header=T,stringsAsFactors = F)%>%filter(Agency==agency)
+translate$retName=c("Dissolved Reactive Phosphorus","E.coli","E.coli (APHA 9223B)","Nitrate-N + Nitrite-N (Lachat)","Nitrate-N","pH","Total Ammonia","Total Nitrogen","Total Phosphorus","Turbidity","Water Clarity")
 
 siteTable=loadLatestSiteTableRiver()
 sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
@@ -20,17 +20,16 @@ sites = unique(siteTable$CouncilSiteID[siteTable$Agency==agency])
 
 for(i in 1:length(sites)){
   cat('\n',sites[i],i,'out of ',length(sites))
-  dir.create(paste0('D:/LAWA/2021/TRC/',sites[i]),recursive = T,showWarnings = F)
-  rm(siteDat)
+  dir.create(paste0('D:/LAWA/2021/tdc/',sites[i]),recursive = T,showWarnings = F)
   for(j in 1:length(translate$CallName)){
-    url <- paste0("https://extranet.trc.govt.nz/getdata/LAWA_river_WQ.hts?service=Hilltop&request=GetData",
+    url <- paste0("http://envdata.tasman.govt.nz/WaterQuality.hts?service=Hilltop&request=GetData",
                   "&Site=",sites[i],
                   "&Measurement=",translate$CallName[j],
                   "&From=2004-01-01",
                   "&To=2021-01-01")
     url <- URLencode(url)
     
-    destFile=paste0("D:/LAWA/2021/TRC/",sites[i],"/",translate$CallName[j],".xml")
+    destFile=paste0("D:/LAWA/2021/tdc/",sites[i],"/",make.names(translate$CallName[j]),".xml")
     if(!file.exists(destFile)||file.info(destFile)$size<2000){
       dl=try(download.file(url,destfile=destFile,method='wininet',quiet=T),silent = T)
       if(file.exists(destFile)&&file.info(destFile)$size>500){
@@ -57,8 +56,8 @@ for(i in 1:length(sites)){
     }
   }
 }
-    
-    
+
+
 
 workers = makeCluster(7)
 registerDoParallel(workers)
@@ -69,8 +68,8 @@ clusterCall(workers,function(){
 foreach(i = 1:length(sites),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
   cat('\n',sites[i],i,'out of ',length(sites))
   for(j in 1:11){
-    destFile=paste0("D:/LAWA/2021/TRC/",make.names(sites[i]),"/",make.names(translate$CallName[j]),".xml")
-    if(file.exists(destFile)&file.info(destFile)$size>2000){
+    destFile=paste0("D:/LAWA/2021/tdc/",sites[i],"/",make.names(translate$CallName[j]),".xml")
+    if(file.exists(destFile)&file.info(destFile)$size>500){
       Data=xml2::read_xml(destFile)
       Data = xml2::as_list(Data)[[1]]
       if(length(Data)>0&&names(Data)[1]!='Error'){
@@ -86,7 +85,11 @@ foreach(i = 1:length(sites),.combine = bind_rows,.errorhandling = 'stop',.inorde
   return(NULL)
 }->dummyout
 stopCluster(workers)
-rm(workers)
+rm(workers,dummyout)
+
+
+
+
 
 workers = makeCluster(7)
 registerDoParallel(workers)
@@ -98,42 +101,41 @@ clusterCall(workers,function(){
 })
 
 if(exists("Data"))rm(Data)
-trcSWQ=NULL
+tdcSWQ=NULL
 
 for(i in 1:length(sites)){
   cat('\n',sites[i],i,'out of ',length(sites))
-  dir.create(paste0('D:/LAWA/2021/TRC/',sites[i]),recursive = T,showWarnings = F)
+  dir.create(paste0('D:/LAWA/2021/tdc/',sites[i]),recursive = T,showWarnings = F)
   rm(siteDat)
   foreach(j = 1:length(translate$CallName),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
-    destFile=paste0("D:/LAWA/2021/TRC/",sites[i],"/",translate$CallName[j],".xml")
-    if(file.exists(destFile)&&file.info(destFile)$size>1500){
+    destFile=paste0("D:/LAWA/2021/tdc/",sites[i],"/",make.names(translate$CallName[j]),".xml")
+    if(file.exists(destFile)&&file.info(destFile)$size>500){
       Data=xml2::read_xml(destFile)
       Data = xml2::as_list(Data)[[1]]
-      RetCID = attr(Data$Measurement,'SiteName')
-      dataSource = unlist(Data$Measurement$DataSource)
-      RetProperty=dataSource[grep("ItemInfo.ItemName",names(dataSource),ignore.case=T)]
-      Data = Data$Measurement$Data
-      if(length(Data)>0&&RetProperty==translate$retName[j]&&RetCID==sites[i]){
-        Data=data.frame(apply(t(sapply(Data,function(e)bind_rows(unlist(e)))),2,unlist),row.names = NULL)
-        # tags=bind_rows(sapply(Data,function(e){
-        #   as.data.frame(sapply(e[which(names(e)=="Parameter")],function(ee){
-        #     retVal=data.frame(attributes(ee)$Value)
-        #     names(retVal)=attributes(ee)$Name
-        #     return(retVal)
-        #   }))
-        # }))
-        # 
-        # names(tags) <- gsub('Parameter.','',names(tags))
-        
-        if(any(grepl('unit',names(dataSource),ignore.case=T))){
-          Data$Units=dataSource[grep('unit',names(dataSource),ignore.case=T)]
-        }else{
-          Data$Units=NA
-        }
-        Data$Measurement=translate$CallName[j]
+      if(length(Data)>0&&names(Data)[1]!='Error'){
+        RetCID = attr(Data$Measurement,'SiteName')
+        RetProperty=attr(Data$Measurement$DataSource,"Name")
+        uom = unlist(Data$Measurement$DataSource$ItemInfo$Units)
+        Data = Data$Measurement$Data
+        if(length(Data)>0){
+          Data=lapply(Data,function(e)bind_rows(unlist(e,recursive = F)))
+          
+          for(d in seq_along(Data)){
+            if(!"QualityCode"%in%names(Data[[d]])){
+              Data[[d]]$QualityCode <- NA
+            }
+          }
+          Data=do.call(rbind,Data)
+          if(!is.null(Data)){
+            Data$Measurement=translate$CallName[j]
+            Data$retProp=RetProperty
+            Data$CouncilSiteID = sites[i]
+            Data$retCID = RetCID
+            Data$units=uom
+          }
+        }else{Data=NULL}
       }else{Data=NULL}
     }else{Data=NULL}
-    # file.remove(destFile)
     rm(destFile)
     return(Data)
   }->siteDat
@@ -141,7 +143,7 @@ for(i in 1:length(sites)){
   if(!is.null(siteDat)){
     rownames(siteDat) <- NULL
     siteDat$CouncilSiteID = sites[i]
-    trcSWQ=bind_rows(trcSWQ,siteDat)
+    tdcSWQ=bind_rows(tdcSWQ,siteDat)
   }
   rm(siteDat)
 }
@@ -150,47 +152,39 @@ rm(workers)
 
 
 
-save(trcSWQ,file = 'trcSWQraw.rData')
-# load('trcSWQraw.rData')
-agency='trc'
+save(tdcSWQ,file = 'tdcSWQraw.rData')
+# load('tdcSWQraw.rData') #18713
+agency='tdc'
 
 
 
 
-trcSWQ <- trcSWQ%>%select(CouncilSiteID,Date=T,Value,Measurement,Units)
+tdcSWQ <- tdcSWQ%>%select(CouncilSiteID,Date=T,Value,Measurement,units,QualityCode)
 
 
-trcSWQb=data.frame(CouncilSiteID=trcSWQ$CouncilSiteID,
-                   Date=as.character(format(lubridate::ymd_hms(trcSWQ$Date),'%d-%b-%y')),
-                   Value=trcSWQ$Value,
-                   Measurement=trcSWQ$Measurement,
-                   Units=trcSWQ$Units,
-                   Censored=grepl(pattern = '<|>',x = trcSWQ$Value),
-                   CenType=F,QC=NA)
-trcSWQb$CenType[grep('<',trcSWQb$Value)] <- 'Left'
-trcSWQb$CenType[grep('>',trcSWQb$Value)] <- 'Right'
+tdcSWQb=data.frame(CouncilSiteID=tdcSWQ$CouncilSiteID,
+                   Date=as.character(format(lubridate::ymd_hms(tdcSWQ$Date),'%d-%b-%y')),
+                   Value=tdcSWQ$Value,
+                   Measurement=tdcSWQ$Measurement,
+                   Units=tdcSWQ$units,
+                   Censored=grepl(pattern = '<|>',x = tdcSWQ$Value),
+                   CenType=F,QC=tdcSWQ$QualityCode)
+tdcSWQb$CenType[grep('<',tdcSWQb$Value)] <- 'Left'
+tdcSWQb$CenType[grep('>',tdcSWQb$Value)] <- 'Right'
 
-trcSWQb$Value = readr::parse_number(trcSWQb$Value)
-
-
-translate=read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%
-  filter(Agency==agency)%>%select(CallName,LAWAName)
+tdcSWQb$Value = readr::parse_number(tdcSWQb$Value)
 
 
-table(trcSWQb$Measurement,useNA = 'a')
-trcSWQb$Measurement <- as.character(factor(trcSWQb$Measurement,
+table(tdcSWQb$Measurement,useNA = 'a')
+tdcSWQb$Measurement <- as.character(factor(tdcSWQb$Measurement,
                                            levels = translate$CallName,
                                            labels = translate$LAWAName))
-table(trcSWQb$Measurement,useNA='a')
+table(tdcSWQb$Measurement,useNA='a')
 
+tdcSWQb <- unique(tdcSWQb)
 
-# trcSWQb <- merge(trcSWQb,siteTable,by='CouncilSiteID')
-trcSWQb$Measurement[tolower(trcSWQb$Units)=='ntu'&trcSWQb$Measurement=="TURBFNU"]<-"TURB"  #Switched in July 2019
-trcSWQb <- unique(trcSWQb)
-
-
-write.csv(trcSWQb,file = paste0("D:/LAWA/2021/trc.csv"),row.names = F)
-file.copy(from=paste0("D:/LAWA/2021/trc.csv"),
-          to = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/trc.csv"),
+write.csv(tdcSWQb,file = paste0("D:/LAWA/2021/tdc.csv"),row.names = F)
+file.copy(from=paste0("D:/LAWA/2021/tdc.csv"),
+          to = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/tdc.csv"),
           overwrite = T)
-rm(trcSWQ,trcSWQb)
+rm(tdcSWQ,tdcSWQb)

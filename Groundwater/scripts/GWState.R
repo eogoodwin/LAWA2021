@@ -52,6 +52,7 @@ rm(these)
 #215206 13/8/21
 #208293 20/8/21
 #213592 27/8/21 
+#212767 03/09/21
 
 GWdata%>%split(f=.$Source)%>%purrr::map(.f = function(x)any(apply(x,2,FUN=function(y)any(grepl('<|>',y,ignore.case=T)))))
 #ECAN GDC HBRC HRC MDC ORC ES TRC TDC GWRC WCRC do
@@ -224,6 +225,7 @@ GWdata <- GWdata%>%dplyr::filter(!Qualifier%in%c(42,151))  #42 means poor qualit
 #215184 13/8/21
 #208268 20/8/21
 #213567 27/8/21
+#212742 3/9/21
 
 
 noActualData = which(is.na(GWdata$Site_ID)&is.na(GWdata$`Result-raw`)&is.na(GWdata$Date))
@@ -251,6 +253,7 @@ GWdata <- GWdata%>%distinct
 #215097 13/8/21
 #208174 20/8/21
 #213480 27/8/21
+#212655 03/09/21
 
 GWdata$Value[which(GWdata$`Result-prefix`=='<')] <- GWdata$`Result-edited`[which(GWdata$`Result-prefix`=='<')]*0.5
 GWdata$Value[which(GWdata$`Result-prefix`=='>')] <- GWdata$`Result-edited`[which(GWdata$`Result-prefix`=='>')]*1.1
@@ -267,9 +270,9 @@ GWdata$CenType='not'
 GWdata$CenType[grepl(pattern = '^<',GWdata$`Result-prefix`)]='lt'
 GWdata$CenType[grepl(pattern = '^>',GWdata$`Result-prefix`)]='gt'
 
-table(GWdata$Source,GWdata$CenType)
 
 if(plotto){
+table(GWdata$Source,GWdata$CenType)
   table(GWdata$Region,GWdata$Measurement)
 }
 
@@ -345,7 +348,8 @@ GWdataRelevantVariables <- GWdata%>%
 #32382 3/8/21
 #65305 13/8/21
 #62173 20/8/21
-#64958 207/8/21
+#64958 27/8/21
+#64979
 
 freqs <- split(x=GWdataRelevantVariables,
                f=GWdataRelevantVariables$siteMeas)%>%purrr::map(~freqCheck(.))%>%unlist
@@ -372,6 +376,7 @@ table(freqs)
 #        32       77        5245    13-8-21
 #        32       74        5004    20-8-21
 #        32       75        5214    27/8/21
+#        32       75        5221    3/9/21
 GWdataRelevantVariables$Frequency=freqs[GWdataRelevantVariables$siteMeas]  
 rm(freqs)
 
@@ -400,7 +405,7 @@ GWmedians <- GWdataRelevantVariables%>%
                    Frequency=unique(Frequency))%>%
   ungroup%>%
   mutate(censoredPropn = censoredCount/count)
-#5321 of 13
+#5328 of 13
 
 GWmedians$CenType = as.character(GWmedians$CenType)
 GWmedians$CenType[GWmedians$CenType==1] <- '<'
@@ -461,7 +466,7 @@ table(GWmedians$EcoliDetectAtAll)
 #4855    6-8-21
 #5354   13/8/21
 #5321  27/8/21
-
+#5328  3/9/21
 
 GWmedians$meas = factor(GWmedians$Measurement,
                         levels=c("Ammoniacal nitrogen","Chloride","Dissolved reactive phosphorus",

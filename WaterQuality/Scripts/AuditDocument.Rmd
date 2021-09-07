@@ -284,7 +284,7 @@ if(sum(wqdata$Agency==agency,na.rm=T)==0){
 if(sum(wqdata$Agency==agency,na.rm=T)>sum(siteTable$Agency==agency)){
   print("Additional sites may be sourced separately from NIWA as part of the NRWQN program.")
 }
-print(paste("Data was last harvested from the timeseries server",checkXMLageRiver(agency),"days before",as.character(Sys.Date())))
+print(paste("Data was last harvested from the timeseries server",checkCSVageRiver(agency),"days before",as.character(Sys.Date())))
 ```
 
 ## Council representation

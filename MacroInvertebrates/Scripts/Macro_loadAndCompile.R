@@ -1,6 +1,7 @@
 rm(list=ls())
 library(parallel)
 library(doParallel)
+library(tidyverse)
 source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 siteTable=loadLatestSiteTableMacro(maxHistory = 20)
 
@@ -22,12 +23,12 @@ scriptsToRun = c(
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadTDC.R",
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadTRC.R",         #15
   "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNCC.R")
-source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadBOP_list.R")
-source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadECAN_list.R")
-source( "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadES_list.R")
+source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadBOP.R")
+source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadECAN.R")
+source( "H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadES.R")
 # source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHBRC_list.R") this one doesnt work yet
 source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadHRC.R")
-source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNRC_list.R")
+source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadNRC.R")
 # source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWCRC_list.R")
 source("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/loadWRC.R")
 
@@ -53,6 +54,9 @@ xmlAgencies=c("gdc","gwrc","hbrc","mdc","ncc","orc","tdc","trc")
 csvAgencies=c('ac','boprc','ecan','es','hbrc','hrc','nrc','wcrc','wrc')
 for(agency in xmlAgencies){
   checkXMLageMacro(agency)
+}
+for(agency in xmlAgencies){
+  checkCSVageMacros(agency)
 }
 for(agency in csvAgencies){
    checkCSVageMacros(agency)
@@ -204,19 +208,24 @@ Sys.time()-startTime #2.03
 #19/8/21 66223
 #20/8/21 66341
 #25/8/21 66223
+#3/9/21  70593
+#6/9/21  71623
+#8/9/21  72739 
 
 
 
-
+#Only NIWA will have lawa site ids by now
 missingLSID=which(is.na(macroData$LawaSiteID))
 macroData$LawaSiteID[missingLSID] = 
   siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID[missingLSID]),tolower(siteTable$CouncilSiteID))]
 table(is.na(macroData$LawaSiteID),macroData$Agency)
 
 missingLSID=which(is.na(macroData$LawaSiteID))
+if(length(missingLSID)>0){
 macroData$LawaSiteID[missingLSID] = 
   siteTable$LawaSiteID[match(tolower(macroData$CouncilSiteID[missingLSID]),
                              tolower(siteTable$SiteID))]
+}
 rm(missingLSID)
 
 table(is.na(macroData$LawaSiteID),macroData$Agency)
@@ -258,13 +267,16 @@ macroData=merge(macroData%>%mutate(LawaSiteID = tolower(LawaSiteID)),
 macroData$Agency=tolower(macroData$Agency)
 macroData$Region=tolower(macroData$Region)
 
-#66096
+#72491
 
 
 agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
 table(factor(macroData$Agency,levels=agencies),useNA='a')%>%addmargins()
 
 # ac   boprc  ecan    es   gdc  gwrc  hbrc   hrc   mdc   ncc  niwa   nrc   orc   tdc   trc  wcrc   wrc
+# 3420  3963 17180  5560  2113  1814  3580  4437  1465  1105  5464  2133  2215   651  7802  3560  6029     0 72491
+# 3420  3963 17180  5560  2113  1814  3580  4437  1465  1105  5464  2133  1102   651  7802  3560  6029     0 71378
+# 3420  3963 17180  5560  1083  1814  3580  4437  1465  1105  5464  2133  1102   651  7802  3560  6029     0 70348 
 # 3420  3963 12810  5560  1083  1814  3580  4437  1465  1105  5464  2133  1102   651  7802  3560  6029     0 65553
 # 3420  3963 12810  5135  1083  1814  3580  4437  1465  1105  5464  2676  1102   651  7802  3560  6029 66096
 # 3420  3963 12810  5135  1083  1691  3580  4437  1465  1105  5464  2676  1102   651  7799  3577  6014 65972 19/8/21 delt duplicate sitenames
@@ -284,7 +296,7 @@ table(macroData$Agency,macroData$Measurement)/table(macroData$Agency,macroData$M
 # boprc        1                 1                 1
 # ecan     1   1                 1    1            1
 # es       1   1                 1    1            1
-# gdc          1                 1                 1
+# gdc      1   1                 1    1            1
 # gwrc         1                 1                 1
 # hbrc     1   1                 1    1            1
 # hrc      1   1                 1    1            1
@@ -292,7 +304,7 @@ table(macroData$Agency,macroData$Measurement)/table(macroData$Agency,macroData$M
 # ncc          1                 1                 1
 # niwa         1                 1                 1
 # nrc      1   1                 1    1            1
-# orc          1                 1                 1
+# orc      1   1                 1    1            1
 # tdc          1                 1                 1
 # trc          1                 1                 1
 # wcrc         1                 1    1            1

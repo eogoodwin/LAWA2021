@@ -28,10 +28,10 @@ suppressWarnings(rm(Data))
 foreach(i = 1:length(sites),.errorhandling = 'stop',.combine = rbind)%dopar%{
   cat('\n',sites[i],i,'out of',length(sites),'\t')
   for(j in 1:length(Measurements)){
-    url <- paste0("http://ec2-52-6-196-14.compute-1.amazonaws.com/sos-bop/service?",
+    url <- paste0("http://sos.boprc.govt.nz/service?",
                   "service=SOS&version=2.0.0&request=GetObservation&",
-                  "observedProperty=",Measurements[j],
-                  "&featureOfInterest=",sites[i],
+                  "offering=",URLencode(Measurements[j],reserved = T),
+                  "@",sites[i],
                   "&temporalfilter=om:phenomenonTime,P15Y/2021-06-01")
     url <- URLencode(url)
     xmlfile <- ldMWQ(url,agency=agency)
@@ -60,14 +60,14 @@ stopCluster(workers)
 rm(workers)
 
 
-library(tidyverse)
-year2017=read_csv("H:/ericg/16666Lawa/LAWA2021/MacroInvertebrates/Data/BOPRC_Data_for_LAWA_2017_2018.csv")%>%
-  drop_na(Aquarius)%>%
-  tidyr::gather(key="Measurement",value="Value",c("MCI_Actual","Richness","P_EPT1_r"))%>%
-  transmute(Site=Aquarius,Measurement=Measurement,time="2017-12-31T00:00:00.000Z",value=Value,Units="None")
-year2017 <- year2017%>%filter(Site%in%sites) #372 to 351
-Data=rbind(Data,year2017)
-rm(year2017)
+# library(tidyverse)
+# year2017=read_csv("H:/ericg/16666Lawa/LAWA2021/MacroInvertebrates/Data/BOPRC_Data_for_LAWA_2017_2018.csv")%>%
+#   drop_na(Aquarius)%>%
+#   tidyr::gather(key="Measurement",value="Value",c("MCI_Actual","Richness","P_EPT1_r"))%>%
+#   transmute(Site=Aquarius,Measurement=Measurement,time="2017-12-31T00:00:00.000Z",value=Value,Units="None")
+# year2017 <- year2017%>%filter(Site%in%sites) #372 to 351
+# Data=rbind(Data,year2017)
+# rm(year2017)
 
 con <- xmlOutputDOM("Hilltop")
 con$addTag("Agency", agency)

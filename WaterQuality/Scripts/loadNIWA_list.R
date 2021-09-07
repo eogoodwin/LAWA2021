@@ -171,7 +171,7 @@ table(NIWASWQb$Measurement,useNA='a')
 NIWASWQb <- unique(NIWASWQb)
 
 
-NIWASWQb$Value[NIWASWQb$Measurement%in%c("DRP","NH4","TN","TP")]=NIWASWQb$Value[NIWASWQb$Measurement%in%c("DRP","NH4","TN","TP")]/1000
+NIWASWQb$Value[NIWASWQb$Measurement%in%c("DRP","NH4","TN","TP","TON")]=NIWASWQb$Value[NIWASWQb$Measurement%in%c("DRP","NH4","TN","TP","TON")]/1000
 
 # NIWASWQb <- merge(NIWASWQb,siteTable,by='CouncilSiteID')
 

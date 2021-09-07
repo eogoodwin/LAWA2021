@@ -17,7 +17,6 @@ boprc,DRP.LabResult,DRP
 boprc,E coli.LabResult,ECOLI
 boprc,N (Tot).LabResult,TN
 boprc,Nitrite Nitrate (as N).LabResult,TON
-boprc,Nitrite Nitrate (as N).LabResult,TON
 boprc,pH.LabResult,PH
 boprc,P (Tot).LabResult,TP
 boprc,Turbidity NTU.LabResult,TURB
@@ -47,14 +46,14 @@ es,Phosphorus (Total),TP
 es,Turbidity (Lab),TURB
 ,,
 gdc,Ammoniacal Nitrogen as N,NH4
+gdc,Clarity,BDISC
 gdc,Clarity Tube (cm)-Field,BDISC
 gdc,Dissolved Inorganic Nitrogen (DIN),DIN
 gdc,Dissolved Reactive Phosphorus,DRP
 gdc,E.Coli CFU/100mL,ECOLI
 gdc,pH (Field),PH
-gdc,Nitrate as NO3,NO3N
+gdc,Nitrate as N,NO3N
 gdc,Nitrogen Total,TN
-gdc,Secchi Black Disc (metres) water clarity,BDISC
 gdc,Total Oxidised Nitrogen,TON
 gdc,Total Phosphorus,TP
 gdc,Turbidity (Lab - NTU),TURB
@@ -115,11 +114,13 @@ mdc,Turbidity (Lab),TURB
 ,,
 ncc,Ammoniacal Nitrogen,NH4
 ncc,Black Disc Clarity,BDISC
+ncc,Dissolved Inorganic Nitrogen,DIN
 ncc,Dissolved Reactive Phosphorus,DRP
 ncc,E. coli CFU,ECOLI
 ncc,pH,PH
 ncc,Nitrate Nitrogen,NO3N
 ncc,Total Nitrogen,TN
+ncc,Total Oxidised Nitrogen,TON
 ncc,Total Phosphorus,TP
 ncc,Turbidity,TURB
 ,,

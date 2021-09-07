@@ -218,7 +218,7 @@ There are `r I(print(length(unique(macroData$LawaSiteID[which(macroData$Agency==
 `r if(sum(macroData$Agency==agency,na.rm=T)==0){"If data is available from an old CSV file, the remainder of this audit will be based on that data, but they will not be compared against other councils."}`
 `r if(sum(macroData$Agency==agency,na.rm=T)>sum(siteTable$Agency==agency)){"Additional sites may be sourced separately from NIWA as part of the NRWQN program."}`
 
-Data was last harvested from the timeseries server `r I(print(checkXMLageMacro(agency)))` days before `r I(print(Sys.Date()))`.  An "NA" would suggest data is delivered by some means other than the usual web-based.
+Data was last harvested from the timeseries server `r I(print(checkCSVageMacros(agency)))` days before `r I(print(Sys.Date()))`.  An "NA" would suggest data is delivered by some means other than the usual web-based.
 
 ## Council representation
 
@@ -366,7 +366,8 @@ for(msm in unique(agencymacroData$Measurement)){
 
 ```{r echo=F,results='asis'}
 DT::datatable(ss%>%dplyr::select(CouncilSiteID,Catchment,Parameter,Median)%>%
-                            dplyr::mutate(Median=signif(Median,4))%>%spread(Parameter,Median),
+                            dplyr::mutate(Median=signif(Median,4))%>%
+                pivot_wider(id_cols = c(CouncilSiteID,Catchment),names_from = Parameter,values_from = Median,values_fn = median),
 rownames = F,extensions='Buttons',options=list(dom='Bfpl',buttons=c('copy','csv','excel')))
 ```
 

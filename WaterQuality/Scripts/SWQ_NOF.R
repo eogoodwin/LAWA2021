@@ -30,7 +30,7 @@ riverSiteTable=loadLatestSiteTableRiver()
 
 ## Load NOF Bands
 NOFbandDefinitions <- read_csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NOFbandDefinitions3.csv")
-NOFbandDefinitions <- NOFbandDefinitions[,1:11]
+# NOFbandDefinitions <- NOFbandDefinitions[,1:13]
 #   Band Median.Nitrate X95th.Percentile.Nitrate Median.Ammoniacal.N Max.Ammoniacal.N E..coli Ecoli95 EcoliRec540 EcoliRec260       MedianDRP          X95DRP
 # 1    A         x<=1.0                   x<=1.5             x<=0.03          x<=0.05  x<=130  x<=540         x<5        x<20        x<=0.006        x<=0.021
 # 2    B     x>1&x<=2.4             x>1.5&x<=3.5      x>0.03&x<=0.24    x>0.05&x<=0.4  x<=130 x<=1000  x>=5&x<=10 x>=20&x<=30 X>0.006&x<=0.01 x>0.021&x<=0.03
@@ -120,7 +120,8 @@ cat(Sys.time()-startTime)
 #41.1  29June 2021
 #55.8  16/7/2021
 #53    30/7/2021
-#51 12/8/21   1432691 to 1419310
+#51    12/8/21   1432691 to 1419310
+#48    30/8/21   1475007 to 1462090
 
 # Saving the wqdataPerDateMedian table to be USED in NOF calculations. 
 save(wqdataPerDateMedian,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),
@@ -128,30 +129,30 @@ save(wqdataPerDateMedian,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/D
 # load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",pattern='wqdataPerDateMedian',recursive = T,full.names=T,ignore.case=T),1),verbose = T)
 
 # Subset to just have the variables that are tested against NOF/NPSFM standards
-sub_swq <- wqdataPerDateMedian%>%dplyr::select(c("LawaSiteID","CouncilSiteID","Date","Measurement","Value"))%>%
+sub_swq <- wqdataPerDateMedian%>%dplyr::select(c("Agency","LawaSiteID","CouncilSiteID","Date","Measurement","Value"))%>%
   dplyr::filter(tolower(Measurement)%in%tolower(c("NH4","TON","ECOLI","PH","DRP","NO3N","DIN","BDISC")))%>%
   dplyr::filter(lubridate::year(Date)<=EndYear)
 
 
 table(lubridate::year(lubridate::dmy(wqdata$Date)),wqdata$Measurement)
-#      BDISC   DIN   DRP ECOLI   NH4  NO3N    PH
-# 2004  3802  2440  4656  2676  4735  1568  4049
-# 2005  3904  2662  4915  3878  4990  1812  4290
-# 2006  4919  2958  5958  5317  6114  2051  5467
-# 2007  5138  3412  6670  6229  6843  2468  6484
-# 2008  5576  3934  7430  6978  7598  2314  7116
-# 2009  5786  4492  8041  7562  8148  3377  7872
-# 2010  5642  4464  8150  7550  8211  3865  7797
-# 2011  5775  4785  8551  7939  8562  4435  8274
-# 2012  6206  5166  8939  8220  8985  4948  8741
-# 2013  7153  6061  9944 10069 10013  6164  9754
-# 2014  7533  6456 10494 10713 10520  6593 10255
-# 2015  8038  6577 11030 11204 11046  6957 10813
-# 2016  8381  6886 11277 11519 11337  7251 10943
-# 2017  8603  7192 11652 11871 11668  7621 11043
-# 2018  8672  7200 11638 12068 11660  7805 11168
-# 2019  8556  7566 11516 11919 11499  7981 10950
-# 2020  7496  6957 10291 10670 10323  7145  9314
+#      BDISC   DIN   DRP ECOLI   NH4  NO3N    PH    TN   TON    TP  TURB TURBFNU
+# 2004  3835  2476  4673  2709  4753  1810  4071  3709  4275  4145  4866      78
+# 2005  3990  2698  4944  3925  5015  2060  4385  3835  4539  4242  5276     188
+# 2006  5023  2988  5986  5377  6140  2318  5522  4767  5596  5406  6460     257
+# 2007  5232  3438  6690  6274  6867  2728  6572  5401  6314  6114  7339     251
+# 2008  5648  3959  7417  6987  7585  2542  7140  5673  7046  6783  7630     275
+# 2009  5807  4522  8034  7580  8140  3717  8113  6778  7610  7280  8053     290
+# 2010  5582  4488  8081  7507  8141  4120  7987  7006  7610  7244  8449     283
+# 2011  5731  4812  8517  7919  8518  4778  8496  7541  7995  7666  8691     295
+# 2012  6214  5192  8952  8255  9003  5365  8894  8124  8478  8129  9261     284
+# 2013  7148  6086  9928 10093 10005  6635  9822  9151  9388  9153 10364     283
+# 2014  7534  6495 10485 10750 10515  6919 10353  9648  9755  9658 10922     283
+# 2015  8089  6598 11041 11250 11067  7605 11089 10317 10729 10312 11472     309
+# 2016  8568  6905 11308 11577 11376  7874 10965 10962 11143 10710 11512     362
+# 2017  8782  7207 11691 11892 11718  8237 11083 11673 11415 11409 11702     508
+# 2018  8822  6740 11682 12028 11708  8423 11213 11666 11429 11404 11506     655
+# 2019  8754  7176 11627 12008 11618  8631 11040 11562 11190 11310 10593    1627
+# 2020  7764  6609 10450 10801 10491  7806  9461 10445  9934  9915  9530    1785
 
 rm(wqdataPerDateMedian,wqdata)
 
@@ -160,10 +161,13 @@ rm(wqdataPerDateMedian,wqdata)
 csv="H:/ericg/16666LAWA/LAWA2021/WaterQuality/metadata/NOFAmmoniaAdjustment.csv"
 adjnh4=NH4adj(sub_swq,meas=c("NH4","PH"),csv = csv)
 sub_swq<-rbind(sub_swq,adjnh4)
-rm(adjnh4)
+rm(adjnh4,csv)
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-sub_swq$YearQuarter=paste0(quarters(sub_swq$Date),year(sub_swq$Date))
+# sub_swq$YearQuarter=paste0(quarters(sub_swq$Date),year(sub_swq$Date))
+sub_swq <- sub_swq%>%mutate(Year=format(Date,'%Y'),
+                            YearQuarter=paste0(quarters(Date),Year))%>%drop_na(Value)
+
 if(0){
   par(mfrow=c(3,2),mar=c(5,4,4,2))
   sub_swq%>%group_by(LawaSiteID,Measurement)%>%
@@ -203,26 +207,43 @@ library(tidyverse)
 startTime=Sys.time()
 
 foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%dopar%{
-  suppressWarnings(rm(tonsite,nh4site,ecosite,drpsite,suspsedsite,rightSite,value,Value)  )
+  suppressWarnings(rm(DINSite,NtoxSite,nh4site,ecosite,drpsite,suspsedsite,rightSite,value,Value)  )
   rightSite <- sub_swq%>%
-    dplyr::filter(LawaSiteID==uLAWAids[i])%>%
-    tidyr::drop_na(Value)%>%
-    mutate(Year=format(Date,'%Y'))
+    dplyr::filter(LawaSiteID==uLAWAids[i])#%>%
+    # tidyr::drop_na(Value)%>%
+    # mutate(Year=format(Date,'%Y'))
   # create table of compliance with proposed National Objectives Framework ####
   Com_NOF <- data.frame (LawaSiteID               = rep(uLAWAids[i],length(yr)),
                          Year                     = yr,
+                         
+                         DINMed                   = as.numeric(rep(NA,reps)),
+                         DINMed_Band              = rep(as.character(NA),reps),
+                         DIN95                    = as.numeric(rep(NA,reps)),
+                         DIN95_Band               = rep(as.character(NA),reps),
+                         DIN_Summary_Band          = rep(as.character(NA),reps),
+                         DINAnalysisNote          = rep('',reps),
+                         
                          NitrateMed               = as.numeric(rep(NA,reps)),
                          NitrateMed_Band          = rep(as.character(NA),reps),
                          Nitrate95                = as.numeric(rep(NA,reps)),
                          Nitrate95_Band           = rep(as.character(NA)),
                          Nitrate_Toxicity_Band    = rep(as.character(NA),reps),
                          NitrateAnalysisNote      = rep('',reps),
+
+                         TONMed                   = as.numeric(rep(NA,reps)),
+                         TONMed_Band              = rep(as.character(NA),reps),
+                         TON95                    = as.numeric(rep(NA,reps)),
+                         TON95_Band               = rep(as.character(NA)),
+                         TON_Toxicity_Band        = rep(as.character(NA),reps),
+                         TONAnalysisNote          = rep('',reps),
+                         
                          AmmoniacalMed            = as.numeric(rep(NA,reps)),
                          AmmoniacalMed_Band       = rep(as.character(NA),reps),
                          AmmoniacalMax            = as.numeric(rep(NA,reps)),
                          AmmoniacalMax_Band       = rep(as.character(NA),reps),
                          Ammonia_Toxicity_Band    = rep(as.character(NA),reps),
                          AmmoniaAnalysisNote      = rep('',reps),
+                         
                          EcoliMed                 = as.numeric(rep(NA,reps)),
                          EcoliMed_Band            = rep(as.character(NA),reps),
                          Ecoli95                  = as.numeric(rep(NA,reps)),
@@ -232,37 +253,73 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
                          EcoliRecHealth260        = as.numeric(rep(NA,reps)),
                          EcoliRecHealth260_Band   = rep(as.character(NA),reps),
                          EcoliAnalysisNote        = rep('',reps),
+                         
                          DRPMed                   = as.numeric(rep(NA,reps)),
                          DRPMed_Band              = rep(as.character(NA),reps),
                          DRP95                    = as.numeric(rep(NA,reps)),
                          DRP95_Band               = rep(as.character(NA),reps),
                          DRP_Summary_Band         = rep(as.character(NA),reps),
                          DRPAnalysisNote          = rep('',reps),
+                       
                          SusSedMed                = as.numeric(rep(NA,reps)),
                          SusSedBand               = rep(as.character(NA),reps),
                          SusSedAnalysisNote       = rep('',reps),
                          stringsAsFactors = FALSE)
+  
+  ######################### DIN ##############
+  DINSite <- rightSite%>%dplyr::filter(Measurement=="DIN")
+  if(dim(DINSite)[1]>0){
+    annualMedian <- DINSite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.5,type=5))
+    if(dim(annualMedian)[1]!=0){
+      Com_NOF$DINMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
+      #Rolling 5yr median
+      rollingMeds=rolling5(siteChemSet = DINSite,quantProb = 0.5,nreq=54,quReq=18)
+      rollFails= grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
+      rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
+      Com_NOF$DINMed[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
+      Com_NOF$DINAnalysisNote[rollyrs[rollFails]] <- paste0(' Need 54 values for 5yr median, have ',rollingMeds[rollFails])
+      #find the band which each value belong to
+      Com_NOF$DINMed_Band <- sapply(Com_NOF$DINMed,NOF_FindBand,bandColumn = NOFbandDefinitions$MedianDIN)
+      Com_NOF$DINMed_Band[!is.na(Com_NOF$DINMed)] <-
+        sapply(Com_NOF$DINMed_Band[!is.na(Com_NOF$DINMed)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
+      rm(annualMedian,rollingMeds,rollFails,rollSucc)
+      
+      
+      #95th percentile DIN
+      annual95 <- DINSite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.95,type=5,na.rm=T))
+      Com_NOF$DIN95 = annual95$Value[match(Com_NOF$Year,annual95$Year)]
+      #Rolling 5yr 95%ile
+      rolling95=rolling5(DINSite,0.95,nreq=54,quReq=18)
+      rollFails= grepl(pattern = '^n',x = rolling95,ignore.case=T)
+      rollSucc = grepl(pattern='^[[:digit:]]',rolling95)
+      Com_NOF$DIN95[yr%in%names(rolling95)[rollSucc]] <- readr::parse_number(rolling95[rollSucc])
+      Com_NOF$DINAnalysisNote[rollyrs[rollFails]] <- paste0(Com_NOF$DINAnalysisNote[rollyrs[rollFails]],
+                                                                ' Need 54 values and 20 quarters for 5yr 95%ile, have ',rolling95[rollFails])
+      #find the band which each value belong to
+      Com_NOF$DIN95_Band <- sapply(Com_NOF$DIN95,NOF_FindBand,bandColumn = NOFbandDefinitions$`95DIN`)
+      Com_NOF$DIN95_Band[!is.na(Com_NOF$DIN95)] <- 
+        sapply(Com_NOF$DIN95_Band[!is.na(Com_NOF$DIN95)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
+      rm(annual95,rolling95,rollFails,rollSucc)
+      
+      #DIN Toxicity
+      #The worse of the two DIN bands
+      Com_NOF$DIN_Summary_Band = apply(Com_NOF%>%dplyr::select(DINMed_Band, DIN95_Band),1,max,na.rm=T)
+    }else{
+      Com_NOF$DINAnalysisNote = paste0('n = ',sum(!is.na(DINSite$Value)),' Insufficient to calculate annual medians ')
+    }}
+  rm(DINSite)
+  
   ###################### Nitrate  ########################################
   
-    tonsite <- rightSite%>%
-    dplyr::filter(Measurement%in%c("NO3N"))%>%
-    pivot_wider(names_from = 'Measurement',values_from = Value)
-  if(dim(tonsite)[1]>0){
-    if(all(c("NO3N","TON")%in%names(tonsite))){
-      tonsite <- tonsite%>%mutate(Value=ifelse(is.na(NO3N),TON,NO3N))
-    }else{
-      if('NO3N'%in%names(tonsite)){
-        tonsite <- tonsite%>%dplyr::rename(Value=NO3N)
-      }else{
-        tonsite <- tonsite%>%dplyr::rename(Value=TON)
-      }
-    }  
+    NtoxSite <- rightSite%>%
+    dplyr::filter(Measurement%in%c("NO3N"))
+  if(dim(NtoxSite)[1]>0){
   #Median Nitrate
-  annualMedian <- tonsite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.5,type=5))
+  annualMedian <- NtoxSite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.5,type=5))
   if(dim(annualMedian)[1]!=0){
     Com_NOF$NitrateMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
     #Rolling 5yr median
-    rollingMeds=rolling5(siteChemSet = tonsite,quantProb = 0.5,nreq=54,quReq=18)
+    rollingMeds=rolling5(siteChemSet = NtoxSite,quantProb = 0.5,nreq=54,quReq=18)
     rollFails= grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
     Com_NOF$NitrateMed[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
@@ -274,10 +331,10 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     rm(annualMedian,rollingMeds,rollFails,rollSucc)
     
     #95th percentile Nitrate
-    annual95 <- tonsite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.95,type=5,na.rm=T))
+    annual95 <- NtoxSite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.95,type=5,na.rm=T))
     Com_NOF$Nitrate95 = annual95$Value[match(Com_NOF$Year,annual95$Year)]
     #Rolling 5yr 95%ile
-    rolling95=rolling5(tonsite,0.95,nreq=54,quReq=18)
+    rolling95=rolling5(NtoxSite,0.95,nreq=54,quReq=18)
     rollFails= grepl(pattern = '^n',x = rolling95,ignore.case=T)
     rollSucc = grepl(pattern='^[[:digit:]]',rolling95)
     Com_NOF$Nitrate95[yr%in%names(rolling95)[rollSucc]] <- readr::parse_number(rolling95[rollSucc])
@@ -287,15 +344,58 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     Com_NOF$Nitrate95_Band <- sapply(Com_NOF$Nitrate95,NOF_FindBand,bandColumn = NOFbandDefinitions$`95th Percentile Nitrate`)
     Com_NOF$Nitrate95_Band[!is.na(Com_NOF$Nitrate95)] <- 
       sapply(Com_NOF$Nitrate95_Band[!is.na(Com_NOF$Nitrate95)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
+    rm(annual95,rolling95,rollFails,rollSucc)
     
     #Nitrate Toxicity
     #The worse of the two nitrate bands
     Com_NOF$Nitrate_Toxicity_Band = apply(Com_NOF%>%dplyr::select(NitrateMed_Band, Nitrate95_Band),1,max,na.rm=T)
-    rm(annual95,rolling95,rollFails,rollSucc)
   }else{
-    Com_NOF$NitrateAnalysisNote = paste0('n = ',sum(!is.na(tonsite$Value)),' Insufficient to calculate annual medians ')
+    Com_NOF$NitrateAnalysisNote = paste0('n = ',sum(!is.na(NtoxSite$Value)),' Insufficient to calculate annual medians ')
   }}
-  rm(tonsite)
+  rm(NtoxSite)
+  
+  #TON - based
+  NtoxSite <- rightSite%>%dplyr::filter(Measurement%in%c("TON"))
+  if(dim(NtoxSite)[1]>0){
+    #Median Nitrate
+    annualMedian <- NtoxSite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.5,type=5))
+    if(dim(annualMedian)[1]!=0){
+      Com_NOF$TONMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
+      #Rolling 5yr median
+      rollingMeds=rolling5(siteChemSet = NtoxSite,quantProb = 0.5,nreq=54,quReq=18)
+      rollFails= grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
+      rollSucc = grepl(pattern='^[[:digit:]]',rollingMeds)
+      Com_NOF$TONMed[yr%in%names(rollingMeds)[rollSucc]] <- readr::parse_number(rollingMeds[rollSucc])
+      Com_NOF$TONAnalysisNote[rollyrs[rollFails]] <- paste0(' Need 54 values for 5yr median, have ',rollingMeds[rollFails])
+      #find the band which each value belong to
+      Com_NOF$TONMed_Band <- sapply(Com_NOF$TONMed,NOF_FindBand,bandColumn = NOFbandDefinitions$`Median Nitrate`)
+      Com_NOF$TONMed_Band[!is.na(Com_NOF$TONMed)] <- 
+        sapply(Com_NOF$TONMed_Band[!is.na(Com_NOF$TONMed)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
+      rm(annualMedian,rollingMeds,rollFails,rollSucc)
+      
+      #95th percentile Nitrate
+      annual95 <- NtoxSite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.95,type=5,na.rm=T))
+      Com_NOF$TON95 = annual95$Value[match(Com_NOF$Year,annual95$Year)]
+      #Rolling 5yr 95%ile
+      rolling95=rolling5(NtoxSite,0.95,nreq=54,quReq=18)
+      rollFails= grepl(pattern = '^n',x = rolling95,ignore.case=T)
+      rollSucc = grepl(pattern='^[[:digit:]]',rolling95)
+      Com_NOF$TON95[yr%in%names(rolling95)[rollSucc]] <- readr::parse_number(rolling95[rollSucc])
+      Com_NOF$TONAnalysisNote[rollyrs[rollFails]] <- paste0(Com_NOF$TONAnalysisNote[rollyrs[rollFails]],
+                                                                ' Need 54 values and 20 quarters for 5yr 95%ile, have ',rolling95[rollFails])
+      #find the band which each value belong to
+      Com_NOF$TON95_Band <- sapply(Com_NOF$TON95,NOF_FindBand,bandColumn = NOFbandDefinitions$`95th Percentile Nitrate`)
+      Com_NOF$TON95_Band[!is.na(Com_NOF$TON95)] <- 
+        sapply(Com_NOF$TON95_Band[!is.na(Com_NOF$TON95)],FUN=function(x){min(unlist(strsplit(x,split = '')))})
+      rm(annual95,rolling95,rollFails,rollSucc)
+      
+      #Nitrate Toxicity
+      #The worse of the two nitrate bands
+      Com_NOF$TON_Toxicity_Band = apply(Com_NOF%>%dplyr::select(TONMed_Band, TON95_Band),1,max,na.rm=T)
+    }else{
+      Com_NOF$TONAnalysisNote = paste0('n = ',sum(!is.na(NtoxSite$Value)),' Insufficient to calculate annual medians ')
+    }}
+  rm(NtoxSite)
   
   ###################### Ammonia  ############################
   nh4site=rightSite%>%dplyr::filter(Measurement=="NH4adj")
@@ -348,6 +448,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
   annualMedian <- ecosite%>%dplyr::group_by(Year)%>%dplyr::summarise(Value=quantile(Value,prob=0.5,type=5,na.rm=T))
   if(dim(annualMedian)[1]!=0){
     Com_NOF$EcoliMed <- annualMedian$Value[match(Com_NOF$Year,annualMedian$Year)]
+    Com_NOF$EcoliAnalysisNote[is.na(Com_NOF$EcoliMed)&!is.na(as.numeric(Com_NOF$Year))] <- "No data this year"
     #rolling 5yr or 6yr median
     rollingMeds=rolling5(ecosite,0.5,nreq=54,quReq=18)
     rollFails=grepl(pattern = '^n',x = rollingMeds,ignore.case=T)
@@ -383,7 +484,7 @@ foreach(i = 1:length(uLAWAids),.combine=rbind,.errorhandling="stop",.inorder=F)%
     if(!is.na(as.numeric(Com_NOF$Year[yy]))){
       #Single year
       ecv=ecosite$Value[which(ecosite$Year==Com_NOF$Year[yy])]
-    if(length(ecv)>10){
+    if(length(ecv)>10){ #New 2021 abundance requirement
       Com_NOF$EcoliRecHealth540[yy]=sum(ecv>540)/length(ecv)*100
       Com_NOF$EcoliRecHealth260[yy]=sum(ecv>260)/length(ecv)*100
     }
@@ -480,7 +581,24 @@ cat(Sys.time()-startTime)
 #26 12/8/21  31590
 #31 13/8/21 31620
 
-NOFSummaryTable$EcoliMed_Band <- sapply(NOFSummaryTable$EcoliMed,NOF_FindBand,bandColumn=NOFbandDefinitions$`E. coli`)
+
+
+#Juggling nitrate vs total oxidised nitrogen for the nitrate toxicyt band score result evaluation
+NOFSummaryTable$Agency = riverSiteTable$Agency[match(NOFSummaryTable$LawaSiteID,riverSiteTable$Lawasiteid)]
+NOFSummaryTable$Nitrate_Toxicity_Band[NOFSummaryTable$Agency=='orc'] <- NA
+
+NOFSummaryTable$Nitrate_Toxicity_Band[NOFSummaryTable$Nitrate_Toxicity_Band==''] <- NA
+NOFSummaryTable$TON_Toxicity_Band[NOFSummaryTable$TON_Toxicity_Band==''] <- NA
+NOFSummaryTable <- NOFSummaryTable%>%select(-Agency)
+
+
+NOFSummaryTable$Nitrate_Toxicity_BandDISPLAY = ifelse(!is.na(NOFSummaryTable$Nitrate_Toxicity_Band),
+                                               NOFSummaryTable$Nitrate_Toxicity_Band,
+                                               NOFSummaryTable$TON_Toxicity_Band)
+
+NOFSummaryTable$EcoliMed_Band <- sapply(NOFSummaryTable$EcoliMed,
+                                        NOF_FindBand,
+                                        bandColumn=NOFbandDefinitions$`E. coli`)
 
 #These contain the best case out of these scorings, the worst of which contributes.
 suppressWarnings(cnEc_Band <- sapply(NOFSummaryTable$EcoliMed_Band,FUN=function(x){
@@ -573,6 +691,9 @@ write.csv(NOFSummaryTable%>%dplyr::filter(grepl(pattern = 'to',x = Year)),
 NOFSummaryTable$SWQAltitude=pseudo.titlecase(NOFSummaryTable$SWQAltitude)
 NOFSummaryTable$SWQLanduse=pseudo.titlecase(NOFSummaryTable$SWQLanduse)
 
+NOFSummaryTable$Nitrate_Toxicity_Band[is.na(NOFSummaryTable$Nitrate_Toxicity_Band)] <- 
+  NOFSummaryTable$TON_Toxicity_Band[is.na(NOFSummaryTable$Nitrate_Toxicity_Band)]
+
 #For ITE
 #Make outputs for ITE
 # Reshape Output
@@ -583,7 +704,8 @@ RiverNOF <-
                 SiteName=CouncilSiteID,
                 Year=Year)%>%
   dplyr::select(-SiteID,-accessDate,-Lat,-Long,-AltitudeCl,-SWQAltitude,-SWQLanduse,-rawSWQLanduse,-rawRecLandcover,
-                -Altitude,-Landcover,-NZReach,-NZSegment,-SedimentClass,-Agency,-Region,-Catchment,-ends_with('Note'))%>%
+                -Altitude,-Landcover,-NZReach,-NZSegment,-SedimentClass,-Agency,-Region,-Catchment,-ends_with('Note'),
+                -starts_with("TON"),-EcoliMed_Band,-Ecoli95_Band,-EcoliRecHealth260_Band,-EcoliRecHealth540_Band)%>%
   tidyr::drop_na(LAWAID)%>%
   dplyr::mutate_if(is.factor,as.character)%>%
   reshape2::melt(id.vars=c("LAWAID","SiteName","Year"))%>%
@@ -604,3 +726,34 @@ rm(RiverNOF)
 #                              pattern="ITERiverNOF",full.names = T,recursive = T),1))
 
 
+EcoliAudit = NOFSummaryTable%>%
+   filter(is.na(as.numeric(Year)))%>%
+  select(-starts_with(c("DRP","ammon","sussed","Nitr","TON"),ignore.case=T))%>%
+  filter(is.na(EcoliSummaryband),EcoliAnalysisNote!="")
+EcoliAudit$nmonth = as.numeric(sapply(EcoliAudit$EcoliAnalysisNote,
+                                      FUN = function(s)  strTo(strFrom(s,c='haven='),c=', q=')))
+EcoliAudit$nquart = as.numeric(sapply(EcoliAudit$EcoliAnalysisNote,
+                                      FUN = function(s)  strTo(strFrom(s,c=', q='),c=' Need')))
+EcoliAudit <- EcoliAudit%>%select(-starts_with('ecoli',ignore.case=T))
+
+head(EcoliAudit)
+
+by(data = (EcoliAudit$nmonth),
+   INDICES = EcoliAudit$Agency,FUN = summary)
+by(data = (EcoliAudit$nquart),
+   INDICES = EcoliAudit$Agency,FUN = summary)
+
+
+plot(EcoliAudit$nmonth,
+     jitter(factor = 1.5,EcoliAudit$nquart),xlab='nMonth',ylab='nQuart')
+ abline(v=54)
+ abline(h=18)
+ 
+ EcoliAudit%>%filter(nquart>=18&nmonth<54)%>%select(Agency,Year)%>%table
+ EcoliAudit%>%filter(nquart>=18&nmonth<54)%>%
+   select(Agency,LawaSiteID)%>%distinct%>%group_by(Agency)%>%summarise(nSite=length(unique(LawaSiteID)))
+ 
+ 
+ 
+ EcoliAudit%>%filter(nquart>=18&nmonth<54,Agency=='ac')
+ 

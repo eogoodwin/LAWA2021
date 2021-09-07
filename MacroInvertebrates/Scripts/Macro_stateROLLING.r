@@ -104,7 +104,7 @@ sum(lawaMacroState5yr$n>=4)/dim(lawaMacroState5yr)[1]
 lawaMacroState5yr <- lawaMacroState5yr%>%filter(n>=4)
 #4541 to 4050
 
-write.csv(lawaMacroState5yr%>%transmute(LAWAID=LawaSiteID,
+write.csv(lawaMacroState5yr%>%transmute(LAWAID=gsub('_NIWA','',LawaSiteID,ignore.case = T),
                                         Parameter=Measurement,
                                         Median=Median),
           file=paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/',

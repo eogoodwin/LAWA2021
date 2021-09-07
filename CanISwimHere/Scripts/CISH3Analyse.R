@@ -32,9 +32,6 @@ reps <- length(yr)
 
 
 
-recDataF%>%filter(LawaSiteID=='ECAN-10085')
-
-
 #Deal with censored data
 #Anna Madarasz-Smith 1/10/2018
 #Hey guys,
@@ -83,7 +80,6 @@ graphData <- recDataF%>%
 graphData$bathingSeason <- factor(graphData$bathingSeason) 
 
 
-graphData%>%filter(LawaSiteID == "ECAN-10085") #74
 
 # Calculate CISHSiteSummary ####
 ###############################
@@ -470,7 +466,7 @@ storeForCouncilInfo=multiProp
 
 
 #There are 8 sites here.  Give them each their worst grade, regardless of water type
-stopifnot(all(multiProp$siteType=='Beach'))
+# stopifnot(all(multiProp$siteType=='Beach'))
 moresingles <- multiProp%>%filter(property=='Enterococci')%>%
   mutate(LawaBand = sapply(combGr,FUN=function(s){max(unlist(strsplit(s,split = '')))}))%>%
   select(-(nProp:ncg)) #8
@@ -484,6 +480,7 @@ rm(moresingles,multiProp)
 
 
 CISHsiteSummary = singleProp          #694 rows to 613
+                                      #645 to 547
 
 # rm(singleProp)
 
@@ -674,7 +671,7 @@ CoastalGrades=AbisPivotData%>%
 
 library(showtext)
 if(!'source'%in%font_families()){
-  sysfonts::font_add_google("Source Sans Pro",family='source')
+  font_add(family = 'source',regular = "h:/ericg/16666LAWA/LAWA2021/SourceFont/SourceSansPro-Regular.ttf")
 }
 
 

@@ -140,7 +140,7 @@ urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",
                    # "mdc", "ncc", "nrc", "orc", "tdc", "trc", "wcrc", "wrc"),
         # .combine=rbind,.errorhandling="stop")%dopar%{
 for(agency in c("ac", "boprc", "ecan", "es", "gdc", "gwrc", "hbrc", "hrc", 
-                "mdc", "ncc", "nrc", "orc", "tdc", "trc", "wcrc", "wrc")){
+                "mdc", "ncc",'niwa', "nrc", "orc", "tdc", "trc", "wcrc", "wrc")){
           if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                         pattern = paste0('^',agency,".*audit\\.csv"),
                         recursive = T,full.names = T,ignore.case = T))>0){

@@ -100,7 +100,7 @@ clusterCall(workers,function(){
   library(tidyr)
 })
       
-
+rm(Data,datasource,RetProperty,RetCID)
 boprcSWQ=NULL
 foreach(i = 1:length(sites),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
   cat('\n',sites[i],i,'out of ',length(sites))
@@ -167,7 +167,7 @@ rm(workers)
 
 
 save(boprcSWQ,file = 'boprcSWQraw.rData')
-# load('boprcSWQraw.rData')
+# load('boprcSWQraw.rData') 60790
 agency='boprc'
 
 

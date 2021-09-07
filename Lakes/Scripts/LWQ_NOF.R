@@ -275,15 +275,21 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
   options(warn=-1)
   for(yy in 1:length(Com_NOF$Year)){
     if(!is.na(as.numeric(Com_NOF$Year[yy]))){
+      #Single year
       ecv=ecosite$Value[which(ecosite$Year==Com_NOF$Year[yy])]
+      if(length(ecv)>10){ #New 2021 abundance requirement
+        Com_NOF$EcoliRecHealth540[yy]=sum(ecv>540)/length(ecv)*100
+        Com_NOF$EcoliRecHealth260[yy]=sum(ecv>260)/length(ecv)*100
+      }
     }else{
+      #Year range
       startYear = strTo(s = Com_NOF$Year[yy],c = 'to')
       stopYear = strFrom(s= Com_NOF$Year[yy],c = 'to')
       ecv=ecosite$Value[ecosite$Year>=startYear & ecosite$Year<=stopYear]
-    }
-    if(length(ecv)>0){
-      Com_NOF$EcoliRecHealth540[yy]=sum(ecv>540)/length(ecv)*100
-      Com_NOF$EcoliRecHealth260[yy]=sum(ecv>260)/length(ecv)*100
+      if(length(ecv)>54){
+        Com_NOF$EcoliRecHealth540[yy]=sum(ecv>540)/length(ecv)*100
+        Com_NOF$EcoliRecHealth260[yy]=sum(ecv>260)/length(ecv)*100
+      }
     }
   }
   options(warn=0)

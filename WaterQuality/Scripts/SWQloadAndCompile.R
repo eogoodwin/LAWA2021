@@ -29,7 +29,7 @@ system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadMDC_li
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNCC_list.R")}) #25  X
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNIWA_list.R")})    #58 / 77
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadNRC_list.R")})     #40 / 41
-system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadORC_list.R")})     #219   / 50
+system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadORClistsc.R")})     #219   / 50
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadTDC_list.R")}) #
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadTRC_list.R")})   #221 / 13
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWCRC_list.R")}) #
@@ -50,8 +50,6 @@ for(agency in agencies){
 #                          COMBINE CSVs to COMBO
 ##############################################################################
 #Build the combo ####
-library(parallel)
-library(doParallel)
 
   if(exists('wqdata'))rm(wqdata)
   rm(list=ls(pattern='mfl'))
@@ -64,10 +62,10 @@ clusterCall(workers,function(){
   library(dplyr)
 })
 startTime=Sys.time()
-foreach(agencyi =1:length(agencies),.combine = rbind,.errorhandling = 'stop')%dopar%{
+foreach(agencyi =1:length(agencies),.combine = bind_rows,.errorhandling = 'stop')%dopar%{
   mfl=loadLatestCSVRiver(agencies[agencyi],maxHistory = 30)
     #BACKFILL except canterbury, hbrc, hrc
-    if(backfill & !agencies[agencyi]%in%c('ecan','hbrc','hrc')){
+    if(backfill & agencies[agencyi]%in%c('trc','niwa')){
       targetSites=tolower(siteTable$CouncilSiteID[siteTable$Agency==agencies[agencyi]])
       targetCombos=apply(expand.grid(targetSites,tolower(lawaset)),MARGIN = 1,FUN=paste,collapse='')
       currentSiteMeasCombos=unique(paste0(tolower(mfl$CouncilSiteID),tolower(mfl$Measurement)))
@@ -162,9 +160,12 @@ Sys.time()-startTime
 #20/8/21     1479324 33.6
 #24/8/21     1470599
 #27/8/21     1470856 from boprc and hrc, 102 and 155 respectively
-#27/8/21     1474832 three enw gwrc sites
+#27/8/21     1474832 three new gwrc sites
+#31/8/21     1491106 rbind 37.5
+#31/8/21     1491106       bindrows 29
+#02/9/21     1498978
+#03/9/21     1498772 with backfill TRC and NIWA 18s
 donecombine=T
-
 
 wqdata$CouncilSiteID=trimws(tolower(wqdata$CouncilSiteID))
 wqdata$CenType[wqdata$CenType%in%c("L","Left")] <- "Left"
@@ -186,10 +187,14 @@ wqdata <- merge(wqdata,
                 siteTable%>%select(CouncilSiteID,SiteID,LawaSiteID,Agency,Region,
                                    SWQAltitude,SWQLanduse,Altitude,Landcover))
 
-table(wqdata$Agency,is.na(wqdata$QC),useNA='a')  #QC data in AC, ECAN, GDC, GWRC,MDC, ORC 
+table(wqdata$Agency,is.na(wqdata$QC),useNA='a')  #QC data in AC, ECAN, ES, GDC, GWRC,HBRC,MDC,NCC,NIWA,WCRC 
 table(wqdata$Region,useNA='a')
 table(wqdata$Agency,useNA='a')
 #    ac  boprc   ecan     es    gdc   gwrc   hbrc    hrc    mdc    ncc   niwa    nrc    orc    tdc    trc  wcrc    wrc
+# 70588  54768 222636 106371  39886  89884 108118 211987  40894  25251 129178  62186  76846  19394  29233 29501 182051
+# 70588  54768 222636 106371  39886  89884 108118 211987  40894  25251 129178  62186  76825  19394  29233 29501 182051 
+# 70588  54768 222636 106371  39886  89884 108118 211987  40894  25251 129178  62186  77052  19394  29233 29501 182051 
+# 70588  54768 222636 106371  39886  89884 108118 211987  36018  22255 129178  62186  77052  19394  29233 29501 182051
 # 70659  54768 222636 107083  39888  89950 108161 211987  36018  22172 114686  62186  77052  19394  26640 29501 182051 
 # 70659  54768 222636 107083  39888  85974 108161 211987  36018  22172 114686  62186  77052  19394  26640 29501 182051 
 # 70659  54768 222636 107083  39888  85974 108161 211987  36018  22172 114686  62186  77052  19394  26640 29501 182051
@@ -279,6 +284,9 @@ write.csv(table(wqdata$Units,wqdata$Measurement),paste0('h:/ericg/16666LAWA/LAWA
 #1479324  20/8/21
 #1470674 24/8/21
 #1470856  26/8/21
+#1491106 31/8/21
+#1498978 2/9/21
+#1498772 3/9/21
 
 
 wqdata$Symbol=""
@@ -298,9 +306,9 @@ table(wqdata$Agency,wqdata$Measurement)/table(wqdata$Agency,wqdata$Measurement)
 # gwrc      1   1   1     1   1    1   1   1   1   1    1        
 # hbrc      1   1   1     1   1    1   1   1   1   1    1       1
 # hrc       1   1   1     1   1    1   1   1   1   1    1       1
-# mdc               1     1   1    1   1   1   1   1    1        
-# ncc       1       1     1   1    1   1   1       1    1        
-# niwa      1       1     1   1        1   1       1    1        
+# mdc           1   1     1   1    1   1   1   1   1    1        
+# ncc       1   1   1     1   1    1   1   1       1    1        
+# niwa      1       1     1   1        1   1   1   1    1        
 # nrc       1   1   1     1   1    1   1   1   1   1    1        
 # orc       1   1   1     1   1    1   1   1   1   1    1        
 # tdc       1       1     1   1    1   1   1   1   1    1        

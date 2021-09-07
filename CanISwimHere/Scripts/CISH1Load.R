@@ -277,14 +277,14 @@ clusterCall(workers,function(){
   library(stringr)
   library(xml2)
 })
-foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dopar%{
+foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop",.inorder=F)%dopar%{
   # for(SSMregion in unique(ssm$Region)){
-
   regionName=make.names(word(SSMregion,1,1))
+  write.csv(ssm$Region,file = paste0("D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/",regionName,"/inHere",make.names(Sys.time()),".txt"))
   # WFSregion=RegionTable$wfs[RegionTable$ssm==SSMregion]
   cat('\n\n\n',SSMregion,'\n')
   #Find agency URLs
-
+  
   agURLs <-     sapply(X = ssm$TimeseriesUrl[ssm$Region==SSMregion],
                        FUN = function(x)unlist(strsplit(x,split='&')))%>%
     unlist%>%
@@ -299,12 +299,18 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   }
   if(regionName=="Bay"){
     agURLs = paste0(agURLs,'&version=2.0.0')
+    "http://sos.boprc.govt.nz/service?"
+    "service=SOS&version=2.0.0&request=GetObservation&"
+    "offering="
+    "@"
+    "&temporalfilter=om:phenomenonTime,P15Y/2021-01-01"
+    
   }
   if(regionName=="Manawatu.Whanganui"){
     agURLs = gsub(pattern = 'hilltopserver',replacement = 'maps',x = agURLs)
   }
   if(regionName=='Canterbury'){
-    agURLs = 'http://wateruse.ecan.govt.nz/WQRecLawa.hts?Service=Hilltop'
+    # agURLs = 'http://wateruse.ecan.govt.nz/WQRecLawa.hts?Service=Hilltop'  3/9/21 not needed
   }
   if(regionName=="West"){
     agURLs = gsub(pattern = 'data.wcrc.govt.nz:9083',replacement = 'hilltop.wcrc.govt.nz',x = agURLs)
@@ -321,16 +327,19 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   if(regionName=='Taranaki'){
     # https://extranet.trc.govt.nz/getdata/LAWA_rec_WQ.hts?Service=Hilltop&Request=GetData&Site=SEA901033&Measurement=ECOL&From=1/11/2015&To=1/4/2016
   }
-
+  
   #Find agency properties from the SSM file
-  observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,
-                                              TimeseriesUrl!='')%>%
+  observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,TimeseriesUrl!='')%>%
                                select(TimeseriesUrl),
                              FUN = function(x){gsub('(.+)http.+','\\1',x=x)%>%
                                  strsplit(split='&')%>%unlist%>%
-                                 grep('observedproperty',x = .,ignore.case=T,value=T)%>%
-                                 gsub('observedproperty=','',x=.,ignore.case = T)})%>%
+                                 grep('observedproperty|offering',x = .,ignore.case=T,value=T)%>%
+                                 gsub('observedproperty=|offering=','',x=.,ignore.case = T)})%>%
     sapply(.,URLdecode)%>%unname#%>%tolower
+  if(regionName=="Bay"){
+    observedProperty = gsub(pattern = 'i_Rec',replacement = "i.Rec",x = observedProperty)
+    observedProperty = sapply(observedProperty,function(s)strTo(s,c='\\@'))
+  }
   propertyType = ssm%>%
     filter(Region==SSMregion & TimeseriesUrl!='')%>%
     select(Property)%>%
@@ -340,19 +349,19 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
   agProps=unique(data.frame(observedProperty,propertyType,stringsAsFactors=F))
   agProps=rbind(agProps,c('WQ sample','WQ sample'))
   rm(observedProperty,propertyType)
-# agProps=structure(list(observedProperty = "WQ sample", propertyType = "WQ sample"), row.names = 4L, class = "data.frame")
- 
-    #Nothing from WFS, just from the SSM from Effect
-    agSites <- c(unlist(sapply(X = ssm%>%
-                                 filter(Region==SSMregion)%>%
-                                 select(TimeseriesUrl),
-                               FUN = function(x)unlist(strsplit(x,split='&')))))%>%
-      grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
-      gsub('featureofinterest=','',x=.,ignore.case = T)%>%
-      sapply(.,URLdecode)%>%trimws%>%unique
- 
+  # agProps=structure(list(observedProperty = "WQ sample", propertyType = "WQ sample"), row.names = 4L, class = "data.frame")
   
-    #Find agency format keys.  There may be none
+  #Nothing from WFS, just from the SSM from Effect
+  agSites <- c(unlist(sapply(X = ssm%>%
+                               filter(Region==SSMregion)%>%
+                               select(TimeseriesUrl),
+                             FUN = function(x)unlist(strsplit(x,split='&')))))%>%
+    grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
+    gsub('featureofinterest=','',x=.,ignore.case = T)%>%
+    sapply(.,URLdecode)%>%trimws%>%unique
+  
+  
+  #Find agency format keys.  There may be none
   (agFormats <- sort(unique(c(unlist(sapply(X = ssm$TimeseriesUrl[ssm$Region==SSMregion],
                                             FUN = function(x)unlist(strsplit(x,split='&')))))))%>%
       grep('format',x = .,ignore.case=T,value=T))%>%cat
@@ -368,7 +377,7 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
         dir.create(paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName),recursive = T)
       }
       fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName,'/',propertyName,'.xml')
-      if(propertyName!="wq.sample"&file.exists(fname)&&file.info(fname)$size>2000){
+      if(propertyName!="wq.sample"&file.exists(fname)&&file.info(fname)$size>1000){
         next
       }else{
         for(ur in seq_along(agURLs)){
@@ -379,13 +388,18 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
                               '&Measurement=',agProps$observedProperty[ap],
                               '&From=1/6/2010&To=1/7/2021')
           }else{
+            
             urlToTry = paste0(agURLs[ur],
                               '&request=GetObservation',
-                              '&featureOfInterest=',agSites[agSite],
                               '&observedProperty=',agProps$observedProperty[ap],
+                              '&featureOfInterest=',agSites[agSite],
                               '&temporalfilter=om:phenomenonTime,P10Y/2021-06-01')
+            if(SSMregion%in%c("Bay of Plenty region")){
+              urlToTry = gsub(pattern = 'observedProperty',replacement = 'offering',x = urlToTry,ignore.case = T)
+              urlToTry = gsub(pattern = '&FeatureOfInterest=',replacement = '@',x = urlToTry,ignore.case = T)
+                          }
           }
-         
+          
           if(length(agFormats)==1){
             urlToTry = paste0(urlToTry,'&',agFormats[1])
           }
@@ -427,6 +441,8 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop")%dop
     rm(ap)
   }
   rm(agSite)
+  write.csv(ssm$Region,file = paste0("D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/",regionName,"/outHere",make.names(Sys.time()),".txt"))
+  
   rm(regionName)
   return(NULL)
 }
@@ -490,8 +506,8 @@ foreach(SSMregion = unique(ssm$Region))%dopar%{
   observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,TimeseriesUrl!='')%>%select(TimeseriesUrl),
                              FUN = function(x){gsub('(.+)http.+','\\1',x=x)%>%
                                  strsplit(split='&')%>%unlist%>%
-                                 grep('observedproperty',x = .,ignore.case=T,value=T)%>%
-                                 gsub('observedproperty=','',x=.,ignore.case = T)})%>%
+                                 grep('observedproperty|offering',x = .,ignore.case=T,value=T)%>%
+                                 gsub('observedproperty=|offering=','',x=.,ignore.case = T)})%>%
     sapply(.,URLdecode)%>%unname%>%tolower
   propertyType = ssm%>%
     filter(Region==SSMregion&TimeseriesUrl!='')%>%
@@ -555,6 +571,7 @@ Sys.time()-startTime
 #41s  14/7/21
 #48s 29/7/21
 #2.0mins 13/8/2021
+#3.7 mins 3/9/21  (wqdata in background)
 rm(startTime)
 
 
@@ -690,6 +707,7 @@ print(dim(recMetaData))
 #114281 86   13/8/21
 #114338 86  20/8
 #114310
+#114355 86    3/9/21
 
 save(recMetaData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                            "/RecMetaData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
@@ -707,6 +725,7 @@ print(dim(recData))
 # 81900 13   13/8/21
 # 82080 13   20/8/21
 # 82306
+# 82305 13  3/9/21
 
 save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
                                "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))

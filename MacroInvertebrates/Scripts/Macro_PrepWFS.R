@@ -38,8 +38,8 @@ foreach(h = 1:length(urls$URL),.combine = rbind,.errorhandling = "stop")%dopar%{
   if(!nzchar(urls$URL[h])){  ## returns false if the URL string is missing
     return(NULL)
   }
-  if(urls$Agency[h]=="NCC"){
-    return(NULL)
+  if(urls$Agency[h]%in%c("GDC","NCC")){
+    # return(NULL)
   }
   
   xmldata <- try(ldWFSlist(urlIn = urls$URL[h],agency=urls$Agency[h],dataLocation = urls$Source[h],method=method[h],case.fix = TRUE))
