@@ -45,6 +45,7 @@ Sys.time()-startTime           #2.9 mins 13/8/21
 #10986 13/8/21
 #10456 20/8/21
 #10916 27/8/21
+#11200 17/9/21
 
 GWtrends$Source = GWdata$Source[match(GWtrends$LawaSiteID,GWdata$LawaSiteID)]
 
@@ -77,6 +78,7 @@ fGWt = GWtrends%>%dplyr::filter(!grepl('^unassess',GWtrends$frequency)&
 # 2594 13-8-21
 # 2543 20/8/21
 # 2580 27/8/21
+# 2669 17/9/21
 
 #    nitrate nitrogen, chloride, DRP, electrical conductivity and E. coli.
 # fGWt = fGWt%>%filter(Measurement %in% c("Nitrate nitrogen","Chloride","Dissolved reactive phosphorus",
@@ -107,27 +109,30 @@ if(plotto){
   knitr::kable(table(GWtrends$ConfCat,GWtrends$Measurement,GWtrends$period))
 }
 
+# if(year(Sys.Date())==2021){
+#   bugFixGW = which(GWtrends$Z==0)
+#   table(GWtrends$Source[bugFixGW])
+#   GWtrends$p[bugFixGW] <- 1
+#   GWtrends$C[bugFixGW] <- 0.5
+#   GWtrends$Cd[bugFixGW] <- 0.5
+#   GWtrends$ConfCat[bugFixGW] <- "Indeterminate"
+#   GWtrends$TrendScore[bugFixGW] <- 0
+#   rm(bugFixGW)
+# }
+
 #Export Trend values
 write.csv(GWtrends,file = paste0('h:/ericg/16666LAWA/LAWA2021/Groundwater/Analysis/',format(Sys.Date(),"%Y-%m-%d"),
                                  '/ITEGWTrend',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
 write.csv(fGWt,file = paste0('h:/ericg/16666LAWA/LAWA2021/Groundwater/Analysis/',format(Sys.Date(),"%Y-%m-%d"),
                              '/ITEGWTrendSuccess',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
 
-write.csv(GWtrends,file=paste0("c:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/Groundwater Quality/EffectDelivery/",
+write.csv(GWtrends,file=paste0("c:/Users/ericg/Otago Regional Council/",
+                               "Abi Loughnan - LAWA Annual Water Refresh 2021/Groundwater Quality/EffectDelivery/",
                                "ITEGWTrend",format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
-write.csv(fGWt,file = paste0("c:/Users/ericg/Otago Regional Council/Abi Loughnan - LAWA Annual Water Refresh 2021/Groundwater Quality/EffectDelivery/",
+write.csv(fGWt,file = paste0("c:/Users/ericg/Otago Regional Council/",
+                             "Abi Loughnan - LAWA Annual Water Refresh 2021/Groundwater Quality/EffectDelivery/",
                              '/ITEGWTrendSuccess',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
 
-# 
-# #Put the state on the trend?
-# 
-# GWtrends$Calcmedian = GWmedians$median[match(x = paste(GWtrends$LawaSiteID,GWtrends$Measurement),
-#                                              table = paste(GWmedians$LawaSiteID,GWmedians$Measurement))]
-# GWtrends$Calcmedian[GWtrends$Calcmedian<=0] <- NA
-# par(mfrow=c(2,3))
-# for(meas in unique(GWtrends$Measurement)){
-#   dfp=GWtrends%>%dplyr::filter(Measurement==meas)
-#   plot(factor(dfp$ConfCat),dfp$Calcmedian,main=meas,log='y')
-# }
-# 
-# head(GWmedians%>%filter(!Exclude)%>%select(-Exclude))
+# GWtrends <- read_csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/Groundwater/Analysis/",
+#                               "ITEGWTrend[[:digit:]]",full.names=T,recursive = T,ignore.case = T),1))
+

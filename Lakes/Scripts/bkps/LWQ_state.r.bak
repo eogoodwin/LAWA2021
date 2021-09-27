@@ -1,0 +1,197 @@
+rm(list=ls())
+library(doBy)
+StartYear10 <- 2009
+StartYear5 <- 2014
+EndYear <- 2018
+# hStartYear10 <- StartYear10-1
+# hStartYear5 <- StartYear5-1
+# hEndYear <- EndYear-1
+source("h:/ericg/16666LAWA/LAWA2019/Scripts/lawa_state_functions.R")
+source("h:/ericg/16666LAWA/LAWA2019/Scripts/LAWAFunctions.R")
+
+lakeSiteTable <- loadLatestSiteTableLakes(maxHistory = 30)
+lawaIDs=read.csv("H:/ericg/16666LAWA/LAWA2019/Metadata/LAWAMasterSiteListAsAtMarch2018.csv",stringsAsFactors = F)
+lawaIDs <- lawaIDs%>%filter(Module=="Lakes")
+
+#hydrological year runs e.g. 1 July 2017 to 30 June 2018, and is named like 2017/18
+#data from months in the first half of the year have a hydrological year one less than their calendar year
+#In 2019 we can report on data to June 2018, which is the 2017/18 hydrological year
+#Coding hydrological years as the first year and 'h', this means that in 2019 we want data up to hydrological year 2017h.
+
+try(dir.create(paste0("H:/ericg/16666LAWA/LAWA2019/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"))))
+# write.csv(lakeData,paste0("H:/ericg/16666LAWA/LAWA2019/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/lakesAllCouncils.csv"),row.names = F)
+
+#Load the latest made (might need to check it works nicely across month folders) 
+if(!exists('lakeData')){
+  lakeDataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2019/Lakes/Data",pattern = "LakesWithMetadata.csv",
+                            recursive = T,full.names = T,ignore.case=T),1)
+  cat(lakeDataFileName)
+  lakeData=read.csv(lakeDataFileName,stringsAsFactors = F)
+  rm(lakeDataFileName)
+  lakeData$Value[which(lakeData$Measurement%in%c('TN','TP'))]=
+    lakeData$Value[which(lakeData$Measurement%in%c('TN','TP'))]*1000  #mg/L to mg/m3   #Until 4/10/18 also NH4N
+}
+
+lakeData$month=lubridate::month(lubridate::dmy(lakeData$Date))
+lakeData$Year=lubridate::isoyear(lubridate::dmy(lakeData$Date))
+# lakeData$hYear = lakeData$Year
+# lakeData$hYear[lakeData$month<7] = lakeData$hYear[lakeData$month<7]-1
+# lakeData$hYear = paste0('h',lakeData$hYear)
+lakeData$monYear=paste0(lakeData$month,lakeData$Year)
+
+lakeData=lakeData[which(lakeData$Year>=StartYear10 & lakeData$Year<=EndYear),]
+#44797 to 34749
+if(0){
+  #March2019 PaulScholes identifies that the wrong LFENZ IDs have been applied to the BOPRC lakeData
+  #They're correct in the lakeSiteTable, but wrong in the data
+  # lakeData$LFENZID[lakeData$Agency=='boprc']=
+  #   lakeSiteTable$LFENZID[match(lakeData$LawaSiteID[lakeData$Agency=='boprc'],lakeSiteTable$LawaSiteID)]
+  # lakeData$LFENZID[lakeData$SiteID=="Lake Rotomanuka at Lake Centre (Surface)"] <- 14428
+  # lakeData$LFENZID[lakeData$SiteID=="Lake Rotorua by east arm"] <- 25994
+  
+  # lakeData <- left_join(lakeData,lakeSiteTable%>%select(-Agency,-Region),by="LawaSiteID",suffix=c("",".y"))
+  
+  
+  # lakeData <- lakeData%>%select(-SWQLanduse,-SWQAltitude)
+  # lakeData$SWQLanduse[lakeData$SWQLanduse%in%c("native","exotic/rural","Exotic","Native","Forest","Natural","forestry","Native forest","reference")]="Forest"
+  # lakeData$SWQLanduse[lakeData$SWQLanduse%in%c("Unstated","","<Null>")]=NA
+  # lakeData$SWQLanduse[lakeData$SWQLanduse%in%c("rural")]="Rural"
+  # lakeData$SWQLanduse[lakeData$SWQLanduse%in%c("urban")]="Urban"
+  # 
+  # lakeData$SWQAltitude[lakeData$SWQAltitude%in%c("Unstated","")]=NA
+  # lakeData$SWQAltitude[lakeData$SWQAltitude%in%c("lowland")]="Lowland"
+  
+  # table(lakeData$SWQLanduse)
+  # table(lakeData$SWQAltitude)
+  # sum(is.na(lakeData$SWQLanduse))
+  # sum(is.na(lakeData$SWQAltitude))
+  # unique(lakeData$LawaSiteID[is.na(lakeData$SWQLanduse)])
+  # 
+  # unique(cbind(lakeData$SiteID[!lakeData$SiteID==lakeData$SiteID.y],lakeData$SiteID.y[!lakeData$SiteID==lakeData$SiteID.y]))
+  # unique(cbind(lakeData$CouncilSiteID[!lakeData$CouncilSiteID==lakeData$CouncilSiteID.y],lakeData$CouncilSiteID.y[!lakeData$CouncilSiteID==lakeData$CouncilSiteID.y]))
+  # apply(unique(cbind(lakeData$Lat[!lakeData$Lat==lakeData$Lat.y],lakeData$Lat.y[!lakeData$Lat==lakeData$Lat.y])),1,diff)%>%summary
+}
+
+# IMPLEMENT TROPHIC LEVEL INDEX FOR LAKES TLI ###
+#Annual medians
+TLI=lakeData%>%
+  dplyr::group_by(LawaSiteID,Year,Measurement)%>%
+  dplyr::summarise(mean=mean(Value,na.rm=T))%>%
+  tidyr::spread(data=.,key=Measurement,value=mean)%>%as.data.frame
+TLc=2.22+2.54*log(TLI$CHLA,base = 10)
+TLs=5.1+2.27*log((1/TLI$Secchi)-(1/40),base=10) #was 5.1+2.6 for 2018, until 26/6/2019 Deniz Ozkundakci email 
+TLn=-3.61+3.01*log(TLI$TN,base=10)
+TLp=0.218+2.92*log(TLI$TP,base=10)
+TLI3=(TLc+TLn+TLp)/3 #If no Secchi
+TLI4=(TLc+TLs+TLn+TLp)/4
+TLI$TLI = TLI4
+TLI$TLI[is.na(TLI$TLI)] <- TLI3[is.na(TLI$TLI)]
+rm(TLc,TLs,TLn,TLp,TLI3,TLI4)
+
+TLI=TLI%>%
+  select(LawaSiteID,Year,TLI)%>%
+  tidyr::gather(Measurement,Value,TLI)
+
+TLI <- left_join(TLI,lakeSiteTable%>%select(LawaSiteID,LFENZID,SiteID,Agency,Region,Long,Lat))
+write.csv(TLI,paste0('h:/ericg/16666LAWA/LAWA2019/Lakes/Analysis/',format(Sys.Date(),'%Y-%m-%d'),
+                                     '/LakeTLIAnnualMedian',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
+write.csv(TLI%>%filter(Year==2018),paste0('h:/ericg/16666LAWA/LAWA2019/Lakes/Analysis/',format(Sys.Date(),'%Y-%m-%d'),
+                                                          '/LakeTLILast12Month',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
+# TLI=read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2019/Lakes/Analysis',pattern='TLI',recursive = T,full.names = T),1),stringsAsFactors = F)
+
+
+
+lakeParam <- c("TP", "NH4N", "TN", "Secchi", "CHLA", "pH", "ECOLI")
+#TLI will not be included in the monthly medians, because it's calculated on annual average values 
+suppressWarnings(rm(lakeData_A,lakeData_med,lakeData_n,lawaLakeMonthlyMedian))
+for(i in 1:length(lakeParam)){
+  lakeData_A = lakeData[tolower(lakeData$Measurement)==tolower(lakeParam[i]),]
+  #CENSORING
+  #Previously for state, left-censored was repalced by half the limit value, and right-censored was imputed
+  lakeData_A$origValue=lakeData_A$Value
+  if(any(lakeData_A$centype=='Left')){
+    lakeData_A$Value[lakeData_A$centype=="Left"] <- lakeData_A$Value[lakeData_A$centype=="Left"]/2
+    options(warn=-1)
+    lcenreps=lakeData_A%>%drop_na(CouncilSiteID)%>%split(.$CouncilSiteID)%>%purrr::map(~max(.$Value[.$centype=='Left'],na.rm=T))
+    options(warn=0)
+    lakeData_A$lcenrep=as.numeric(lcenreps[match(lakeData_A$CouncilSiteID,names(lcenreps))])
+    lakeData_A$Value[lakeData_A$centype=='Left'] <- lakeData_A$lcenrep[lakeData_A$centype=='Left']
+    lakeData_A <- lakeData_A%>%select(-lcenrep)
+    rm(lcenreps)
+  }
+  if(any(lakeData_A$centype=='Right')){
+    lakeData_A$Value[lakeData_A$centype=="Right"] <- lakeData_A$Value[lakeData_A$centype=="Right"]*1.1
+    options(warn=-1)
+    rcenreps=lakeData_A%>%split(.$CouncilSiteID)%>%purrr::map(~min(.$Value[.$centype=='Right'],na.rm=T))
+    options(warn=0)
+    lakeData_A$rcenrep=as.numeric(rcenreps[match(lakeData_A$CouncilSiteID,names(rcenreps))])
+    lakeData_A$Value[lakeData_A$centype=='Right'] <- lakeData_A$rcenrep[lakeData_A$centype=='Right']
+    lakeData_A <- lakeData_A%>%select(-rcenrep)
+    rm(rcenreps)
+  }
+
+  lakeData_A$Date=lubridate::dmy(lakeData_A$Date)
+  freqs <- lakeData_A%>%split(.$LawaSiteID)%>%purrr::map(~freqCheck(.))%>%unlist
+  lakeData_A$Frequency=freqs[lakeData_A$LawaSiteID]  
+  rm(freqs)
+  
+  lakeData_med <- lakeData_A%>%
+    dplyr::group_by(LawaSiteID,monYear)%>%
+    dplyr::summarise(
+      CouncilSiteID=paste(unique(CouncilSiteID),collapse='&'),
+      Year = unique(Year,na.rm=T),
+      month = unique(month,na.rm=T),
+      SiteID=paste(unique(SiteID),collapse='&'),
+      LFENZID=unique(LFENZID,na.rm=T),
+      Agency=paste(unique(Agency),collapse='&'),
+      Region=paste(unique(Region),collapse='&'),
+      Value=median(Value,na.rm=T),
+      Measurement=unique(Measurement,na.rm=T),
+      n=n(),
+      Censored=any(Censored),
+      centype=paste(unique(centype[centype!='FALSE']),collapse=''),
+      LType=unique(LType,na.rm=T),
+      Frequency=unique(Frequency,na.rm=T)
+    )%>%ungroup
+  rm(lakeData_A)
+  
+  # Building dataframe to save at the end of this step 
+  if(i==1){
+    lawaLakeMonthlyMedian <- lakeData_med
+  } else {
+    lawaLakeMonthlyMedian <- rbind(lawaLakeMonthlyMedian,lakeData_med)
+  }   
+  rm(lakeData_med)
+}
+rm(i)
+# Saving the lawaLakeMonthlyMedian table  USED in NOF calculations
+write.csv(lawaLakeMonthlyMedian,file=paste0("h:/ericg/16666LAWA/LAWA2019/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+                                            "/lawaLakeMonthlyMedian",StartYear10,"-",EndYear,"ForITE",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
+# lawaLakeMonthlyMedian=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2019/Lakes/Analysis",pattern = "lawaLakeMonthlyMedian",recursive = T,full.names = T),1),stringsAsFactors = F)
+
+#Lake Trend requirements on medians
+#5 year, need 30 monthly measurements over five years
+
+#5year medians
+lmd5 <- lawaLakeMonthlyMedian%>%
+  filter(!is.na(LawaSiteID))%>%
+  filter(Year>=StartYear5)%>%
+  dplyr::group_by(LawaSiteID,Measurement)%>%
+  dplyr::summarise(Median=quantile(Value,prob=0.5,type=5,na.rm=T),n=n())%>%ungroup
+TLI5yr = TLI%>%
+  filter(!is.na(LawaSiteID))%>%
+  filter(Year>=StartYear5)%>%
+  dplyr::group_by(LawaSiteID,Measurement)%>%
+  dplyr::summarise(Median = quantile(Value,prob=0.5,type=5,na.rm=T),n=n())%>%ungroup
+lmd5 <- rbind(lmd5,TLI5yr)%>%arrange(LawaSiteID,Measurement)
+rm(TLI5yr)
+sum(lmd5$n>=30)/dim(lmd5)[1]
+#184 out of 732  0.25
+lmd5 <- lmd5%>%filter(n>=30|Measurement=="TLI") #Require 30 monthly values to calculate 5-year state median
+#306 from 732
+
+write.csv(lmd5,file=paste0('h:/ericg/16666LAWA/LAWA2019/Lakes/Analysis/',format(Sys.Date(),'%Y-%m-%d'),
+                           '/5YearLakeState',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)
+# lmd5=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2019/Lakes/Analysis",pattern="5YearLakeState.*csv",recursive = T,full.names = T,ignore.case = T),1),stringsAsFactors=F)
+
+

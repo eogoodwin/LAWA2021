@@ -44,7 +44,7 @@ uMeasures=unique(datafor15$Measurement)
 cat('\n',length(usites),'\n')
 usite=1
 
-workers <- makeCluster(6)
+workers <- makeCluster(7)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   library(magrittr)
@@ -120,20 +120,18 @@ rm(workers)
 rm(usites,uMeasures,usite,datafor15)
 
 
-
-
 rownames(trendTable15) <- NULL
-trendTable15$Sen_Probability[trendTable15$Measurement!="BDISC"]=1-(trendTable15$Sen_Probability[trendTable15$Measurement!="BDISC"])
-trendTable15$Probabilitymin[trendTable15$Measurement!="BDISC"]=1-(trendTable15$Probabilitymin[trendTable15$Measurement!="BDISC"])
-trendTable15$Probabilitymax[trendTable15$Measurement!="BDISC"]=1-(trendTable15$Probabilitymax[trendTable15$Measurement!="BDISC"])
 trendTable15$Cd[trendTable15$Measurement!="BDISC"]=1-(trendTable15$Cd[trendTable15$Measurement!="BDISC"])
 trendTable15$Agency=riverSiteTable$Agency[match(trendTable15$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable15$SWQAltitude =  riverSiteTable$SWQAltitude[match(trendTable15$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable15$SWQLanduse =   riverSiteTable$SWQLanduse[match(trendTable15$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable15$Region =    riverSiteTable$Region[match(trendTable15$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable15$ConfCat <- cut(trendTable15$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
-                            labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
-trendTable15$ConfCat=factor(trendTable15$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
+                            labels = c("Very likely improving","Likely improving",
+                                       "Indeterminate","Likely degrading","Very likely degrading"))
+trendTable15$ConfCat=factor(trendTable15$ConfCat,levels=rev(c("Very likely improving","Likely improving",
+                                                              "Indeterminate",
+                                                              "Likely degrading","Very likely degrading")))
 trendTable15$TrendScore=as.numeric(trendTable15$ConfCat)-3
 trendTable15$TrendScore[is.na(trendTable15$TrendScore)]<-(NA)
 save(trendTable15,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend15Year.rData"))
@@ -204,16 +202,12 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
         if(!is.na(st$pvalue)&&st$pvalue<0.05){
           sk <- SeasonalKendall(x = subSubDat,ValuesToUse = "Value",HiCensor = T,doPlot = F)
           sss <- SeasonalSenSlope(HiCensor=T,x = subSubDat,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
-          # sk$AnalysisNote=as.character(sk$AnalysisNote)
-          # sss$AnalysisNoteSS=as.character(sss$AnalysisNoteSS)
           siteTrendTable10[uparam,names(sk)] <- sk
           siteTrendTable10[uparam,names(sss)] <- sss
           rm(sk,sss)
         }else{
           mk <- MannKendall(x = subSubDat,ValuesToUse = "Value",HiCensor = T,doPlot=F)
           ss <- SenSlope(HiCensor=T,x = subSubDat,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
-          # mk$AnalysisNote=as.character(mk$AnalysisNote)
-          # ss$AnalysisNoteSS=as.character(ss$AnalysisNoteSS)
           siteTrendTable10[uparam,names(mk)] <- mk
           siteTrendTable10[uparam,names(ss)] <- ss
           rm(mk,ss)
@@ -233,17 +227,17 @@ rm(workers,usites,uMeasures,usite,datafor10)
 
 
 rownames(trendTable10) <- NULL
-trendTable10$Sen_Probability[trendTable10$Measurement!="BDISC"]=1-(trendTable10$Sen_Probability[trendTable10$Measurement!="BDISC"])
-trendTable10$Probabilitymin[trendTable10$Measurement!="BDISC"]=1-(trendTable10$Probabilitymin[trendTable10$Measurement!="BDISC"])
-trendTable10$Probabilitymax[trendTable10$Measurement!="BDISC"]=1-(trendTable10$Probabilitymax[trendTable10$Measurement!="BDISC"])
 trendTable10$Cd[trendTable10$Measurement!="BDISC"]=1-(trendTable10$Cd[trendTable10$Measurement!="BDISC"])
 trendTable10$Agency=riverSiteTable$Agency[match(trendTable10$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable10$SWQAltitude =  riverSiteTable$SWQAltitude[match(trendTable10$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable10$SWQLanduse =   riverSiteTable$SWQLanduse[match(trendTable10$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable10$Region =    riverSiteTable$Region[match(trendTable10$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable10$ConfCat <- cut(trendTable10$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
-                            labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
-trendTable10$ConfCat=factor(trendTable10$ConfCat,levels=rev(c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading")))
+                            labels = c("Very likely improving","Likely improving",
+                                       "Indeterminate","Likely degrading","Very likely degrading"))
+trendTable10$ConfCat=factor(trendTable10$ConfCat,levels=rev(c("Very likely improving","Likely improving",
+                                                              "Indeterminate",
+                                                              "Likely degrading","Very likely degrading")))
 trendTable10$TrendScore=as.numeric(trendTable10$ConfCat)-3
 trendTable10$TrendScore[is.na(trendTable10$TrendScore)]<-(NA)
 save(trendTable10,file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend10Year.rData"))
@@ -326,17 +320,16 @@ cat(Sys.time()-startTime) #3.2mins 13Aug2021
 
 
 rownames(trendTable5) <- NULL
-trendTable5$Sen_Probability[trendTable5$Measurement!="BDISC"]=1-(trendTable5$Sen_Probability[trendTable5$Measurement!="BDISC"])
-trendTable5$Probabilitymin[trendTable5$Measurement!="BDISC"]=1-(trendTable5$Probabilitymin[trendTable5$Measurement!="BDISC"])
-trendTable5$Probabilitymax[trendTable5$Measurement!="BDISC"]=1-(trendTable5$Probabilitymax[trendTable5$Measurement!="BDISC"])
 trendTable5$Cd[trendTable5$Measurement!="BDISC"]=1-(trendTable5$Cd[trendTable5$Measurement!="BDISC"])
 trendTable5$Agency=riverSiteTable$Agency[match(trendTable5$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable5$SWQAltitude =  riverSiteTable$SWQAltitude[match(trendTable5$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable5$SWQLanduse =   riverSiteTable$SWQLanduse[match(trendTable5$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable5$Region =    riverSiteTable$Region[match(trendTable5$LawaSiteID,riverSiteTable$LawaSiteID)]
 trendTable5$ConfCat <- cut(trendTable5$Cd, breaks=  c(-0.1, 0.1,0.33,0.67,0.90, 1.1),
-                           labels = c("Very likely improving","Likely improving","Indeterminate","Likely degrading","Very likely degrading"))
-trendTable5$ConfCat=factor(trendTable5$ConfCat,levels=c("Very likely degrading", "Likely degrading", "Indeterminate", 
+                           labels = c("Very likely improving","Likely improving",
+                                      "Indeterminate","Likely degrading","Very likely degrading"))
+trendTable5$ConfCat=factor(trendTable5$ConfCat,levels=c("Very likely degrading", "Likely degrading",
+                                                        "Indeterminate", 
                                                         "Likely improving", "Very likely improving"))
 trendTable5$TrendScore=as.numeric(trendTable5$ConfCat)-3
 trendTable5$TrendScore[is.na(trendTable5$TrendScore)]<-(NA)
@@ -352,13 +345,42 @@ rm(trendTable5)
 
 #Combine trend results to combination ####
 
-riverSiteTable=loadLatestSiteTableRiver()
 load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
               pattern = "Trend15Year.rData",full.names = T,recursive = T),1),verbose =T)
 load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
               pattern = "Trend10Year.rData",full.names = T,recursive = T),1),verbose = T)
 load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
               pattern = "Trend5Year.rData",full.names = T,recursive = T),1),verbose = T)
+
+
+if(year(Sys.Date())==2021){
+  bugFix15 = which(trendTable15$Z==0)
+  table(trendTable15$Agency[bugFix15])
+  trendTable15$p[bugFix15] <- 1
+  trendTable15$C[bugFix15] <- 0.5
+  trendTable15$Cd[bugFix15] <- 0.5
+  trendTable15$ConfCat[bugFix15] <- "Indeterminate"
+  trendTable15$TrendScore[bugFix15] <- 0
+  rm(bugFix15)
+  bugFix10 = which(trendTable10$Z==0)
+  table(trendTable10$Agency[bugFix10])
+  trendTable10$p[bugFix10] <- 1
+  trendTable10$C[bugFix10] <- 0.5
+  trendTable10$Cd[bugFix10] <- 0.5
+  trendTable10$ConfCat[bugFix10] <- "Indeterminate"
+  trendTable10$TrendScore[bugFix10] <- 0
+rm(bugFix10)
+  bugFix5 = which(trendTable5$Z==0)
+  table(trendTable5$Agency[bugFix5])
+  trendTable5$p[bugFix5] <- 1
+  trendTable5$C[bugFix5] <- 0.5
+  trendTable5$Cd[bugFix5] <- 0.5
+  trendTable5$ConfCat[bugFix5] <- "Indeterminate"
+  trendTable5$TrendScore[bugFix5] <- 0
+  rm(bugFix5)
+}
+
+
 
 
 #number parameters per agency with trends, on average per site
@@ -394,13 +416,14 @@ if(any(trendTable15$Agency=="mdc" & trendTable15$Measurement=="ECOLI")){
 
 #Combine WQ trends
 combTrend <- rbind(rbind(trendTable15,trendTable10),trendTable5)
-combTrend$CouncilSiteID = riverSiteTable$CouncilSiteID[match(tolower(gsub('_NIWA','',combTrend$LawaSiteID)),tolower(riverSiteTable$LawaSiteID))]
+combTrend$CouncilSiteID = riverSiteTable$CouncilSiteID[match(tolower(combTrend$LawaSiteID),tolower(riverSiteTable$LawaSiteID))]
 #19840 23Jun
 #24664 21Aug
 #23144 29June2021
 #31122 23/7/21
 #31422 13/8/21
 #31422 20/8/21
+#30712 16/9/*21
 
 #Save for ITE
 combTrend$SWQAltitude=pseudo.titlecase(combTrend$SWQAltitude)
@@ -416,11 +439,14 @@ write.csv(combTrend%>%transmute(LAWAID=LawaSiteID,
           file=paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                       "/ITERiverTrend",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 
+# iteTrend=read_csv(tail(dir("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/","ITERiverTrend",ignore.case=T,recursive=T,full.names=T),1))
+
 
 
 #Add MCI trend and save ####
-MCItrend=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis",
-                           pattern='MacroMCI_Trend',full.names = T,recursive = T,ignore.case = T),1),stringsAsFactors = F)
+MCItrend=read_csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis",
+                           pattern='MacroMCI_Trend',full.names = T,recursive = T,ignore.case = T),1))
+
 MCItrend$TrendScore[is.na(MCItrend$TrendScore)] <- -99
 combTrend <- rbind(combTrend%>%
                      dplyr::select(LawaSiteID,CouncilSiteID,Agency,Region,Measurement,
@@ -432,7 +458,7 @@ combTrend <- rbind(combTrend%>%
                                    nMeasures,frequency,period,TrendScore,ConfCat,
                                    MKAnalysisNote,SSAnalysisNote,everything(),-numBiAnns,-seasonal))
 table(combTrend$frequency,combTrend$period)
-#38118
+#37270
 
 write.csv(combTrend,
           paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",format(Sys.Date(),"%Y-%m-%d"),

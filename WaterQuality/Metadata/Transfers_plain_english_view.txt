@@ -47,6 +47,7 @@ es,Turbidity (Lab),TURB
 ,,
 gdc,Ammoniacal Nitrogen as N,NH4
 gdc,Clarity,BDISC
+gdc,Clarity Tube,BDISC
 gdc,Clarity Tube (cm)-Field,BDISC
 gdc,Dissolved Inorganic Nitrogen (DIN),DIN
 gdc,Dissolved Reactive Phosphorus,DRP
@@ -67,6 +68,7 @@ gwrc,E-Coli,ECOLI
 gwrc,Nitrite-Nitrate Nitrogen,TON
 gwrc,Nitrate Nitrogen,NO3N
 gwrc,pH (Field)(X),PH
+gwrc,pH (Lab),PH
 gwrc,Total Nitrogen,TN
 gwrc,Total Phosphorus,TP
 gwrc,Turbidity (Lab),TURB

@@ -12,7 +12,8 @@ agency='gdc'
 
 translate <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",
                            sep=',',header=T,stringsAsFactors = F)%>%filter(Agency==agency)
-translate$retName=c("Ammoniacal Nitrogen as N","Clarity Tube (cm)-Field","Clarity Tube (cm)-Field",
+translate$retName=c("Ammoniacal Nitrogen as N",
+                    "Clarity Tube (cm)-Field","Clarity Tube","Clarity Tube (cm)-Field",
                     "Dissolved Inorganic Nitrogen (DIN)","Dissolved Reactive Phosphorus","E.Coli CFU/100mL",
                     "pH (Field)","Nitrate as N","Nitrogen Total",
                     "Total Oxidised Nitrogen","Total Phosphorus","Turbidity (Lab - NTU)",
@@ -172,7 +173,7 @@ table(gdcSWQ$CouncilSiteID==gdcSWQ$RetCID)
 
 
 save(gdcSWQ,file = 'gdcSWQraw.rData')
-# load('gdcSWQraw.rData') #44296
+# load('gdcSWQraw.rData') #45316
 
 
 gdcSWQ <- gdcSWQ%>%filter(!QualityCode%in%c(400))
@@ -193,7 +194,11 @@ gdcSWQb$CenType[grep('>',gdcSWQb$Value)] <- 'Right'
 gdcSWQb$Value = readr::parse_number(gdcSWQb$Value)
 
 
+
+
 table(gdcSWQb$Measurement,useNA = 'a')
+gdcSWQb$Value[gdcSWQb$Measurement=="Clarity Tube"] <- gdcSWQb$Value[gdcSWQb$Measurement=="Clarity Tube"]/100
+gdcSWQb$Units[gdcSWQb$Measurement=="Clarity Tube"] <- 'm'
 gdcSWQb$Measurement <- as.character(factor(gdcSWQb$Measurement,
                                            levels = translate$CallName,
                                            labels = translate$LAWAName))
@@ -201,11 +206,12 @@ table(gdcSWQb$Measurement,useNA='a')
 
 gdcSWQb <- unique(gdcSWQb)
 
-# gdcSWQb <- merge(gdcSWQb,siteTable,by='CouncilSiteID')
 
 
+  
 write.csv(gdcSWQb,file = paste0("D:/LAWA/2021/gdc.csv"),row.names = F)
 file.copy(from=paste0("D:/LAWA/2021/gdc.csv"),
           to = paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date(),"%Y-%m-%d"),"/gdc.csv"),
           overwrite = T)
 rm(gdcSWQ,gdcSWQb)
+

@@ -1,6 +1,8 @@
 rm(list=ls())
 gc()
 library(tidyverse)
+library(parallel)
+library(doParallel)
 source("h:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R")
 source("h:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R")
 # source("h:/ericg/16666LAWA/LAWA2021/macroinvertebrates/scripts/SWQ_state_functions.R")
@@ -56,8 +58,6 @@ if(!exists('macroData')){
 uMeasures=c("MCI","QMCI","ASPM") 
 
 #15 year trend ####
-library(parallel)
-library(doParallel)
 
 
 datafor15=macroData%>%filter(sYear>=startYear15 & sYear <= EndYear, Measurement%in%uMeasures)
@@ -109,8 +109,7 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
           siteTrendTable15$frequency[uParam]='unassessed'
         }
       }
-      
-      
+
       if(siteTrendTable15$frequency[uParam] == 'biannual'){
         st <- SeasonalityTest(x = subSubDat,main=uMeasures[uParam],ValuesToUse = "Value",do.plot =F)
         siteTrendTable15[uParam,names(st)] <- st
@@ -124,7 +123,8 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
         }
         rm(st)
       }
-      if(siteTrendTable15$frequency[uParam] == 'annual' | is.na(siteTrendTable15$nObs[uParam])){
+      if(siteTrendTable15$frequency[uParam] == 'annual' | (is.na(siteTrendTable15$nObs[uParam])
+                                                           & siteTrendTable15$frequency[uParam]=='biannual')){
         #THen we havent yet done an analysis.  We'll do the annual one
         
         mk <- MannKendall(x = subSubDat,ValuesToUse = "Value",Year='sYear',HiCensor = T,doPlot=F)
@@ -203,12 +203,12 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
       siteTrendTable10$numBiAnns[uParam]=length(unique(subSubDat$biYear[!is.na(subSubDat$Value)]))
       siteTrendTable10$numYears[uParam]=length(unique(subSubDat$sYear[!is.na(subSubDat$Value)]))
       
-      #For 15 year biannual we want 90% of measures and 90% of years
-      if(siteTrendTable10$numBiAnns[uParam] >= 0.9*2*10 & siteTrendTable10$numYears[uParam]>=9){ #27
+      #For 10 year biannual we want 90% of measures and 90% of years
+      if(siteTrendTable10$numBiAnns[uParam] >= 0.9*2*10 & siteTrendTable10$numYears[uParam]>=9){ #18
         siteTrendTable10$frequency[uParam]='biannual'
       }else{
         subSubDat$Season=NA
-        if(siteTrendTable10$numYears[uParam] >=13){
+        if(siteTrendTable10$numYears[uParam] >= 9){
           siteTrendTable10$frequency[uParam]='annual'
         }else{
           siteTrendTable10$frequency[uParam]='unassessed'
@@ -229,7 +229,8 @@ foreach(usite = usite:length(usites),.combine=rbind,.errorhandling="stop")%dopar
         }
         rm(st)
       }
-      if(siteTrendTable10$frequency[uParam] == 'annual' | is.na(siteTrendTable10$nObs[uParam])){
+      if(siteTrendTable10$frequency[uParam] == 'annual' | (is.na(siteTrendTable10$nObs[uParam]) & 
+                                                           siteTrendTable10$frequency[uParam]=='biannual')){
         #THen we havent yet done an analysis.  We'll do the annual one
         
         mk <- MannKendall(x = subSubDat,ValuesToUse = "Value",Year='sYear',HiCensor = T,doPlot=F)
@@ -273,11 +274,27 @@ rm(trendTable10)
 load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="Trend15Year.rData",recursive = T,full.names = T),1),verbose=T)
 load(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",pattern="Trend10Year.rData",recursive = T,full.names = T),1),verbose=T)
 
-trendTable15 <- trendTable15%>%drop_na(LawaSiteID)
-trendTable10 <- trendTable10%>%drop_na(LawaSiteID)
-trendTable10$period=10
-combTrend <- rbind(trendTable15,trendTable10)
 
+if(lubridate::year(Sys.Date())==2021){
+  bugFix15 = which(trendTable15$Z==0)
+  table(trendTable15$Agency[bugFix15])
+  trendTable15$p[bugFix15] <- 1
+  trendTable15$C[bugFix15] <- 0.5
+  trendTable15$Cd[bugFix15] <- 0.5
+  trendTable15$ConfCat[bugFix15] <- "Indeterminate"
+  trendTable15$TrendScore[bugFix15] <- 0
+  rm(bugFix15)
+  bugFix10 = which(trendTable10$Z==0)
+  table(trendTable10$Agency[bugFix10])
+  trendTable10$p[bugFix10] <- 1
+  trendTable10$C[bugFix10] <- 0.5
+  trendTable10$Cd[bugFix10] <- 0.5
+  trendTable10$ConfCat[bugFix10] <- "Indeterminate"
+  trendTable10$TrendScore[bugFix10] <- 0
+  rm(bugFix10)
+}
+
+combTrend <- rbind(trendTable15,trendTable10)
 combTrend$CouncilSiteID = siteTable$CouncilSiteID[match(tolower(combTrend$LawaSiteID),tolower(siteTable$LawaSiteID))]
 
 #Write outputs ####
@@ -309,10 +326,16 @@ write.csv(trendTable15%>%
                  "/ITEMacroTrend15",format(Sys.time(),"%d%b%Y"),".csv"),row.names = F)
 
 # combTrend=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis",pattern="MacroMCI_Trend",recursive = T,full.names = T),1),stringsAsFactors = F)
+library(showtext)
+if(!'source'%in%font_families()){
+  font_add(family = 'source',regular = "h:/ericg/16666LAWA/LAWA2021/SourceFont/SourceSansPro-Regular.ttf")
+  # font_add_google("Source Sans Pro",family='source')
+}
 
 savePlott=T
 usites=unique(trendTable10$LawaSiteID)
-uMeasures=unique(trendTable10$Measurement)
+uMeasures=c("MCI","QMCI")
+
 for(uParam in seq_along(uMeasures)){
   subTrend=trendTable10[which(trendTable10$Measurement==uMeasures[uParam]),]
   worstDeg <- which.max(subTrend$Cd) 
@@ -325,17 +348,19 @@ for(uParam in seq_along(uMeasures)){
   }else{
     windows()
   }
-    par(mfrow=c(2,1),mar=c(2,4,1,2))
+showtext_begin()  
+    par(mfrow=c(2,1),mar=c(2,4,1,2),family='source',cex.lab=2,cex.axis=2,cex.main=3)
     theseDeg <- which(macroData$LawaSiteID==subTrend$LawaSiteID[worstDeg] &
                         macroData$Measurement==uMeasures[uParam] & dmy(macroData$Date)>dmy("1-1-2009"))
     theseImp <- which(macroData$LawaSiteID==subTrend$LawaSiteID[bestImp] &
                         macroData$Measurement==uMeasures[uParam] & dmy(macroData$Date)>dmy("1-1-2009"))
     
       MannKendall(x = as.data.frame(macroData[theseDeg,]),ValuesToUse = "Value",doPlot=F)
-      SenSlope(x = as.data.frame(macroData[theseDeg,]),ValuesToUse = "Value",ValuesToUseforMedian = "Value",doPlot = T)
+      SenSlope(x = as.data.frame(macroData[theseDeg,]),ValuesToUse = "Value",ValuesToUseforMedian = "Value",doPlot = T,legend.pos='bottom',mymain=unique(subTrend$LawaSiteID[worstDeg]))
       MannKendall(x = as.data.frame(macroData[theseImp,]),ValuesToUse = "Value",doPlot=F)
-      SenSlope(x = as.data.frame(macroData[theseImp,]),ValuesToUse = "Value",ValuesToUseforMedian = "Value",doPlot = T)
-    if(names(dev.cur())=='tiff'){dev.off()}
+      SenSlope(x = as.data.frame(macroData[theseImp,]),ValuesToUse = "Value",ValuesToUseforMedian = "Value",doPlot = T,legend.pos='bottom',mymain=unique(subTrend$LawaSiteID[bestImp]))
+   showtext_end()
+       if(names(dev.cur())=='tiff'){dev.off()}
     rm(theseDeg,theseImp)
   
   rm(worstDeg,bestImp)

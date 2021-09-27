@@ -136,7 +136,7 @@ table(siteTable$Region,useNA = 'a')
 
 
 
-agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
+agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")
 
 all(agencies%in%unique(siteTable$Agency))
 if(!all(agencies%in%unique(siteTable$Agency))){  #actually if you need to pull sites in from an old WFS sesh, like if one of them doesn respond
@@ -154,7 +154,7 @@ if(!all(agencies%in%unique(siteTable$Agency))){  #actually if you need to pull s
 #Add NIWA sites separately ####
 if(!'niwa'%in%unique(siteTable$Agency)){
 if(file.exists("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteIDs.csv")){
-  niwaSub=read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteIDs.csv",stringsAsFactors=F)
+  niwaSub=read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteIDs.csv",stringsAsFactors=F)%>%drop_na(LawaSiteID)
   plot(niwaSub$Long,niwaSub$Lat,lwd=2,col='red')
   points(siteTable$Long,siteTable$Lat,pch=16,cex=0.25)
   for(ns in seq_along(niwaSub$SiteID)){
@@ -168,7 +168,7 @@ if(file.exists("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteID
       browser()
     }
   }
-  niwaSub$LawaSiteID=paste0(niwaSub$LawaSiteID,'_niwa')
+  # niwaSub$LawaSiteID=paste0(niwaSub$LawaSiteID,'_niwa')
 }else{
   df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2019/WaterQuality/MetaData/niwaSWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
   sites=df$Value[which(df$Type=='site')]
@@ -190,78 +190,76 @@ if(file.exists("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteID
   }
   rm(sites,df)
   
-  # Fix NIWA region assignment
-  niwaSub$Distance=NA
-  plot(niwaSub$Long,niwaSub$Lat)
-  for(ns in seq_along(niwaSub$SiteID)){
-    dists=sqrt((niwaSub$Long[ns]-siteTable$Long)^2+(niwaSub$Lat[ns]-siteTable$Lat)^2)*111.111
-    closest=which.min(dists)
-    segments(x0 = niwaSub$Long[ns],y0=niwaSub$Lat[ns],
-             x1 = siteTable$Long[closest],y1=siteTable$Lat[closest])
-    niwaSub$Distance[ns]=min(dists)
-    if(dists[closest]<(0.71*111.111)){ #80 km
-      niwaSub$Region[ns]=siteTable$Region[closest]
-    }else{
-      browser()
+  #Info from MareePaterson
+  niwaIDs=read.csv("h:/ericg/16666LAWA/LAWA2021/Metadata/NRWQN site ID's.csv")
+  
+  for(ns in 1:77){
+    matchUp = grep(paste0(niwaSub$CouncilSiteID[ns],'$'),niwaIDs$Comments)
+    if(length(matchUp)==1){
+      niwaSub$Region[ns] = niwaIDs$Region[matchUp]
+      niwaSub$LawaSiteID[ns] = niwaIDs$LAWAID[matchUp]
+      niwaSub$NZReach[ns] = niwaIDs$NZREACH[matchUp]
     }
+    if(length(matchUp)>1){browser()}
   }
-  
-  monList = read_csv('H:/ericg/16666LAWA/LAWA2021/Metadata/Masterlist of sites in LAWA Umbraco as at 1 June 2021.csv')%>%filter(grepl('nrwqn',monList$LAWAID,ignore.case = T))
-  
-  # monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',sheet=1)
-  lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Site Master List.xlsx',sheet=2)%>%filter(grepl('nrwqn',lawaMasterList$`LAWA ID`,ignore.case=T))
-  
-  lawaMasterList$Long = nztm2wgs(ce = as.numeric(lawaMasterList$NZTM_Easting),cn = as.numeric(lawaMasterList$NZTM_Northing))[,2]
-  lawaMasterList$Lat = nztm2wgs(ce = as.numeric(lawaMasterList$NZTM_Easting),cn = as.numeric(lawaMasterList$NZTM_Northing))[,1]
-  lawaMasterList$Lat[lawaMasterList$Long>200] <- NA
-  lawaMasterList$Long[lawaMasterList$Long>200] <- NA
-  
-  lawaMasterList$Long[is.na(lawaMasterList$Long)] <- siteTable$Long[match(lawaMasterList$`LAWA ID`[is.na(lawaMasterList$Long)],
-                                                                          siteTable$LawaSiteID)]
-  lawaMasterList$Lat[is.na(lawaMasterList$Lat)] <- siteTable$Lat[match(lawaMasterList$`LAWA ID`[is.na(lawaMasterList$Lat)],
-                                                                       siteTable$LawaSiteID)]
-  lawaMasterList$Long[is.na(lawaMasterList$Long)] <- siteTable$Long[match(lawaMasterList$`Site Name`[is.na(lawaMasterList$Long)],
-                                                                          siteTable$LawaSiteID)]
-  lawaMasterList$Lat[is.na(lawaMasterList$Lat)] <- siteTable$Lat[match(lawaMasterList$`Site Name`[is.na(lawaMasterList$Lat)],
-                                                                       siteTable$LawaSiteID)]
-  
-  monList$Long = as.numeric(monList$Longitude)
-  monList$Lat = as.numeric(monList$Latitude)
+
+
+  # monList = read_csv('H:/ericg/16666LAWA/LAWA2021/Metadata/Masterlist of sites in LAWA Umbraco as at 1 June 2021.csv')%>%filter(grepl('nrwqn',monList$LAWAID,ignore.case = T))
+  # 
+  # # monList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Masterlist of Umbraco Sites as at 30 July 2020.xlsx',sheet=1)
+  # lawaMasterList = readxl::read_xlsx('H:/ericg/16666LAWA/LAWA2021/Metadata/LAWA Site Master List.xlsx',sheet=2)%>%filter(grepl('nrwqn',lawaMasterList$`LAWA ID`,ignore.case=T))
+  # 
+  # lawaMasterList$Long = nztm2wgs(ce = as.numeric(lawaMasterList$NZTM_Easting),cn = as.numeric(lawaMasterList$NZTM_Northing))[,2]
+  # lawaMasterList$Lat = nztm2wgs(ce = as.numeric(lawaMasterList$NZTM_Easting),cn = as.numeric(lawaMasterList$NZTM_Northing))[,1]
+  # lawaMasterList$Lat[lawaMasterList$Long>200] <- NA
+  # lawaMasterList$Long[lawaMasterList$Long>200] <- NA
+  # 
+  # lawaMasterList$Long[is.na(lawaMasterList$Long)] <- siteTable$Long[match(lawaMasterList$`LAWA ID`[is.na(lawaMasterList$Long)],
+  #                                                                         siteTable$LawaSiteID)]
+  # lawaMasterList$Lat[is.na(lawaMasterList$Lat)] <- siteTable$Lat[match(lawaMasterList$`LAWA ID`[is.na(lawaMasterList$Lat)],
+  #                                                                      siteTable$LawaSiteID)]
+  # lawaMasterList$Long[is.na(lawaMasterList$Long)] <- siteTable$Long[match(lawaMasterList$`Site Name`[is.na(lawaMasterList$Long)],
+  #                                                                         siteTable$LawaSiteID)]
+  # lawaMasterList$Lat[is.na(lawaMasterList$Lat)] <- siteTable$Lat[match(lawaMasterList$`Site Name`[is.na(lawaMasterList$Lat)],
+  #                                                                      siteTable$LawaSiteID)]
+  # 
+  # monList$Long = as.numeric(monList$Longitude)
+  # monList$Lat = as.numeric(monList$Latitude)
   
   # monList$Long[is.na(monList$Long)] = lawaMasterList$Long[match(monList$LAWAID[is.na(monList$Long)],lawaMasterList$`LAWA ID`)]
   # monList$Lat[is.na(monList$Lat)] = lawaMasterList$Lat[match(monList$LAWAID[is.na(monList$Lat)],lawaMasterList$`LAWA ID`)]
   # monList$Long[is.na(monList$Long)] = siteTable$Long[match(tolower(monList$LAWAID[is.na(monList$Long)]),tolower(siteTable$LawaSiteID))]
   # monList$Lat[is.na(monList$Lat)] = siteTable$Lat[match(tolower(monList$LAWAID[is.na(monList$Lat)]),tolower(siteTable$LawaSiteID))]
   
-  getCore <- function(s){
-    s <- gsub('river','',s,ignore.case=T)
-    s <- gsub('hw|highway','',s,ignore.case=T)
-    s <- gsub('br|bridge','',s,ignore.case=T)
-    s <- gsub('below','',s,ignore.case=T)
-    
-  }
-  
+  # getCore <- function(s){
+  #   s <- gsub('river','',s,ignore.case=T)
+  #   s <- gsub('hw|highway','',s,ignore.case=T)
+  #   s <- gsub('br|bridge','',s,ignore.case=T)
+  #   s <- gsub('below','',s,ignore.case=T)
+  #   
+  # }
+  # 
 
   
-  #Text-basd distace
-  for(ns in seq_along(niwaSub$SiteID)){
-    
-    mondists = adist(trimws(getCore(tolower(strTo(niwaSub$SiteID[ns],' \\(')))),
-                     trimws(getCore(tolower(monList$Name))))
-    clM = which.min(mondists)
-    # masdists = adist(tolower(strTo(niwaSub$SiteID[ns],'\\(')),trimws(tolower(lawaMasterList$`Site Name`)))
-    # clMas = which.min(masdists)
-    geoDist=sqrt((niwaSub$Long[ns]-monList$Long[clM])^2+(niwaSub$Lat[ns]-monList$Lat[clM])^2)*111.111
-    cat(tolower(strTo(niwaSub$SiteID[ns],' \\(')),'\t',monList$Name[clM],'\t',geoDist,'\n')
-    # cat(tolower(strTo(niwaSub$SiteID[ns],' \\(')),'\t',lawaMasterList$`Site Name`[clMas],'\n')
-    check=readline()
-    if(check==""){
-      niwaSub$LawaSiteID[ns]=monList$LAWAID[clM]
-    segments(x0=niwaSub$Long[ns],y0=niwaSub$Lat[ns],
-             x1=monList$Long[clM],y1=monList$Lat[clM],col='blue',lwd=5)
-    }
-  }
-  sum(is.na(niwaSub$LawaSiteID))
+  # #Text-basd distace
+  # for(ns in seq_along(niwaSub$SiteID)){
+  #   
+  #   mondists = adist(trimws(getCore(tolower(strTo(niwaSub$SiteID[ns],' \\(')))),
+  #                    trimws(getCore(tolower(monList$Name))))
+  #   clM = which.min(mondists)
+  #   # masdists = adist(tolower(strTo(niwaSub$SiteID[ns],'\\(')),trimws(tolower(lawaMasterList$`Site Name`)))
+  #   # clMas = which.min(masdists)
+  #   geoDist=sqrt((niwaSub$Long[ns]-monList$Long[clM])^2+(niwaSub$Lat[ns]-monList$Lat[clM])^2)*111.111
+  #   cat(tolower(strTo(niwaSub$SiteID[ns],' \\(')),'\t',monList$Name[clM],'\t',geoDist,'\n')
+  #   # cat(tolower(strTo(niwaSub$SiteID[ns],' \\(')),'\t',lawaMasterList$`Site Name`[clMas],'\n')
+  #   check=readline()
+  #   if(check==""){
+  #     niwaSub$LawaSiteID[ns]=monList$LAWAID[clM]
+  #   segments(x0=niwaSub$Long[ns],y0=niwaSub$Lat[ns],
+  #            x1=monList$Long[clM],y1=monList$Lat[clM],col='blue',lwd=5)
+  #   }
+  # }
+  # sum(is.na(niwaSub$LawaSiteID))
   niwaSub[is.na(niwaSub$LawaSiteID),c(1,2,3,8,9)]
   these=which(is.na(niwaSub$LawaSiteID))
 
@@ -269,21 +267,21 @@ if(file.exists("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteID
   
   plot(niwaSub$Long,niwaSub$Lat,pch=16,cex=0.25)
   points(niwaSub$Long[these],niwaSub$Lat[these])
-  for(ns in seq_along(these)){
-    cat('\n',niwaSub$SiteID[these[ns]],'\n')
-    dists=sqrt((niwaSub$Long[these[ns]]-siteTable$Long)^2+(niwaSub$Lat[these[ns]]-siteTable$Lat)^2)
-    closest=which.min(dists)
-    segments(x0 = niwaSub$Long[these[ns]],y0=niwaSub$Lat[these[ns]],
-             x1 = siteTable$Long[closest],y1=siteTable$Lat[closest],col='magenta',lwd=2)
-    cat("siteTable\t","distance\t",round(min(dists,na.rm=T)*111,1),'\t',siteTable$LawaSiteID[closest], siteTable$SiteID[closest],'\n')
-
-    dists=sqrt((niwaSub$Long[these[ns]]-monList$Long)^2+(niwaSub$Lat[these[ns]]-monList$Lat)^2)
-    closest=which.min(dists)
-    segments(x0 = niwaSub$Long[these[ns]],y0=niwaSub$Lat[these[ns]],
-             x1 = monList$Long[closest],y1=monList$Lat[closest],col='red',lwd=2)
-    cat("monList\t\t","distance\t",round(min(dists,na.rm=T)*111,1),'\t',monList$LAWAID[closest],monList$Name[closest],'\n')
-    niwaSub$LawaSiteID[these[ns]] <- monList$LAWAID[closest]
-  }
+  # for(ns in seq_along(these)){
+  #   cat('\n',niwaSub$SiteID[these[ns]],'\n')
+  #   dists=sqrt((niwaSub$Long[these[ns]]-siteTable$Long)^2+(niwaSub$Lat[these[ns]]-siteTable$Lat)^2)
+  #   closest=which.min(dists)
+  #   segments(x0 = niwaSub$Long[these[ns]],y0=niwaSub$Lat[these[ns]],
+  #            x1 = siteTable$Long[closest],y1=siteTable$Lat[closest],col='magenta',lwd=2)
+  #   cat("siteTable\t","distance\t",round(min(dists,na.rm=T)*111,1),'\t',siteTable$LawaSiteID[closest], siteTable$SiteID[closest],'\n')
+  # 
+  #   dists=sqrt((niwaSub$Long[these[ns]]-monList$Long)^2+(niwaSub$Lat[these[ns]]-monList$Lat)^2)
+  #   closest=which.min(dists)
+  #   segments(x0 = niwaSub$Long[these[ns]],y0=niwaSub$Lat[these[ns]],
+  #            x1 = monList$Long[closest],y1=monList$Lat[closest],col='red',lwd=2)
+  #   cat("monList\t\t","distance\t",round(min(dists,na.rm=T)*111,1),'\t',monList$LAWAID[closest],monList$Name[closest],'\n')
+  #   niwaSub$LawaSiteID[these[ns]] <- monList$LAWAID[closest]
+  # }
   
   #Try filling gaps from old NIWA data
   # load('H:/ericg/16666LAWA/2018/WaterQuality/1.Imported/NIWAwqData.rData',verbose=T)  #NIWAdataInB
@@ -328,6 +326,7 @@ siteTable$NZSegment=as.integer(siteTable$NZSegment)
 siteTable=unique(siteTable)  
 #27/7/2021 1055
 #20/8/21 1056
+#8/9/2021 1038
 
 
 #Pull in land use from LCDB
@@ -594,6 +593,25 @@ rm(WQWFSsiteFiles)
 #  wcrc      38      38      38      38      38      38      38      38      38      38      38      38      38      38
 #   wrc     108     108     108     108     108     108     108     108     108     108     108     108     108     108
    
+
+# agency 27Aug21  08Sep21
+#    ac      35       35
+# boprc      49       49
+#  ecan     190      190
+#    es      60       60
+#   gdc      39       39
+#  gwrc      46       46
+#  hbrc      94       94
+#   hrc     136      136
+#   mdc      32       32
+#   ncc      25       25
+#  niwa      77       57
+#   nrc      41       41
+#   orc      50       49
+#   tdc      26       26
+#   trc      13       13
+#  wcrc      38       38
+#   wrc     108      108
 
 plot(x=as.numeric(AgencyRep[1,-1]),type='l',ylim=c(10,200),log='y')
 apply(AgencyRep[,-1],1,function(x)lines(x))

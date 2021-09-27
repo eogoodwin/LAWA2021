@@ -35,9 +35,10 @@ source('k:/R_functions/nzmg2WGS.r')
 NIWAmacroSites=readxl::read_xlsx('h:/ericg/16666LAWA/2018/MacroInvertebrates/1.Imported/NIWAInvertebrate.xlsx',sheet = 'site metadata')
 NIWAmacroSites$shortID=gsub("NAT-(..)0(.)","\\1\\2",NIWAmacroSites$lawaid)
 NIWAmacroSites$shortID=gsub("NAT-","",NIWAmacroSites$shortID)
+
 niwaSub=read.csv("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/NIWALawaSiteIDs.csv",stringsAsFactors=F)
 table(NIWAmacroSites$shortID%in%niwaSub$CouncilSiteID)
-NIWAmacroSites$LawaSiteID = paste0(niwaSub$LawaSiteID[match(NIWAmacroSites$shortID,niwaSub$CouncilSiteID)],'_NIWA')
+NIWAmacroSites$LawaSiteID = niwaSub$LawaSiteID[match(NIWAmacroSites$shortID,niwaSub$CouncilSiteID)]
 
 rm(niwaSub)
 # lawaIDs=read.csv("H:/ericg/16666LAWA/LAWA2019/Metadata/LAWAMasterSiteListasatMarch2018.csv",stringsAsFactors = F)
@@ -113,12 +114,13 @@ niwaMacrol$Date = format(lubridate::dmy(niwaMacrol$Date),'%d-%b-%Y')
 niwaMacrol$Value=as.numeric(niwaMacrol$Value)
 
 niwaMacrol <- niwaMacrol%>%drop_na(Date)
+niwaMacrol <- niwaMacrol%>%drop_na(LawaSiteID)
 
 write.csv(niwaMacrol%>%select(LawaSiteID,CouncilSiteID,Date,Measurement,Value,Agency),
           file=paste0( 'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Data/',
                        format(Sys.Date(),"%Y-%m-%d"),'/','NIWA.csv'),row.names=F)
 
-write.csv(NIWAmacroSites,'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/NIWASiteTable.csv',row.names = F)
+write.csv(NIWAmacroSites%>%drop_na(LawaSiteID),'H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/NIWASiteTable.csv',row.names = F)
 
 if(0){
   NIWAMCI=readxl::read_xlsx('h:/ericg/16666LAWA/2018/MacroInvertebrates/1.Imported/NIWAInvertebrate.xlsx',sheet = 'MCI',na = 'NA')

@@ -240,6 +240,18 @@ ssm = readxl::read_xlsx(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/CanISwimHere/
                                  pattern='SwimSiteMonitoringResults.*.xlsx',
                                  recursive = T,full.names = T),1),
                         sheet=1)%>%as.data.frame%>%unique
+ssm$TimeseriesUrl[ssm$Region=="Bay of Plenty region"] <- gsub(pattern = '@',
+                                                              replacement = '&featureOfInterest=',
+                                                              x =ssm$TimeseriesUrl[ssm$Region=="Bay of Plenty region"])
+ssm$callID =  NA
+ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm[!is.na(ssm$TimeseriesUrl),]%>%
+                                                           select(TimeseriesUrl),
+                                                         FUN = function(x){
+                                                           unlist(strsplit(x,split='&'))
+                                                         })))%>%
+  grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
+  gsub('featureofinterest=','',x=.,ignore.case = T)%>%
+  sapply(.,URLdecode)%>%trimws
 
 # if(Sys.Date()=="2021-08-06"){
 length(grep('nrc.govt.nz/SOESwimmingCoastal.hts',ssm$TimeseriesUrl))
@@ -249,12 +261,6 @@ ssm$TimeseriesUrl <- gsub('nrc.govt.nz/SOESwimmingFW.hts','nrc.govt.nz/SOESwimmi
 # }
 
 
-ssm$callID =  NA
-ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
-                                          FUN = function(x)unlist(strsplit(x,split='&')))))%>%
-  grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
-  gsub('featureofinterest=','',x=.,ignore.case = T)%>%
-  sapply(.,URLdecode)%>%trimws
 
 RegionTable=data.frame(ssm=unique(ssm$Region),
                        wfs=c("bay of plenty","canterbury","gisborne","hawkes bay",
@@ -281,11 +287,52 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop",.ino
   # for(SSMregion in unique(ssm$Region)){
   regionName=make.names(word(SSMregion,1,1))
   write.csv(ssm$Region,file = paste0("D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/",regionName,"/inHere",make.names(Sys.time()),".txt"))
-  # WFSregion=RegionTable$wfs[RegionTable$ssm==SSMregion]
+
   cat('\n\n\n',SSMregion,'\n')
-  #Find agency URLs
   
-  agURLs <-     sapply(X = ssm$TimeseriesUrl[ssm$Region==SSMregion],
+  
+  #Find agency properties from the SSM file
+  observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,TimeseriesUrl!='')%>%
+                               select(TimeseriesUrl),
+                             FUN = function(x){gsub('(.+)http.+','\\1',x=x)%>%
+                                 strsplit(split='&')%>%unlist%>%
+                                 grep('observedproperty|offering',x = .,ignore.case=T,value=T)%>%
+                                 gsub('observedproperty=|offering=','',x=.,ignore.case = T)})%>%
+    sapply(.,URLdecode)%>%unname#%>%tolower
+  if(regionName=="Bay"){
+    observedProperty = gsub(pattern = 'i_Rec',replacement = "i.Rec",x = observedProperty)
+    observedProperty = sapply(observedProperty,function(s)strTo(s,c='\\@'))
+  }
+  propertyType = ssm%>%
+    filter(Region==SSMregion & TimeseriesUrl!='')%>%
+    select(Property)%>%
+    unlist%>%
+    unname
+  stopifnot(length(observedProperty)==length(propertyType))
+  agProps=unique(data.frame(observedProperty,propertyType,stringsAsFactors=F))
+  agProps=rbind(agProps,c('WQ sample','WQ sample'))
+  rm(observedProperty,propertyType)
+
+    
+  #Extract sites from the timeSeriesURLs delivered in the SwimSiteMonitoring file
+  agSites <- c(unlist(sapply(X = ssm%>%
+                               filter(Region==SSMregion)%>%
+                               select(TimeseriesUrl),
+                             FUN = function(x)unlist(strsplit(x,split='&')))))%>%
+    grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
+    gsub('featureofinterest=','',x=.,ignore.case = T)%>%
+    sapply(.,URLdecode)%>%trimws%>%unique
+  
+  
+  #Find agency format keys.  There may be none
+  (agFormats <- sort(unique(c(unlist(sapply(X = ssm$TimeseriesUrl[ssm$Region==SSMregion],
+                                            FUN = function(x)unlist(strsplit(x,split='&')))))))%>%
+      grep('format',x = .,ignore.case=T,value=T))%>%cat
+  
+  
+  
+  #Find agency URLs
+    agURLs <-     sapply(X = ssm$TimeseriesUrl[ssm$Region==SSMregion],
                        FUN = function(x)unlist(strsplit(x,split='&')))%>%
     unlist%>%
     grep('http',x = .,ignore.case=T,value=T)%>%
@@ -297,6 +344,7 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop",.ino
   if(any(!grepl('^http',agURLs))){  #This will also allow https
     agURLs = agURLs[grepl('^http',agURLs)]
   }
+  
   if(regionName=="Bay"){
     agURLs = paste0(agURLs,'&version=2.0.0')
     "http://sos.boprc.govt.nz/service?"
@@ -304,7 +352,9 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop",.ino
     "offering="
     "@"
     "&temporalfilter=om:phenomenonTime,P15Y/2021-01-01"
-    
+    if(!'JL348334'%in%agSites){
+      agSites = sort(c(agSites,'JL348334'))
+    }
   }
   if(regionName=="Manawatu.Whanganui"){
     agURLs = gsub(pattern = 'hilltopserver',replacement = 'maps',x = agURLs)
@@ -328,44 +378,6 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop",.ino
     # https://extranet.trc.govt.nz/getdata/LAWA_rec_WQ.hts?Service=Hilltop&Request=GetData&Site=SEA901033&Measurement=ECOL&From=1/11/2015&To=1/4/2016
   }
   
-  #Find agency properties from the SSM file
-  observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,TimeseriesUrl!='')%>%
-                               select(TimeseriesUrl),
-                             FUN = function(x){gsub('(.+)http.+','\\1',x=x)%>%
-                                 strsplit(split='&')%>%unlist%>%
-                                 grep('observedproperty|offering',x = .,ignore.case=T,value=T)%>%
-                                 gsub('observedproperty=|offering=','',x=.,ignore.case = T)})%>%
-    sapply(.,URLdecode)%>%unname#%>%tolower
-  if(regionName=="Bay"){
-    observedProperty = gsub(pattern = 'i_Rec',replacement = "i.Rec",x = observedProperty)
-    observedProperty = sapply(observedProperty,function(s)strTo(s,c='\\@'))
-  }
-  propertyType = ssm%>%
-    filter(Region==SSMregion & TimeseriesUrl!='')%>%
-    select(Property)%>%
-    unlist%>%
-    unname
-  stopifnot(length(observedProperty)==length(propertyType))
-  agProps=unique(data.frame(observedProperty,propertyType,stringsAsFactors=F))
-  agProps=rbind(agProps,c('WQ sample','WQ sample'))
-  rm(observedProperty,propertyType)
-  # agProps=structure(list(observedProperty = "WQ sample", propertyType = "WQ sample"), row.names = 4L, class = "data.frame")
-  
-  #Nothing from WFS, just from the SSM from Effect
-  agSites <- c(unlist(sapply(X = ssm%>%
-                               filter(Region==SSMregion)%>%
-                               select(TimeseriesUrl),
-                             FUN = function(x)unlist(strsplit(x,split='&')))))%>%
-    grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
-    gsub('featureofinterest=','',x=.,ignore.case = T)%>%
-    sapply(.,URLdecode)%>%trimws%>%unique
-  
-  
-  #Find agency format keys.  There may be none
-  (agFormats <- sort(unique(c(unlist(sapply(X = ssm$TimeseriesUrl[ssm$Region==SSMregion],
-                                            FUN = function(x)unlist(strsplit(x,split='&')))))))%>%
-      grep('format',x = .,ignore.case=T,value=T))%>%cat
-  
   #Load each site/property combo, by trying each known URL for that council.  Already-existing files will not be reloaded
   cat('\n',regionName,'\n')
   cat(length(agSites)*dim(agProps)[1]*length(agURLs),'\n')
@@ -388,7 +400,6 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop",.ino
                               '&Measurement=',agProps$observedProperty[ap],
                               '&From=1/6/2010&To=1/7/2021')
           }else{
-            
             urlToTry = paste0(agURLs[ur],
                               '&request=GetObservation',
                               '&observedProperty=',agProps$observedProperty[ap],
@@ -397,340 +408,359 @@ foreach(SSMregion = unique(ssm$Region),.combine=rbind,.errorhandling="stop",.ino
             if(SSMregion%in%c("Bay of Plenty region")){
               urlToTry = gsub(pattern = 'observedProperty',replacement = 'offering',x = urlToTry,ignore.case = T)
               urlToTry = gsub(pattern = '&FeatureOfInterest=',replacement = '@',x = urlToTry,ignore.case = T)
-                          }
-          }
-          
-          if(length(agFormats)==1){
-            urlToTry = paste0(urlToTry,'&',agFormats[1])
-          }
-          urlToTry=URLencode(urlToTry)
-          dlTry=try(curl::curl_fetch_disk(urlToTry,path = fname),silent=T)
-          if('try-error'%in%attr(x = dlTry,which = 'class')){
-            file.remove(fname)
-            cat('-')
-            rm(dlTry)
-            next
-          }
-          if(dlTry$status_code%in%c(400,500,501,503,404)){
-            file.remove(fname)
-            cat('.')
-            rm(dlTry)
-            next
-          }
-          if(dlTry$status_code==408){
-            file.remove(fname)
-            cat(agURLS[ur],'TimeOut\n')
-            rm(dlTry)
-            next
-          }
-          rm(dlTry)
-          response=checkXMLFile(regionName,siteName,propertyName)
-          if(response==1){next}  #try the other URL
-          if(response==2){
-            if(file.info(fname)$size<2000){
-              file.remove(fname)
-            }else{
-              break #got a data from this URL, dont try other URLs if there are any
             }
           }
-          rm(response)
+            
+            if(length(agFormats)==1){
+              urlToTry = paste0(urlToTry,'&',agFormats[1])
+            }
+            urlToTry=URLencode(urlToTry)
+            dlTry=try(curl::curl_fetch_disk(urlToTry,path = fname),silent=T)
+            if('try-error'%in%attr(x = dlTry,which = 'class')){
+              file.remove(fname)
+              cat('-')
+              rm(dlTry)
+              next
+            }
+            if(dlTry$status_code%in%c(400,500,501,503,404)){
+              file.remove(fname)
+              cat('.')
+              rm(dlTry)
+              next
+            }
+            if(dlTry$status_code==408){
+              file.remove(fname)
+              cat(agURLS[ur],'TimeOut\n')
+              rm(dlTry)
+              next
+            }
+            rm(dlTry)
+            response=checkXMLFile(regionName,siteName,propertyName)
+            if(response==1){next}  #try the other URL
+            if(response==2){
+              if(file.info(fname)$size<2000){
+                file.remove(fname)
+              }else{
+                break #got a data from this URL, dont try other URLs if there are any
+              }
+            }
+            rm(response)
+          }
+          rm(ur)
         }
-        rm(ur)
       }
+      rm(ap)
     }
-    rm(ap)
-  }
-  rm(agSite)
-  write.csv(ssm$Region,file = paste0("D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/",regionName,"/outHere",make.names(Sys.time()),".txt"))
-  
-  rm(regionName)
-  return(NULL)
-}
-stopCluster(workers)
-Sys.time()-startTime  
-#30mins 2/7/2021
-#5mins 14/7/2021
-rm(startTime)
-rm(workers)
-
-
-
-if(0){
-#Investigate the yield of metadata files ####
-loadedFiles = dir('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/')
-grep(pattern = 'sample',x = loadedFiles,ignore.case = F,value = T)->WQSf
-sapply(make.names(word(unique(ssm$Region),1,1)),
-       FUN=function(s){
-         sum(grepl(pattern = paste0('^',s),
-                   x = loadedFiles,ignore.case = T))
-         })->Dfcount
-sapply(make.names(word(unique(ssm$Region),1,1)),FUN=function(s)sum(grepl(pattern = paste0('^',s),x = WQSf,ignore.case = T)))->WQfcount
-
-siteCount=ssm%>%group_by(Region=make.names(word(Region,1,1)))%>%dplyr::summarise(nSites = length(unique(LawaId)))
-siteCount$nWQf = WQfcount[match(siteCount$Region,names(WQfcount))]
-siteCount$nDf = Dfcount[match(siteCount$Region,names(Dfcount))]
-rm(siteCount,WQfcount,Dfcount,loadedFiles)
-}
-
-
-
-
-
-#Load XML files and combine ####
-agencyURLtable=data.frame(region="",server="",property='',feature='')
-library(parallel)
-library(doParallel)
-workers <- makeCluster(7)
-registerDoParallel(workers)
-clusterCall(workers,function(){
-  dataToCombine=NULL
-  library(magrittr)
-  library(doBy)
-  library(plyr)
-  library(dplyr)
-  library(stringr)
-  library(xml2)
-  library(XML)
-})
-startTime=Sys.time()
-foreach(SSMregion = unique(ssm$Region))%dopar%{
-  if(exists('recData')){rm(recData)}
-  if(exists('recMetaData')){rm(recMetaData)}
-  dataToCombine=NULL
-  metaToCombine=NULL
-  regionName=make.names(word(SSMregion,1,1))
-  WFSregion=RegionTable$wfs[RegionTable$ssm==SSMregion]
-  cat('\n',regionName,'\t')
-  
-  #Find agency properties from the SSM file
-  observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,TimeseriesUrl!='')%>%select(TimeseriesUrl),
-                             FUN = function(x){gsub('(.+)http.+','\\1',x=x)%>%
-                                 strsplit(split='&')%>%unlist%>%
-                                 grep('observedproperty|offering',x = .,ignore.case=T,value=T)%>%
-                                 gsub('observedproperty=|offering=','',x=.,ignore.case = T)})%>%
-    sapply(.,URLdecode)%>%unname%>%tolower
-  propertyType = ssm%>%
-    filter(Region==SSMregion&TimeseriesUrl!='')%>%
-    select(Property)%>%
-    unlist%>%
-    unname
-  stopifnot(length(observedProperty)==length(propertyType))
-  agProps=unique(data.frame(observedProperty,propertyType,stringsAsFactors=F))
-  agProps=rbind(agProps,c('WQ sample','WQ sample'))
-  rm(observedProperty,propertyType)
-  # agProps=structure(list(observedProperty = "WQ sample", propertyType = "WQ sample"), row.names = 4L, class = "data.frame")
-  
-  #Find agency Sites from the  SSM
-  agSites <- c(unlist(sapply(X = ssm%>%filter(Region==SSMregion)%>%select(TimeseriesUrl),
-                             FUN = function(x)unlist(strsplit(x,split='&')))))%>%
-    grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
-    gsub('featureofinterest=','',x=.,ignore.case = T)%>%
-    sapply(.,URLdecode)%>%trimws%>%unique
-  
-  #Step through sites and properties, loading XML files to memory for subsequent combination
-  for(agSite in seq_along(agSites)){
-    cat('.')
-    siteName=make.names(agSites[agSite])
-    for(ap in seq_along(agProps$observedProperty)){
-      property=agProps$propertyType[ap]
-      propertyName=make.names(tolower(agProps$observedProperty[ap]))
-      fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName,'/',propertyName,'.xml')
-      if(file.exists(fname)&
-         file.info(fname)$size>2000){
-        readXMLFile(regionName,siteName,propertyName,property) #returns 1 or 2, and builds 'dataToCombine' and 'metaToCombine' lists
-      }
-    }
-  }
-  rm(agProps,agSites)
-  
-  #Combine region's metadata
-  mdlist <- lapply(grep(regionName,metaToCombine,ignore.case = T,value=T),get)
-  suppressMessages({recMetaData<<-Reduce(function(x,y) dplyr::full_join(x,y),mdlist)})
-  if(!is.null(recMetaData)){
-    save(recMetaData,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
-                               "/",SSMregion,"metaData.Rdata"))
-  }
-  rm(list=metaToCombine)
-  rm(recMetaData,mdlist)
-
-  # combine region's data
-  dlist <- lapply(grep(regionName,dataToCombine,ignore.case=T,value=T),get)
-  suppressMessages({recData<<-Reduce(function(x,y) dplyr::full_join(x,y),dlist)})
-  if(!is.null(recData)){
-    save(recData,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
-                               "/",SSMregion,"Data.Rdata"))
-  }
-  rm(list=dataToCombine)
-  rm(recData,dlist,regionName)
-}
-stopCluster(workers)
-rm(workers)
-
-Sys.time()-startTime  
-#38 s 2/7/2021
-#41s  14/7/21
-#48s 29/7/21
-#2.0mins 13/8/2021
-#3.7 mins 3/9/21  (wqdata in background)
-rm(startTime)
-
-
-
-
-
-#Combine each region to a nationwide ####
-#First load each regions same-named data, and rename to a region-specific
-for(SSMregion in unique(ssm$Region)){
-  suppressWarnings(rm(recMetaData,recData,mdFile,dFile))
-  mdFile=tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
-                  pattern=paste0(SSMregion,"metaData.Rdata"),recursive = T,full.names = T),1)
-  if(length(mdFile)==1)load(mdFile,verbose=T)
-  
-  
-  dFile=tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
-                 pattern=paste0(SSMregion,"Data.Rdata"),recursive = T,full.names = T),1)
-  if(length(dFile)==1)load(dFile,verbose=T)
-  
-  if(exists('recData')){
-    recData <- recData%>%filter(dateCollected>Sys.time()-lubridate::years(7))
-    eval(parse(text=paste0(make.names(word(SSMregion,1,1)),"D=recData")))
-  }
-  if(exists('recMetaData')){
-    if(!'dateCollected'%in%names(recMetaData) & 'SampleDate'%in%names(recMetaData)){
-    recMetaData$dateCollected = as.POSIXct(lubridate::ymd_hms(recMetaData$SampleDate,tz = 'Pacific/Auckland'))
-    }
-    recMetaData <- recMetaData%>%filter(dateCollected>Sys.time()-lubridate::years(7))
-    recMetaData <- recMetaData%>%filter(!apply(recMetaData[,-c(1,2,3,4)],1,FUN=function(r)all(is.na(r))))
+    rm(agSite)
+    write.csv(ssm$Region,file = paste0("D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/",regionName,"/outHere",make.names(Sys.time()),".txt"))
     
-    eval(parse(text=paste0(make.names(word(SSMregion,1,1)),"MD=recMetaData")))
-    # browser()
+    rm(regionName)
+    return(NULL)
+  }
+  stopCluster(workers)
+  Sys.time()-startTime  
+  #30mins 2/7/2021
+  #5mins 14/7/2021
+  rm(startTime)
+  rm(workers)
+  
+  
+  
+  if(0){
+    #Investigate the yield of metadata files ####
+    loadedFiles = dir('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/')
+    grep(pattern = 'sample',x = loadedFiles,ignore.case = F,value = T)->WQSf
+    sapply(make.names(word(unique(ssm$Region),1,1)),
+           FUN=function(s){
+             sum(grepl(pattern = paste0('^',s),
+                       x = loadedFiles,ignore.case = T))
+           })->Dfcount
+    sapply(make.names(word(unique(ssm$Region),1,1)),FUN=function(s)sum(grepl(pattern = paste0('^',s),x = WQSf,ignore.case = T)))->WQfcount
+    
+    siteCount=ssm%>%group_by(Region=make.names(word(Region,1,1)))%>%dplyr::summarise(nSites = length(unique(LawaId)))
+    siteCount$nWQf = WQfcount[match(siteCount$Region,names(WQfcount))]
+    siteCount$nDf = Dfcount[match(siteCount$Region,names(Dfcount))]
+    rm(siteCount,WQfcount,Dfcount,loadedFiles)
   }
   
-  if(exists('recMetaData'))rm(recMetaData)
-  if(exists('recData'))rm(recData)
-  rm(mdFile)
-  rm(dFile)
-}
-
-
-#Filter BoP data by the file that MaxMcKay sent through
-BayD <- BayD%>%filter(propertyName!='E.coli_LabResult')   #15/10/2020 in respone to observation of repeats introduced by presence
-                                                        #of one labresult propertytype from umbraco
-BayMD = readxl::read_xlsx("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/BOPRC Recreational Repeats List 2021 - LAWA.xlsx",sheet=1)%>%
-  filter(Parameter%in%c("E coli","Enterococci"))%>%mutate(Parameter=ifelse(Parameter=="E coli","E-coli",Parameter))
-lubridate::tz(BayMD$`Time (NZST, UTC+12)`)<-'Pacific/Auckland' #to specify what time zone the time was in
-BayMD$dateCollected = BayMD$`Time (NZST, UTC+12)` - lubridate::hours(12)
-BayMD$regionName="Bay"
-BayMD <-BayMD%>%dplyr::rename(property=Parameter,siteName=LocationName)
-
-BayD = left_join(x=BayD,y=BayMD%>%select(-siteName,-Unit,-LawaID,-Value),
-                  by=c("siteName"="Site","property","dateCollected"))%>%
-  filter(is.na(Qualifiers))%>% #This excludes "Recreational repeats", leaving only routine samples
-  select(-Qualifiers,-`Time (NZST, UTC+12)`)
-rm(BayMD)
-tz(BayD$dateCollected) <- ""
-
-
-if(exists('CanterburyMD')){
-CanterburyMD <- CanterburyMD%>%select(-Rain,-`Rain Previously`,-starts_with('Number of'),
-                                      -`Birds on Beach and/or Water`,-`Wave height (m)`,
-                                      -starts_with('Foam '),-`Dead Marine Life`,-Seaweed,
-                                      -`Site is dry`,-`Site is Dry`,-starts_with('High '),
-                                      -starts_with('Visual'),-`Water Colour Marine`,
-                                      -`Water Clarity`,-`Water Colour`,-`Sent to Lab`,
-                                      -`Wind Speed Average (m/s)`,-`Wind Direction`,
-                                      -`Wind Strength`,-`Bed is Visible`,-starts_with('YSI'),
-                                      -`Meter Number`,-`Cloud Cover`,-`Auto Archived`,
-                                      -Archived,-`Cost Code`)
-}
-if(exists('SouthlandMD')){
-SouthlandMD <- SouthlandMD%>%select(-Weather,-Tide,-`Digital Photo`,-`Lake Conditions`,-`Wind Speed`,
-                                    -`Entered By`,-`Checked By`,-`Method of Collection`,-Odour,
-                                    -FieldFiltered,-starts_with('Isotope'),-`Checked Time`,-`Entered Time`,
-                                    -`Meter Number`,-`Black Disc Size`,-Clarity,-`Wind Direction`,
-                                    -`Flow Value`,-`Water Level`,-`Field Technician`,-`Collected By`,
-                                    -Archived,-`Cost Code`)
-}
-if(exists('OtagoMD')){
-OtagoMD <- OtagoMD%>%select(-`Source of Water`,-Observer,-`Field Technician`,-Odour,-Weather,-Colour,
-                            -Clarity,-`Wind Speed`,-`Wind Direction`,-`Flow Rate`,-Tide,-`Tide Direction`,
-                            -`Grid Reference`,-`Collection Method`,-`Samples from`,-Archived,-`Cost Code`)
-}
-if(exists('NorthlandMD')){
-NorthlandMD <- NorthlandMD%>%select(-`Field Technician`,-`Run Number`,-`Received at Lab`,-`Wind Strength`,
-                                    -`Wind Direction`,-`Meter number`,-Rainfall,-`Weather Affected`,
-                                    -`Tidal State`,-`Vehicles on beach`,-`Cloud Cover`,-`Cloud cover`,
-                                    -Tide,-Weather,-`Photo taken`,-`Cyanobacteria warning sign`,-Archived,-`Cost Centre`)
-}
-if(exists('Manawatu.WhanganuiMD')){
-Manawatu.WhanganuiMD <- Manawatu.WhanganuiMD%>%select(-`Source Type`,-`Input By`,-`Sampling point`,
-                                                      -Fieldsheet,-`Sampling Method`,-`Observed Colour`,
-                                                      -SampledBy,-Weather,-MeterID,-`Observed Clarity`,
-                                                      -`Observed Velocity`,#-`Observed Flow`,
-                                                      -`Compliance Prosecution`,-`Data Audited`,
-                                                      #-`Cyanobacteria Detached`,-`Cyanobacteria Exposed`,-`Cyanobacterial Cover`,
-                                                      -Archived,-`Cost Code`)
-}
-if(exists('WellingtonMD')){
-WellingtonMD <- WellingtonMD%>%select(-`Detached Cyanobacteria Mats`,-`Rubbish amount`,-Rainfall,-Weather,
-                                      -`Sewage Overflow`,-`Wind Direction`,-`Wind strength`,-`GWRC Programme`,
-                                      -`Seaweed %`,-Tide,-`Tidal height`)
-}
-if(exists('MarlboroughMD')){
-MarlboroughMD <- MarlboroughMD%>%select(-`Climate Field Meter Used`,-Weather,-Water,-`Tide Flow`,-`Sea State`,
-                                        -`Field Technician`,-`Cloud Cover`,-`Meter Used`,-`Auto Archived`,
+  
+  
+  
+  
+  #Load XML files and combine ####
+  agencyURLtable=data.frame(region="",server="",property='',feature='')
+  library(parallel)
+  library(doParallel)
+  workers <- makeCluster(7)
+  registerDoParallel(workers)
+  clusterCall(workers,function(){
+    dataToCombine=NULL
+    library(magrittr)
+    library(doBy)
+    library(plyr)
+    library(dplyr)
+    library(stringr)
+    library(xml2)
+    library(XML)
+  })
+  startTime=Sys.time()
+  foreach(SSMregion = unique(ssm$Region))%dopar%{
+    if(exists('recData')){rm(recData)}
+    if(exists('recMetaData')){rm(recMetaData)}
+    dataToCombine=NULL
+    metaToCombine=NULL
+    regionName=make.names(word(SSMregion,1,1))
+    WFSregion=RegionTable$wfs[RegionTable$ssm==SSMregion]
+    cat('\n',regionName,'\t')
+     #Find agency Sites from the  SSM
+    agSites <- c(unlist(sapply(X = ssm%>%filter(Region==SSMregion)%>%select(TimeseriesUrl),
+                               FUN = function(x)unlist(strsplit(x,split='&')))))%>%
+      grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
+      gsub('featureofinterest=','',x=.,ignore.case = T)%>%
+      sapply(.,URLdecode)%>%trimws%>%unique
+    #Find agency properties from the SSM file
+    observedProperty <- sapply(X = ssm%>%filter(Region==SSMregion,TimeseriesUrl!='')%>%select(TimeseriesUrl),
+                               FUN = function(x){gsub('(.+)http.+','\\1',x=x)%>%
+                                   strsplit(split='&')%>%unlist%>%
+                                   grep('observedproperty|offering',x = .,ignore.case=T,value=T)%>%
+                                   gsub('observedproperty=|offering=','',x=.,ignore.case = T)})%>%
+      sapply(.,URLdecode)%>%unname%>%tolower
+    if(regionName=="Bay"){
+      observedProperty = gsub(pattern = 'i_rec',replacement = "i.rec",x = observedProperty)
+      observedProperty = sapply(observedProperty,function(s)strTo(s,c='\\@'))
+      if(!'JL348334'%in%agSites){
+        agSites = sort(c(agSites,'JL348334'))
+      }
+    }
+    propertyType = ssm%>%
+      filter(Region==SSMregion&TimeseriesUrl!='')%>%
+      select(Property)%>%
+      unlist%>%
+      unname
+    stopifnot(length(observedProperty)==length(propertyType))
+    agProps=unique(data.frame(observedProperty,propertyType,stringsAsFactors=F))
+    agProps=rbind(agProps,c('WQ sample','WQ sample'))
+    rm(observedProperty,propertyType)
+    # agProps=structure(list(observedProperty = "WQ sample", propertyType = "WQ sample"), row.names = 4L, class = "data.frame")
+    
+   
+    
+    #Step through sites and properties, loading XML files to memory for subsequent combination
+    for(agSite in seq_along(agSites)){
+      cat('.')
+      siteName=make.names(agSites[agSite])
+      for(ap in seq_along(agProps$observedProperty)){
+        property=agProps$propertyType[ap]
+        propertyName=make.names(tolower(agProps$observedProperty[ap]))
+        fname=paste0('D:/LAWA/LAWA2021/CanISwimHere/Data/DataCache/',regionName,'/',siteName,'/',propertyName,'.xml')
+        if(file.exists(fname)&
+           file.info(fname)$size>2000){
+          readXMLFile(regionName,siteName,propertyName,property) #returns 1 or 2, and builds 'dataToCombine' and 'metaToCombine' lists
+        }
+      }
+    }
+    rm(agProps,agSites)
+    
+    #Combine region's metadata
+    mdlist <- lapply(grep(regionName,metaToCombine,ignore.case = T,value=T),get)
+    suppressMessages({recMetaData<<-Reduce(function(x,y) dplyr::full_join(x,y),mdlist)})
+    if(!is.null(recMetaData)){
+      save(recMetaData,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+                                   "/",SSMregion,"metaData.Rdata"))
+    }
+    rm(list=metaToCombine)
+    rm(recMetaData,mdlist)
+    
+    # combine region's data
+    dlist <- lapply(grep(regionName,dataToCombine,ignore.case=T,value=T),get)
+    suppressMessages({recData<<-Reduce(function(x,y) dplyr::full_join(x,y),dlist)})
+    if(!is.null(recData)){
+      save(recData,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+                               "/",SSMregion,"Data.Rdata"))
+    }
+    rm(list=dataToCombine)
+    rm(recData,dlist,regionName)
+  }
+  stopCluster(workers)
+  rm(workers)
+  
+  Sys.time()-startTime  
+  #38 s 2/7/2021
+  #41s  14/7/21
+  #48s 29/7/21
+  #2.0mins 13/8/2021
+  #3.7 mins 3/9/21  (wqdata in background)
+  rm(startTime)
+  
+  
+  
+  
+  
+  #Combine each region to a nationwide ####
+  #First load each regions same-named data, and rename to a region-specific
+  for(SSMregion in unique(ssm$Region)){
+    suppressWarnings(rm(recMetaData,recData,mdFile,dFile))
+    mdFile=tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
+                    pattern=paste0(SSMregion,"metaData.Rdata"),recursive = T,full.names = T),1)
+    if(length(mdFile)==1)load(mdFile,verbose=T)
+    
+    
+    dFile=tail(dir(path="h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",
+                   pattern=paste0(SSMregion,"Data.Rdata"),recursive = T,full.names = T),1)
+    if(length(dFile)==1)load(dFile,verbose=T)
+    
+    if(exists('recData')){
+      recData <- recData%>%filter(dateCollected>Sys.time()-lubridate::years(7))
+      eval(parse(text=paste0(make.names(word(SSMregion,1,1)),"D=recData")))
+    }
+    if(exists('recMetaData')){
+      if(!'dateCollected'%in%names(recMetaData) & 'SampleDate'%in%names(recMetaData)){
+        recMetaData$dateCollected = as.POSIXct(lubridate::ymd_hms(recMetaData$SampleDate,tz = 'Pacific/Auckland'))
+      }
+      recMetaData <- recMetaData%>%filter(dateCollected>Sys.time()-lubridate::years(7))
+      recMetaData <- recMetaData%>%filter(!apply(recMetaData[,-c(1,2,3,4)],1,FUN=function(r)all(is.na(r))))
+      
+      eval(parse(text=paste0(make.names(word(SSMregion,1,1)),"MD=recMetaData")))
+      # browser()
+    }
+    
+    if(exists('recMetaData'))rm(recMetaData)
+    if(exists('recData'))rm(recData)
+    rm(mdFile)
+    rm(dFile)
+  }
+  
+  
+  #Filter BoP data by the file that MaxMcKay sent through
+  BayD <- BayD%>%filter(propertyName!='E.coli_LabResult')   #15/10/2020 in respone to observation of repeats introduced by presence
+  #of one labresult propertytype from umbraco
+  BayMD = readxl::read_xlsx("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/BOPRC Rec Repeats List 2021 - LAWA v2.xlsx",sheet=1)%>%
+    filter(Parameter%in%c("E coli","Enterococci"))%>%mutate(Parameter=ifelse(Parameter=="E coli","E-coli",Parameter))
+  lubridate::tz(BayMD$Time)<-'Pacific/Auckland' #to specify what time zone the time was in
+  BayMD$dateCollected = BayMD$Time - lubridate::hours(12)
+  BayMD$regionName="Bay"
+  BayMD <-BayMD%>%dplyr::rename(property=Parameter,siteName=LocationName)
+  
+  BayD = left_join(x=BayD,y=BayMD%>%select(-siteName,-Unit,-LawaID,-Value),
+                   by=c("siteName"="Site","property","dateCollected"))%>%
+    filter(is.na(Qualifiers))%>% #This excludes "Recreational repeats", leaving only routine samples
+    select(-Qualifiers,-Time,Quality,Approval)
+  rm(BayMD)
+  tz(BayD$dateCollected) <- ""
+  
+  
+  if(exists('CanterburyMD')){
+    CanterburyMD <- CanterburyMD%>%select(-Rain,-`Rain Previously`,-starts_with('Number of'),
+                                          -`Birds on Beach and/or Water`,-`Wave height (m)`,
+                                          -starts_with('Foam '),-`Dead Marine Life`,-Seaweed,
+                                          -`Site is dry`,-`Site is Dry`,-starts_with('High '),
+                                          -starts_with('Visual'),-`Water Colour Marine`,
+                                          -`Water Clarity`,-`Water Colour`,-`Sent to Lab`,
+                                          -`Wind Speed Average (m/s)`,-`Wind Direction`,
+                                          -`Wind Strength`,-`Bed is Visible`,-starts_with('YSI'),
+                                          -`Meter Number`,-`Cloud Cover`,-`Auto Archived`,
+                                          -Archived,-`Cost Code`)
+  }
+  if(exists('SouthlandMD')){
+    SouthlandMD <- SouthlandMD%>%select(-Weather,-Tide,-`Digital Photo`,-`Lake Conditions`,-`Wind Speed`,
+                                        -`Entered By`,-`Checked By`,-`Method of Collection`,-Odour,
+                                        -FieldFiltered,-starts_with('Isotope'),-`Checked Time`,-`Entered Time`,
+                                        -`Meter Number`,-`Black Disc Size`,-Clarity,-`Wind Direction`,
+                                        -`Flow Value`,-`Water Level`,-`Field Technician`,-`Collected By`,
                                         -Archived,-`Cost Code`)
-}
-if(exists('Hawke.sMD')){
-Hawke.sMD <- Hawke.sMD%>%select(-`Verified`,-`VerifiedBy`,-`VerifiedDate`,-`Sampling Issue`,-Observer)
-}
-if(exists('GisborneMD')){
-GisborneMD <- GisborneMD%>%select(-`Sample ID`,-Archived,-Lab,-EnteredBy,-`Field Technician`,-`Auto Archived`,
-                                  -Tide,-`Received at Lab`,-`Lab Batch ID`,-`Lab Batch Id`,-`Lab Sample ID`,
-                                  -QAAgency,-CollectionMethod,-QAMethod,-`Cost Code`)
-}
-if(exists('NelsonMD')){
-NelsonMD <- NelsonMD%>%select(-Archived)
-}
-if(exists("TaranakiMD")){
-TaranakiMD$SampleDate = as.character(TaranakiMD$SampleDate)
-}
-
-#Then combine all region-specifics to a nationwide overall 
-MDlist <- sapply(ls(pattern='MD$'),get,simplify = FALSE)
-MDlist[sapply(MDlist,is.null)] <- NULL
-sapply(MDlist,names)
-recMetaData=Reduce(function(x,y) dplyr::full_join(x,y%>%distinct),MDlist)
-print(dim(recMetaData))
-
-#88765 75    5/8/21
-#114281 86   13/8/21
-#114338 86  20/8
-#114310
-#114355 86    3/9/21
-
-save(recMetaData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
-                           "/RecMetaData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
-rm(list=ls(pattern='MD$'))
-rm(MDlist)
-
-Dlist <- sapply(ls(pattern='[^M]D$'),FUN=function(s)get(s),simplify=FALSE)
-Dlist[sapply(Dlist,is.null)] <- NULL
-sapply(Dlist,names)
-recData=Reduce(function(x,y) dplyr::full_join(x,y%>%distinct),Dlist)
-print(dim(recData))
-
-# 76686 13    5/8/21
-# 81971 13    6/8/21
-# 81900 13   13/8/21
-# 82080 13   20/8/21
-# 82306
-# 82305 13  3/9/21
-
-save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
-                               "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
-rm(list=ls(pattern='D$'))
-rm(Dlist)
-
-
-
+  }
+  if(exists('OtagoMD')){
+    OtagoMD <- OtagoMD%>%select(-`Source of Water`,-Observer,-`Field Technician`,-Odour,-Weather,-Colour,
+                                -Clarity,-`Wind Speed`,-`Wind Direction`,-`Flow Rate`,-Tide,-`Tide Direction`,
+                                -`Grid Reference`,-`Collection Method`,-`Samples from`,-Archived,-`Cost Code`)
+  }
+  if(exists('NorthlandMD')){
+    NorthlandMD <- NorthlandMD%>%select(-`Field Technician`,-`Run Number`,-`Received at Lab`,-`Wind Strength`,
+                                        -`Wind Direction`,-`Meter number`,-Rainfall,-`Weather Affected`,
+                                        -`Tidal State`,-`Vehicles on beach`,-`Cloud Cover`,-`Cloud cover`,
+                                        -Tide,-Weather,-`Photo taken`,-`Cyanobacteria warning sign`,-Archived,-`Cost Centre`)
+  }
+  if(exists('Manawatu.WhanganuiMD')){
+    Manawatu.WhanganuiMD <- Manawatu.WhanganuiMD%>%select(-`Source Type`,-`Input By`,-`Sampling point`,
+                                                          -Fieldsheet,-`Sampling Method`,-`Observed Colour`,
+                                                          -SampledBy,-Weather,-MeterID,-`Observed Clarity`,
+                                                          -`Observed Velocity`,#-`Observed Flow`,
+                                                          -`Compliance Prosecution`,-`Data Audited`,
+                                                          #-`Cyanobacteria Detached`,-`Cyanobacteria Exposed`,-`Cyanobacterial Cover`,
+                                                          -Archived,-`Cost Code`)
+  }
+  if(exists('WellingtonMD')){
+    WellingtonMD <- WellingtonMD%>%select(-`Detached Cyanobacteria Mats`,-`Rubbish amount`,-Rainfall,-Weather,
+                                          -`Sewage Overflow`,-`Wind Direction`,-`Wind strength`,-`GWRC Programme`,
+                                          -`Seaweed %`,-Tide,-`Tidal height`)
+  }
+  if(exists('MarlboroughMD')){
+    MarlboroughMD <- MarlboroughMD%>%select(-`Climate Field Meter Used`,-Weather,-Water,-`Tide Flow`,-`Sea State`,
+                                            -`Field Technician`,-`Cloud Cover`,-`Meter Used`,-`Auto Archived`,
+                                            -Archived,-`Cost Code`)
+  }
+  if(exists('Hawke.sMD')){
+    Hawke.sMD <- Hawke.sMD%>%select(-`Verified`,-`VerifiedBy`,-`VerifiedDate`,-`Sampling Issue`,-Observer)
+  }
+  if(exists('GisborneMD')){
+    GisborneMD <- GisborneMD%>%select(-`Sample ID`,-Archived,-Lab,-EnteredBy,-`Field Technician`,-`Auto Archived`,
+                                      -Tide,-`Received at Lab`,-`Lab Batch ID`,-`Lab Batch Id`,-`Lab Sample ID`,
+                                      -QAAgency,-CollectionMethod,-QAMethod,-`Cost Code`,-`Low Tide`,-`High Tide`,
+                                      -`Thermomter Number`)
+  }
+  if(exists('NelsonMD')){
+    NelsonMD <- NelsonMD%>%select(-Archived)
+  }
+  if(exists("TaranakiMD")){
+    TaranakiMD$SampleDate = as.character(TaranakiMD$SampleDate)
+  }
+  
+  #Then combine all region-specifics to a nationwide overall 
+  MDlist <- sapply(ls(pattern='MD$'),get,simplify = FALSE)
+  MDlist[sapply(MDlist,is.null)] <- NULL
+  sapply(MDlist,names)
+  recMetaData=Reduce(function(x,y) dplyr::full_join(x,y%>%distinct),MDlist)
+  print(dim(recMetaData))
+  
+  #88765 75    5/8/21
+  #114281 86   13/8/21
+  #114338 86  20/8
+  #114310
+  #114355 86    3/9/21
+  #114354      10/9/21
+  #114343      13/9/21
+  #114279 86   15/9/21   BoP deliverd more
+  #114251
+  
+  save(recMetaData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+                                 "/RecMetaData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
+  rm(list=ls(pattern='MD$'))
+  rm(MDlist)
+  
+  Dlist <- sapply(ls(pattern='[^M]D$'),FUN=function(s)get(s),simplify=FALSE)
+  Dlist[sapply(Dlist,is.null)] <- NULL
+  sapply(Dlist,names)
+  recData=Reduce(function(x,y) dplyr::full_join(x,y%>%distinct),Dlist)
+  print(dim(recData))
+  
+  # 76686 13    5/8/21
+  # 81971 13    6/8/21
+  # 81900 13   13/8/21
+  # 82080 13   20/8/21
+  # 82306
+  # 82305 13  3/9/21
+  # 82302     10/9/21
+  # 85280 13  13/9/21
+  # 86801 13  13/9/21
+  # 86950 13  14/9/21
+  # 87579 12  15/9/21 BoP filtered away more
+  # 86872 13  15/9/21  BoP timezone
+  
+  save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+                             "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
+  rm(list=ls(pattern='D$'))
+  rm(Dlist)
+  
+  
+  
+  

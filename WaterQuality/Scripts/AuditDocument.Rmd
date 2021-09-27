@@ -158,9 +158,9 @@ macroSiteTable=loadLatestSiteTableMacro()
 MCINOF <- read.csv(tail(dir(path = 'h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/',
                             pattern = 'MacroRollingMCI',recursive = T,full.names = T),1),stringsAsFactors = F)
 MCINOF <- MCINOF%>%filter(tolower(LawaSiteID)%in%agencyLIDs) #%>%filter(Parameter=="MCI")
-MCINOF$CouncilSiteID = macroSiteTable$CouncilSiteID[match(gsub('_niwa','',tolower(MCINOF$LawaSiteID)),tolower(macroSiteTable$LawaSiteID))]
+MCINOF$CouncilSiteID = macroSiteTable$CouncilSiteID[match(tolower(MCINOF$LawaSiteID),tolower(macroSiteTable$LawaSiteID))]
 if(any(is.na(MCINOF$CouncilSiteID))){
-  MCINOF$CouncilSiteID[is.na(MCINOF$CouncilSiteID)] = siteTable$CouncilSiteID[match(gsub('_niwa','',tolower(MCINOF$LawaSiteID[is.na(MCINOF$CouncilSiteID)])),tolower(siteTable$LawaSiteID))]
+  MCINOF$CouncilSiteID[is.na(MCINOF$CouncilSiteID)] = siteTable$CouncilSiteID[match(tolower(MCINOF$LawaSiteID[is.na(MCINOF$CouncilSiteID)]),tolower(siteTable$LawaSiteID))]
 }
 MCINOF$NOF2021Band = cut(MCINOF$rollMCI,breaks = c(0,90,110,130,200),right = F,labels = c("D","C","B","A"))
 

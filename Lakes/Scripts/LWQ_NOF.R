@@ -84,7 +84,7 @@ cat(length(uclids),'\t')
 
 if(exists("NOFSummaryTable")) { rm("NOFSummaryTable") }
 
-workers=makeCluster(4)
+workers=makeCluster(6)
 registerDoParallel(workers)
 clusterCall(workers,function(){
   library(tidyverse)
@@ -132,6 +132,7 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
                          CyanoTOX80th              = rep(as.numeric(NA),reps),
                          CyanoTOT80th              = rep(as.numeric(NA),reps),
                          CyanoBand                = rep(NA,reps),
+                         CyanoAnalysisNote       = rep('',reps),
                          stringsAsFactors = FALSE)
 
   
@@ -361,7 +362,7 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
     Com_NOF$ChlAMax_Band <- sapply(Com_NOF$ChlAMax_Band,FUN=function(x){min(unlist(strsplit(x,split = '')))})
     rm(rollingMax,rollFails)
   }  
-    #------------------Finding the band for ChlA Summary-------------------------------
+  #------------------Finding the band for ChlA Summary-------------------------------
     Com_NOF$ChlASummaryBand=apply(select(Com_NOF,ChlAMed_Band, ChlAMax_Band),1,max,na.rm=T)
   rm(chlSite,annualMax)
   
@@ -369,7 +370,6 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
   #Table 10 NPSFM p 49
   cyanoSite = rightSite%>%filter(Measurement%in%c("CYANOTOX","CYANOTOT"))
   if(dim(cyanoSite)[1]>0){
-    cyanoSite$Value[which(cyanoSite$Value==0)] <- NA          #DOUBLE CHECK
     cyanoSite <- cyanoSite%>%group_by(Date,Measurement)%>%
       summarise(.groups='keep',
                 Value=quantile(Value,prob=0.5,type=5,na.rm=T),
@@ -380,9 +380,6 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
     annual80th = cyanoSite%>%
       dplyr::group_by(Year)%>%
       dplyr::summarise(across(where(is.numeric),quantile,prob=0.8,type=5,na.rm=T))%>%ungroup
-    #   TOX80 = quantile(CYANOTOX,prob=0.8,type=5,na.rm=T),
-    #                  TOT80 = quantile(CYANOTOT,prob=0.8,type=5,na.rm=T))%>%
-    # ungroup
     if('CYANOTOX'%in%names(annual80th)){
       Com_NOF$CyanoTOX80th = annual80th$CYANOTOX[match(Com_NOF$Year,annual80th$Year)]
     }
@@ -391,10 +388,18 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
     }
     #And rolling 3 (NPSFM spec)
     rolling80s = rolling3(cyanoSite = cyanoSite,quantProb = 0.8,nreq = 12)
-    suppressWarnings({rollfails = which(apply(rolling80s%>%select(-Year),1,FUN=function(c)all(is.na(as.numeric(c)))))})
-    Com_NOF$CyanoTOX80th = as.numeric(rolling80s$TOX[match(Com_NOF$Year,rolling80s$Year)])
-    Com_NOF$CyanoTOT80th = as.numeric(rolling80s$TOT[match(Com_NOF$Year,rolling80s$Year)])
-    # if(sum(!is.na(cyanoSite$CYANOTOT))>12|sum(!is.na(cyanoSite$CYANOTOX))>12)browser()
+    
+    rolling80s <- rolling80s%>%filter(Year%in%sapply(Com_NOF$Year[grep(pattern = 'to',x = Com_NOF$Year)],
+                                                     function(s)strFrom(s,c='to')))
+    
+    suppressWarnings({rollFails = which(apply(rolling80s%>%select(-Year),1,FUN=function(c)all(is.na(as.numeric(c)))))})
+    
+    Com_NOF$CyanoTOX80th[grep(pattern = 'to',x = Com_NOF$Year)] = as.numeric(rolling80s$TOX[match(sapply(Com_NOF$Year[grep(pattern = 'to',x = Com_NOF$Year)],FUN = function(s)strFrom(s = s,c='to')),rolling80s$Year)])
+    Com_NOF$CyanoTOT80th[grep(pattern = 'to',x = Com_NOF$Year)] = as.numeric(rolling80s$TOT[match(sapply(Com_NOF$Year[grep(pattern = 'to',x = Com_NOF$Year)],FUN = function(s)strFrom(s = s,c='to')),rolling80s$Year)])
+    
+    # Com_NOF$CyanoTOX80th = as.numeric(rolling80s$TOX[match(Com_NOF$Year,rolling80s$Year)])
+    # Com_NOF$CyanoTOT80th = as.numeric(rolling80s$TOT[match(Com_NOF$Year,rolling80s$Year)])
+    Com_NOF$CyanoAnalysisNote[rollyrs[rollFails]] <- paste0("Need 30 values for max, have ",strFrom(s=rolling80s[rollFails,1],c='y'))
     Com_NOF$CyanoBand[which(Com_NOF$CyanoTOX80th>1.8|Com_NOF$CyanoTOT80th>10)] <- "D"
     Com_NOF$CyanoBand[which((Com_NOF$CyanoTOX80th>1&Com_NOF$CyanoTOX80th<=1.8)|
                               (Com_NOF$CyanoTOT80th>1&Com_NOF$CyanoTOX80th<=10))] <- "C"
@@ -405,14 +410,23 @@ foreach(i = 1:length(uclids),.combine=rbind,.errorhandling='stop')%dopar%{
 }->NOFSummaryTable
 stopCluster(workers)
 rm(workers)
-
-
 Sys.time()-startTime
 rm(startTime)
 #July6  3.8 secs
 #Sept 16 6.2 secs
 
+
+
+#Finalise E Coli banding
 NOFSummaryTable$EcoliBand <- sapply(NOFSummaryTable$EcoliMed,NOF_FindBand,bandColumn=NOFbandDefinitions$E..coli)
+
+NOFSummaryTable$EcoliBand <- as.character(factor(NOFSummaryTable$EcoliBand,
+                                                     levels=c("","ABC","D","DE"),
+                                                     labels=c("","A","D","E")))
+
+NOFSummaryTable$EcoliRecHealth260_Band <- as.character(factor(NOFSummaryTable$EcoliRecHealth260_Band,
+                                                              levels=c("","A","BC","C","D","DE"),
+                                                              labels=c("","A","B","C","D","E")))
 
 #These contain the best case out of these scorings, the worst of which contributes.
 suppressWarnings(cnEc_Band <- sapply(NOFSummaryTable$EcoliBand,FUN=function(x){
@@ -462,7 +476,8 @@ write.csv(NOFSummaryTable%>%dplyr::filter(grepl('to',Year)),
           file = paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                         "/NOFLakesOverall",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
 
-
+# NOFSummaryTable <- read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
+#                                      pattern="NOFLakesAll",recursive = T,full.names = T,ignore.case = T),1))
 
 #Make outputs for ITE
 # Reshape Output

@@ -118,41 +118,7 @@ for(param in 1:length(params)){
   if(names(dev.cur())=='png'){dev.off()}
 }
 
-# 
-# #Change in trend results over time ####
-# tlist = dir(path = 'h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',
-#             pattern = 'RiverWQ_Trend',recursive = T,full.names = T)
-# # tlist = dir(path = 'h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',
-# #             pattern = 'Trend15Year',recursive = T,full.names = T)
-# mostRecent = tail(tlist,1)
-# nextMost = head(tail(tlist,3),1)
-# thirdLast = head(tail(tlist,4),1)
-# 
-# mostRecent = read_csv(mostRecent)
-# nextMost   = read_csv(nextMost)
-# thirdLast = read_csv(thirdLast)
-#  # load(mostRecent,verbose=T);mostRecent=trendTable15
-#  # load(nextMost,verbose=T);nextMost=trendTable15
-#  # load(thirdLast,verbose=T);thirdLast=trendTable15
-# 
-# nextMost$nmCC = nextMost$ConfCat
-# nextMost$nmMK = nextMost$MKProbability
-# thirdLast$tlCC = thirdLast$ConfCat
-# thirdLast$tlMK = thirdLast$MKProbability
-# 
-# nextMost   = merge(x=nextMost,thirdLast%>%select(LawaSiteID,Measurement,period,tlCC,tlMK),all.x=T)
-# plot(nextMost$MKProbability,nextMost$tlMK,pch=46)
-# mostRecent = merge(x=mostRecent,nextMost%>%select(LawaSiteID,Measurement,period,nmCC,nmMK,tlCC,tlMK),all.x=T)
-# plot(mostRecent$nmMK,mostRecent$tlMK,pch=46)
-# plot(mostRecent$Cd,mostRecent$nmMK,pch=46)
-# plot(mostRecent$Cd,mostRecent$tlMK,pch=46)
-# 
-# table(mostRecent$ConfCat,mostRecent$nmCC,useNA='a')
-# table(nextMost$ConfCat,nextMost$tlCC,useNA='a')
-# 
-# with(mostRecent%>%filter(Measurement=="NH4"),plot(Cd,nmMK,pch=46))
-# 
-# mostRecent%>%filter(Measurement=="NH4",Cd>0.975,nmMK<0.025)%>%select(LawaSiteID,Agency,period)->toCheck
+
 
 
 #And the ubercool html summary audit report doncuments per council! ####
@@ -174,29 +140,3 @@ startTime=Sys.time()
 }
 Sys.time()-startTime
 #20 minutes 16/7/2021
-
-# Audit the presence of measurements between config files and transfer table file, to allow the transfer table
-# to be used as the source of names to call variables for from
-# transfers=read.table("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/transfers_plain_english_view.txt",
-#                      sep=',',header = T,stringsAsFactors = F)
-# for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
-#   df <- read.csv(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/MetaData/",agency,"SWQ_config.csv"),sep=",",stringsAsFactors=FALSE)
-#   ta <- transfers%>%filter(Agency==agency)  
-#   if(any(!tolower(subset(df,df$Type=="Measurement")[,2])%in%tolower(ta$CallName))){
-#     cat(agency,'\n')
-#     print(table(tolower(subset(df,df$Type=="Measurement")[,2])%in%tolower(ta$CallName)))
-#     print(subset(df,df$Type=="Measurement")[!tolower(subset(df,df$Type=="Measurement")[,2])%in%tolower(ta$CallName),2])
-#     cat('\n')
-#   }
-#   if(any(!tolower(ta$CallName)%in%tolower(subset(df,df$Type=="Measurement")[,2]))){
-#     cat(agency,'\n')
-#     print(ta$CallName[!tolower(ta$CallName)%in%tolower(subset(df,df$Type=="Measurement")[,2])])
-#     cat('\n')
-#   }
-# }
-# 
-
-
-#Look at total values per measurement 
-
-

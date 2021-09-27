@@ -10,7 +10,7 @@ agency='gwrc'
 translate <- read.table("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Metadata/Transfers_plain_english_view.txt",sep=',',header=T,stringsAsFactors = F)%>%filter(Agency==agency)
 translate$retName=c("Ammoniacal Nitrogen","Black Disc","Dissolved Inorganic Nitrogen",
                     "Dissolved Reactive Phosphorus","E-Coli","Nitrite-Nitrate Nitrogen",
-                    "Nitrate Nitrogen","pH (Field)(X)","Total Nitrogen",
+                    "Nitrate Nitrogen","pH (Field)(X)","pH (Lab)","Total Nitrogen",
                     "Total Phosphorus","Turbidity (Lab)(X)")
 
 
@@ -84,7 +84,7 @@ clusterCall(workers,function(){
   #Check site and measurement returned
   foreach(i = 1:length(sites),.combine = bind_rows,.errorhandling = 'stop',.inorder = FALSE)%dopar%{
     cat('\n',sites[i],i,'out of ',length(sites))
-    for(j in 1:11){
+    for(j in 1:length(translate$CallName)){
       destFile=paste0("D:/LAWA/2021/GWRC/",make.names(sites[i]),"/",make.names(translate$CallName[j]),".xml")
       if(file.exists(destFile)&file.info(destFile)$size>2000){
         Data=xml2::read_xml(destFile)
@@ -172,7 +172,7 @@ table(gwrcSWQ$Measurement==translate$CallName[match(gwrcSWQ$RetProp,translate$re
 
 
 save(gwrcSWQ,file = 'gwrcSWQraw.rData')
-# load('gwrcSWQraw.rData') 89988
+# load('gwrcSWQraw.rData') #89988
 agency='gwrc'
 
  gwrcSWQ <- gwrcSWQ%>%filter(!QualityCode%in%c(400))

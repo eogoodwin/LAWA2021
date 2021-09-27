@@ -7,16 +7,21 @@ library(parallel)
 library(doParallel)
 source('H:/ericg/16666LAWA/LAWA2021/Scripts/LAWAFunctions.R')
 
-lmsl=read_csv("H:/ericg/16666LAWA/LAWA2021/Masterlist of sites in LAWA Umbraco as at 1 June 2021.csv")
+# lmsl=read_csv("H:/ericg/16666LAWA/LAWA2021/Masterlist of sites in LAWA Umbraco as at 1 June 2021.csv")
 
 ssm = readxl::read_xlsx(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/',
                                  pattern='SwimSiteMonitoringResults.*.xlsx',
                                  recursive = T,full.names = T),1),
                         sheet=1)%>%as.data.frame%>%unique
-
+ssm$TimeseriesUrl[ssm$Region=="Bay of Plenty region"] <- gsub(pattern = '@',
+                                                              replacement = '&featureOfInterest=',
+                                                              x =ssm$TimeseriesUrl[ssm$Region=="Bay of Plenty region"])
 ssm$callID =  NA
-ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
-                                                         FUN = function(x)unlist(strsplit(x,split='&')))))%>%
+ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm[!is.na(ssm$TimeseriesUrl),]%>%
+                                                           select(TimeseriesUrl),
+                                                         FUN = function(x){
+                                                           unlist(strsplit(x,split='&'))
+                                                         })))%>%
   grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
   gsub('featureofinterest=','',x=.,ignore.case = T)%>%
   sapply(.,URLdecode)%>%trimws
@@ -157,7 +162,7 @@ routineResample$resample = apply(routineResample[,-c(1,2,3)],1,
 incliptions = which(routineResample$`Sample type`=="F")
 routineResample$resample[incliptions]=T
 exceptions = apply(routineResample[,-c(1,2,3,dim(routineResample)[2])],1,
-                  FUN=function(r)any(grepl('follow up not needed|no re-*sample|not re-*sam',r,ignore.case=T)))
+                  FUN=function(r)any(grepl('follow *up not samp|follow *up not needed|no re-*sample|not re-*sam',r,ignore.case=T)))
 routineResample$resample[exceptions]=F
 rm(exceptions,incliptions)
 
@@ -171,7 +176,7 @@ clue = apply(routineResample[routineResample$resample,-c(1,2,3)],1,
 
 table(routineResample$regionName[routineResample$resample],clueSource)
 # table(clue,routineResample$regionName[routineResample$resample])
-
+clue[routineResample$regionName[routineResample$resample]=="taranaki"]%>%table
 
 routineResample$clue = ""
 routineResample$clue[routineResample$resample] <- paste0(clueSource,": ",clue)
@@ -190,6 +195,7 @@ Tasman region   Waikato region   West Coast region"
 #BoP  -  already filtered out, during load
 # Lisa Naysmith emailed 8/10/2020              Max McKay responded with an xl file now in h:/ericg/16666Lawa/LAWA2021/CISH/Data/BOPRC 
 #Max MacKay updated this 4/8/2021 at h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/BOPRC Recreational Repeats List 2021 - LAWA.xlsx
+#This is done in the load script though, for BoP, at line 650
 #
 #
 #Manawatu whanganui                               Amber Garnett "Followups are already removed from our dataset"
@@ -213,22 +219,22 @@ recData$resample = routineResample$resample[match(recData$rsy,routineResample$rs
 rm(routineResample)
 table(recData$region,recData$resample,useNA = 'if')%>%addmargins
 #                           FALSE  TRUE  <NA>   Sum
-# Bay of Plenty region          0     0  6341  6341
-# Canterbury region         11768   533     7 12308
-# Gisborne region            4286    51   220  4557
-# Hawkes Bay region         5193   279    41  5513
-# Manawatū-Whanganui region 13966     1   216 14183
-# Marlborough region         2353   174     1  2528
-# Nelson region               214     0  1705  1919
-# Northland region              0     0  5285  5285
-# Otago region               2471    10  1280  3761
-# Southland region           2649     0     5  2654
-# Taranaki                   5099   228     0  5327
-# Tasman region                 0     0  1082  1082
-# Waikato region                0     0  2542  2542
-# Wellington region         11285   947   155 12387
-# West Coast region             0     0  1513  1513
-# Sum                       59240  2267 20393 81900
+# Bay of Plenty region          0     0  9359  9359
+# Canterbury region          8757   453     7  9217
+# Gisborne region            4183    51     0  4234
+# Hawke's Bay region         3732   233    38  4003
+#   Manawatū-Whanganui region 13298     1   406 13705
+#   Marlborough region         1710   174     1  1885
+#   Nelson region                 4     0  1493  1497
+#   Northland region              0     0  3958  3958
+#   Otago region               1881    10   942  2833
+#   Southland region           2087     0     5  2092
+#   Taranaki                   3412   161     0  3573
+#   Tasman region                 0     0   779   779
+#   Waikato region                0     0  2194  2194
+#   Wellington region          7557   701    58  8316
+#   West Coast region             0     0  1125  1125
+#   Sum                       46621  1784 20365 68770
 
 
 
@@ -266,17 +272,21 @@ sum(recData$resample,na.rm=T)
 #9/8/2021 2250
 #13/8/2021 2267
 #19/8/21   2223
+#15/9/21  1784
+#16/9/21 1800
 recData$clue[is.na(recData$resample)] <- ""
 recData$clue[!recData$resample] <- ""
 
-recData$LawaSiteID = ssm$LawaId[match(tolower(as.character(recData$siteName)),
+recData$LawaSiteID = ssm$LawaId[match(tolower(make.names(recData$siteName)),
                                       tolower(make.names(ssm$callID)))]
 recData$siteType = ssm$SiteType[match(tolower(recData$LawaSiteID),tolower(ssm$LawaId))]
 recData$SiteID = ssm$SiteName[match(recData$siteName,make.names(ssm$callID))]
 recData$SiteID = ssm$SiteName[match(recData$siteName,make.names(ssm$callID))]
 
-
-
+#This site manually imported Septebmer 2021, you probably can safely delete these three
+recData$LawaSiteID[recData$siteName=="JL348334"] <- "EBOP-00049"
+recData$siteType[recData$siteName=="JL348334"] <- "Site"
+recData$SiteID[recData$siteName=="JL348334"] <- "Rangitāiki at Te Teko"
 
 #Create bathing seasons
 bs=strTo(recData$dateCollected,'-')
@@ -285,15 +295,18 @@ bs[recData$month<7]=paste0(recData$year[recData$month<7]-1,'/',recData$year[recD
 recData$bathingSeason=bs
 table(recData$bathingSeason)
 
+#a oneoff for Hayden Rabel, GWRC, Salt Ecology
+recData <- recData[-which(recData$siteName=="Ruamahanga.River.at.Waihenga.Bridge"&
+                             recData$dateCollected=="2020-11-09 12:40:00"),]
 
 #Save unfiltered data
-save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
-                            "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
+# save(recData,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),
+#                             "/RecData",format(Sys.time(),'%Y-%b-%d'),".Rdata"))
 
 #Write individual regional files: data from recData prior to removing followups 
 uReg=unique(recData$region)
 for(reg in seq_along(uReg)){
-  cat(reg,'\n')
+  cat(unique(recData$region)[reg],'\n')
   toExport=recData%>%dplyr::filter(region==uReg[reg],dateCollected>(Sys.time()-lubridate::years(5)))
   write.csv(toExport,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                                  "/recData_",
@@ -304,7 +317,7 @@ rm(reg,uReg,toExport)
 
 table(recData$resample,useNA = 'a')
 #   FALSE  TRUE  <NA> 
-#   59284  2223 20393 
+#   46808  1800 19637 
 
 recDataF <- recData%>%filter(!resample|is.na(resample))%>%select(-resample,-clue)
 #85483 to 84684 13/10/2020
@@ -322,6 +335,13 @@ recDataF <- recData%>%filter(!resample|is.na(resample))%>%select(-resample,-clue
 #81900 to 79633 13/8/21
 #65232 to 63481
 #65649 to 63864 26/8/21
+#65650 to 63865 10/9/21
+#66919 to 65135 13/9/21
+#68019 to 66235 13/9/21
+#68128 to 66344 14/9/21
+#68770 to 66986 15/9/21
+#68096 to 66312 15/9/21 BoP timezone
+#68245 to 66445 16/9/21 GWRC addidiont
 
 
 save(recDataF,file = paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Data/",format(Sys.Date(),'%Y-%m-%d'),

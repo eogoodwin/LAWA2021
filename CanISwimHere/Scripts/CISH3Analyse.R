@@ -12,10 +12,15 @@ ssm = readxl::read_xlsx(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/CanISwimHere/
                                  pattern='SwimSiteMonitoringResults.*.xlsx',
                                  recursive = T,full.names = T),1),
                         sheet=1)%>%as.data.frame%>%unique
-
+ssm$TimeseriesUrl[ssm$Region=="Bay of Plenty region"] <- gsub(pattern = '@',
+                                                              replacement = '&featureOfInterest=',
+                                                              x =ssm$TimeseriesUrl[ssm$Region=="Bay of Plenty region"])
 ssm$callID =  NA
-ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
-                                                         FUN = function(x)unlist(strsplit(x,split='&')))))%>%
+ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm[!is.na(ssm$TimeseriesUrl),]%>%
+                                                           select(TimeseriesUrl),
+                                                         FUN = function(x){
+                                                           unlist(strsplit(x,split='&'))
+                                                         })))%>%
   grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
   gsub('featureofinterest=','',x=.,ignore.case = T)%>%
   sapply(.,URLdecode)%>%trimws
@@ -76,6 +81,9 @@ graphData <- recDataF%>%
 #55828 29/7/2021
 #48134 5/8/21
 #51078 13/8/21
+#51344 10/9/21
+#53689 13/9/21
+#54467 15/9/21
 
 graphData$bathingSeason <- factor(graphData$bathingSeason) 
 
@@ -87,6 +95,9 @@ CISHsiteSummary <- graphData%>%
   select(-dateCollected)%>%
   group_by(LawaSiteID,property)%>%            #For each site
   dplyr::summarise(.groups = 'keep',
+                   siteName=first(siteName),
+                   siteType=first(siteType),
+                   SiteID=first(SiteID),
                    region=unique(region),
                    nBS=length(unique(bathingSeason)),
                    nPbs=paste(as.numeric(table(bathingSeason)),collapse=','),
@@ -108,6 +119,10 @@ CISHsiteSummary <- graphData%>%
 #627 5/8/21
 #694 9/8/21
 #694 13/8/21
+#645 10/9/21
+#717 13/9/21
+#718 15/9/21
+
 
 #https://environment.govt.nz/publications/microbiological-water-quality-guidelines-for-marine-and-freshwater-recreational-areas/
 #https://niwa.co.nz/sites/niwa.co.nz/files/Swimmability%20Paper%2010%20May%202017%20FINAL.pdf     says 550
@@ -266,6 +281,9 @@ table(CISHsiteSummary$MACmarineEnt)
 # 47 120 83 35    29/7/21
 # 53 141 99 39    9/8/21
 # 53 140 100 39   13/8/21
+# 40 136 91 37    10/9/21
+# 56 147 101 39   13/9/21
+# 56 146 102 39    15/9/21
 table(CISHsiteSummary$NOFfwEcoli)
 # A   B   C   D 
 # 24  27  33 176    8/10/20
@@ -281,6 +299,8 @@ table(CISHsiteSummary$NOFfwEcoli)
 # 45 35 59 213    29/7/21
 # 36 37 63 226    9-8-21
 # 36 37 63 226   13/8/21
+# 32 33 62 214   10/9/21
+# 37 39 67 231   13/9/21
 
 
 #For LAWA bands in 2020
@@ -314,6 +334,8 @@ table(CISHsiteSummary$LawaBand)
 # 78  157 149 243   5/8/21
 # 89 178 162 265    9/8/21
 # 89 177 163 265   13/8/21
+# 72 169 153 251   10/9/21 
+# 93 186 168 270   13/9/21
 
 
 #Calculate data abundance
@@ -349,12 +371,10 @@ table(CISHsiteSummary$LawaBand,useNA='if')
 #   50  147  123  201  106  5/8/21
 #   60  164  136  212  122  9/8/21
 #   60  163  137  212  122  13/8/21
-#   
-#   
+#   47  157  131  207  103  10/9/21
+#   65  172  142  218  120  13/9/21
+#   65  171  143  219  120  15/9/21
 
-CISHsiteSummary$siteName = recDataF$siteName[match(CISHsiteSummary$LawaSiteID,recDataF$LawaSiteID)]
-CISHsiteSummary$siteType = recDataF$siteType[match(CISHsiteSummary$LawaSiteID,recDataF$LawaSiteID)]
-CISHsiteSummary$SiteID = ssm$SiteName[match(CISHsiteSummary$siteName,make.names(ssm$callID))]
 
 
 #Export here 
@@ -385,6 +405,9 @@ singleProp <- CISHsiteSummary%>%
 #371 2/7/21
 #453 29/7/21
 #532 13/8/21
+#491 10/9/21
+#557 13/9/21
+#558 15/9/21
 multiProp <- CISHsiteSummary%>%
   group_by(LawaSiteID)%>%
   dplyr::mutate(nProp=length(unique(property)),
@@ -402,8 +425,10 @@ moresingles = multiProp%>%filter(nProp==1)%>%select(-nProp,-nNA)%>%distinct
 #60  29/7/21
 #49 5/8/21
 #49 13/8/21
+#41 10/9/21
+#48 13/9/21
 
-singleProp=full_join(singleProp,moresingles)  #581
+singleProp=full_join(singleProp,moresingles)  #605
 rm(moresingles)
 
 multiProp <- multiProp%>%filter(nProp!=1)%>%
@@ -415,6 +440,8 @@ multiProp <- multiProp%>%filter(nProp!=1)%>%
 #64 29/7/21
 #64 5/8/21
 #64 13/8/21
+#72 10/9/21
+#64 13/9/21
 
 moresingles=multiProp%>%filter(ncg==1|combGr=="NA")%>%select(-combGr,-nProp,-nNA,-ncg)%>%distinct
 #26 2/7
@@ -422,6 +449,8 @@ moresingles=multiProp%>%filter(ncg==1|combGr=="NA")%>%select(-combGr,-nProp,-nNA
 #36 5/8/21
 #40 9/8/21
 #40 13/8/21
+#44 10/9/21
+#40 13/9/21
 
 #These are now same grade in ecoli and enterococci, but we do need to keep only the appropriate numeric values
 moresingles <- moresingles%>%filter((property=="E-coli"&siteType=='Site')|(property=="Enterococci"&siteType=='Beach'))
@@ -430,8 +459,10 @@ moresingles <- moresingles%>%filter((property=="E-coli"&siteType=='Site')|(prope
 #18 5/8/21
 #20 9/8/21
 #20 13/8/21
+#21 10/9/21
+#20 13/9/21
 
-singleProp=full_join(singleProp,moresingles) #601
+singleProp=full_join(singleProp,moresingles) #625
 rm(moresingles)
 
 multiProp <- multiProp%>%  dplyr::filter(ncg>1&combGr!='NA') #24 x 21
@@ -455,24 +486,26 @@ moresingles = multiProp%>%filter(LawaSiteID%in%moresingles$LawaSiteID)%>%
 #5 5/8/21
 #4 9/8/21
 #4 13/8/21
+#9 10/9/21
+#4 13/9/21
 
 
 multiProp <- multiProp%>%filter(!LawaSiteID%in%moresingles$LawaSiteID) #16 (==8 sites)
 
-singleProp=full_join(singleProp,moresingles) #605
+singleProp=full_join(singleProp,moresingles) #629
 rm(moresingles)
 
 storeForCouncilInfo=multiProp
 
 
-#There are 8 sites here.  Give them each their worst grade, regardless of water type
-# stopifnot(all(multiProp$siteType=='Beach'))
+#There are 5 sites here.  Give them each their worst grade, regardless of water type
+stopifnot(all(multiProp$siteType=='Beach'))
 moresingles <- multiProp%>%filter(property=='Enterococci')%>%
   mutate(LawaBand = sapply(combGr,FUN=function(s){max(unlist(strsplit(s,split = '')))}))%>%
   select(-(nProp:ncg)) #8
 moresingles$NOFfwEcoli = (multiProp$NOFfwEcoli[!is.na(multiProp$NOFfwEcoli)])[match(moresingles$LawaSiteID,multiProp$LawaSiteID[!is.na(multiProp$NOFfwEcoli)])]
 
-singleProp = full_join(singleProp,moresingles)%>% #613
+singleProp = full_join(singleProp,moresingles)%>% #637
   arrange(region)
 rm(moresingles,multiProp)
 
@@ -481,6 +514,9 @@ rm(moresingles,multiProp)
 
 CISHsiteSummary = singleProp          #694 rows to 613
                                       #645 to 547
+                                      #645 to 567
+                                      #717    637
+                                      #718    638
 
 # rm(singleProp)
 
@@ -784,12 +820,6 @@ plot(rlcpie)
 print(rlcpie,file=paste0("h:/ericg/16666LAWA/LAWA2021/CanISwimHere/Analysis/",
                          format(Sys.Date(),'%Y-%m-%d'),
                          "/SwimSpot.html"))
-
-
-
-
-
-
 
 
 

@@ -364,6 +364,9 @@ trendTable5$TrendScore[is.na(trendTable5$TrendScore)]<-(NA)
 save(trendTable5,file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),"%Y-%m-%d"),"/Trend5Year.rData"))
 rm(trendTable5)
 
+
+
+
 #Reload, combine and output ####
 
 load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
@@ -372,6 +375,38 @@ load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
               pattern = "Trend10Year.rData",full.names = T,recursive = T),1),verbose = T)
 load(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",
               pattern = "Trend5Year.rData",full.names = T,recursive = T),1),verbose = T)
+
+
+
+if(year(Sys.Date())==2021){
+  bugFix15 = which(trendTable15$Z==0)
+  table(trendTable15$Agency[bugFix15])
+  trendTable15$p[bugFix15] <- 1
+  trendTable15$C[bugFix15] <- 0.5
+  trendTable15$Cd[bugFix15] <- 0.5
+  trendTable15$ConfCat[bugFix15] <- "Indeterminate"
+  trendTable15$TrendScore[bugFix15] <- 0
+  rm(bugFix15)
+  bugFix10 = which(trendTable10$Z==0)
+  table(trendTable10$Agency[bugFix10])
+  trendTable10$p[bugFix10] <- 1
+  trendTable10$C[bugFix10] <- 0.5
+  trendTable10$Cd[bugFix10] <- 0.5
+  trendTable10$ConfCat[bugFix10] <- "Indeterminate"
+  trendTable10$TrendScore[bugFix10] <- 0
+  rm(bugFix10)
+  bugFix5 = which(trendTable5$Z==0)
+  table(trendTable5$Agency[bugFix5])
+  trendTable5$p[bugFix5] <- 1
+  trendTable5$C[bugFix5] <- 0.5
+  trendTable5$Cd[bugFix5] <- 0.5
+  trendTable5$ConfCat[bugFix5] <- "Indeterminate"
+  trendTable5$TrendScore[bugFix5] <- 0
+  rm(bugFix5)
+}
+
+
+
 
 combTrend <- rbind(rbind(trendTable15,trendTable10),trendTable5)
 

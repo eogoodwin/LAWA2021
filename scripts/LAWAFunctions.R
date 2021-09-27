@@ -2,10 +2,12 @@ library(lubridate)
 library(XML)
 
 #Is the core of the trend funcgorithm
-source('h:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R')
+# source('h:/ericg/16666LAWA/LWPTrends_v2101/LWPTrends_v2101.R')
 
-trendCore <- function(subDat,periodYrs,proportionNeeded=0.5){
-  siteTrendTable=data.frame(LawaSiteID=unique(subDat$LawaSiteID),Measurement=uMeasures, nMeasures=NA, nFirstYear=NA,
+trendCore <- function(subDat,periodYrs,proportionNeeded=0.5,valToUse ="Result-edited"){
+  #Used by groundwater
+  siteTrendTable=data.frame(LawaSiteID=unique(subDat$LawaSiteID),proportionNeeded=proportionNeeded,
+                            Measurement=unique(subDat$Measurement), nMeasures=NA, nFirstYear=NA,
                             nLastYear=NA,numMonths=NA, numQuarters=NA, numYears=NA,
                             Observations=NA,KWstat=NA,pvalue=NA, SeasNote=NA,
                             nObs=NA, S=NA, VarS=NA, D=NA,tau=NA, Z=NA, p=NA, C=NA,Cd=NA, MKAnalysisNote=NA,
@@ -13,26 +15,20 @@ trendCore <- function(subDat,periodYrs,proportionNeeded=0.5){
                             Median=NA, Sen_VarS=NA,AnnualSenSlope=NA, Intercept=NA, Sen_Lci=NA,
                             Sen_Uci=NA, SSAnalysisNote=NA,Sen_Probability=NA, Sen_Probabilitymax=NA,
                             Sen_Probabilitymin=NA, Percent.annual.change=NA,
-                            standard=NA,ConfCat=NA, period=15, frequency=NA)
+                            standard=NA,ConfCat=NA, period=periodYrs, frequency=NA)
   subDat <- subDat%>%dplyr::filter(lubridate::year(myDate)>=(EndYear-periodYrs+1)&lubridate::year(myDate)<=EndYear)
   subDat <- subDat%>%tidyr::drop_na(Value)
   if(dim(subDat)[1]==0){return(siteTrendTable)}
   siteTrendTable$nMeasures=dim(subDat)[1]
-  SSD_med <- subDat%>%as.data.frame
+  subDat <- subDat%>%as.data.frame
   #Mods here made 3/9/2020 EG because medianing with a single high value and two low censored values 
   #would yield a high censored value, that then overwrote all non-censored values
-    # dplyr::group_by(LawaSiteID,Year,Month,Qtr)%>%
-    # dplyr::summarise(Value = quantile(Value,prob=c(0.5),type=5,na.rm=T),
-    #                  myDate = mean(myDate,na.rm=T),
-    #                  Censored = all(Censored),
-    #                  CenType = ifelse(any(CenType=='lt'),'lt',ifelse(any(CenType=='gt'),'gt','not'))
-    # )%>%ungroup%>%as.data.frame
-  SSD_med$Value=signif(SSD_med$Value,6)#Censoring fails with tiny machine rounding errors
-  SSD_med$Season = factor(SSD_med$Month)
-  siteTrendTable$nFirstYear=length(which(SSD_med$Year==(EndYear-periodYrs+1)))
-  siteTrendTable$nLastYear=length(which(SSD_med$Year==EndYear))
-  siteTrendTable$numMonths=length(unique(SSD_med$monYear))#dim(SSD_med)[1]
-  siteTrendTable$numYears=length(unique(SSD_med$Year[!is.na(SSD_med$Value)]))
+  subDat$Value=signif(subDat$Value,6)#Censoring fails with tiny machine rounding errors
+  subDat$Season = factor(subDat$Month)
+  siteTrendTable$nFirstYear=length(which(subDat$Year==(EndYear-periodYrs+1)))
+  siteTrendTable$nLastYear=length(which(subDat$Year==EndYear))
+  siteTrendTable$numMonths=length(unique(subDat$monYear))#dim(subDat)[1]
+  siteTrendTable$numYears=length(unique(subDat$Year[!is.na(subDat$Value)]))
   
   #For monthly we want x% of measures, x% in the last year, and a certain number of years (9 out of 10, 13 out of 15)
   if((siteTrendTable$numMonths >= proportionNeeded*12*periodYrs) &
@@ -40,16 +36,8 @@ trendCore <- function(subDat,periodYrs,proportionNeeded=0.5){
      (siteTrendTable$numYears > 0.85*periodYrs)){ #New rule, only implemented 27/3/20
     siteTrendTable$frequency='monthly'
   }else{
-    # SSD_med <- subDat%>%
-    #   dplyr::group_by(LawaSiteID,Year,Qtr)%>%
-    #   dplyr::summarise(Value = quantile(Value,prob=c(0.5),type=5,na.rm=T),
-    #                    myDate = mean(myDate,na.rm=T),
-    #                    Censored = all(Censored),
-    #                    CenType = ifelse(any(CenType=='lt'),'lt',ifelse(any(CenType=='gt'),'gt','not'))
-    #   )%>%ungroup%>%as.data.frame
-    SSD_med$Season=SSD_med$Qtr
-    # SSD_med$Value=signif(SSD_med$Value,6)#Censoring fails with tiny machine rounding errors
-    siteTrendTable$numQuarters=length(unique(SSD_med$quYear))#dim(SSD_med)[1]
+    subDat$Season=subDat$Qtr
+    siteTrendTable$numQuarters=length(unique(subDat$quYear))
     
     #For quarterly we want x% of measures, x% in the last year, and a certain number of years (9/10, 13/15)
     if((siteTrendTable$numQuarters >= proportionNeeded*4*periodYrs) &
@@ -67,26 +55,23 @@ trendCore <- function(subDat,periodYrs,proportionNeeded=0.5){
     }
   }
   if(!grepl('^unassess',siteTrendTable$frequency)){
-    st <- SeasonalityTest(x = SSD_med,main=uMeasures,ValuesToUse = "Value",do.plot =F)
+    st <- SeasonalityTest(x = subDat,main=uMeasures,ValuesToUse = valToUse,do.plot =F)
     siteTrendTable[names(st)] <- st
     if(!is.na(st$pvalue)&&st$pvalue<0.05){
-      sk <- SeasonalKendall(x = SSD_med,ValuesToUse = "Value",HiCensor = T,doPlot = F)
-      sss <- SeasonalSenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
+      sk <- SeasonalKendall(x = subDat,ValuesToUse = valToUse,HiCensor = T,doPlot = F)
+      sss <- SeasonalSenSlope(HiCensor=T,x = subDat,ValuesToUse = valToUse,ValuesToUseforMedian=valToUse,doPlot = F)
       siteTrendTable[names(sk)] <- sk
       siteTrendTable[names(sss)] <- sss
       rm(sk,sss)
     }else{
-      mk <- MannKendall(x = SSD_med,ValuesToUse = "Value",HiCensor = T,doPlot=F)
-      ss <- SenSlope(HiCensor=T,x = SSD_med,ValuesToUse = "Value",ValuesToUseforMedian="Value",doPlot = F)
+      mk <- MannKendall(x = subDat,ValuesToUse = valToUse,HiCensor = T,doPlot=F)
+      ss <- SenSlope(HiCensor=T,x = subDat,ValuesToUse = valToUse,ValuesToUseforMedian=valToUse,doPlot = F)
       siteTrendTable[names(mk)] <- mk
       siteTrendTable[names(ss)] <- ss
       rm(mk,ss)
     }
     rm(st)
-  }#else{
-  #siteTrendTable$frequency=paste0('too few, n=',dim(SSD_med)[1],'Q/',proportionNeeded*4*periodYrs)
-  #  }
-  rm(SSD_med)
+  }
   return(siteTrendTable)
 }
 
@@ -205,18 +190,18 @@ strFrom=function(s,c=":"){
 ldWFS <- function(urlIn,dataLocation,agency,case.fix=TRUE,method='curl'){
   require(XML)
   if(dataLocation=="web"){
-    dl=try(download.file(urlIn,destfile=paste0("WFS",agency),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
+    dl=try(download.file(urlIn,destfile=paste0(agency,"WFS.xml"),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
     if('try-error'%in%attr(dl,'class')|
-       'try-error'%in%attr(try(xmlParse(file = paste0("WFS",agency)),silent=T),'class')){
+       'try-error'%in%attr(try(xmlParse(file = paste0(agency,"WFS.xml")),silent=T),'class')){
       method=ifelse(method=='curl',yes = 'wininet',no = 'curl')
-      dl=try(download.file(urlIn,destfile=paste0("WFS",agency),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
+      dl=try(download.file(urlIn,destfile=paste0(agency,"WFS.xml"),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
     }
     if('try-error'%in%attr(dl,'class')){
       return(NULL)
     }
-    if(case.fix)  cc(paste0("WFS",agency))
-    wfsxml <- try(xmlParse(file = paste0("WFS",agency)),silent=T)
-    unlink(paste0("WFS",agency))
+    if(case.fix)  cc(paste0(agency,"WFS.xml"))
+    wfsxml <- try(xmlParse(file = paste0(agency,"WFS.xml")),silent=T)
+    unlink(paste0(agency,"WFS.xml"))
     if('try-error'%in%attr(wfsxml,'class')){return(NULL)}
   }else{
     if(dataLocation=="file"){
@@ -234,17 +219,31 @@ ldWFS <- function(urlIn,dataLocation,agency,case.fix=TRUE,method='curl'){
 
 ldWFSlist <- function(urlIn,dataLocation,agency,case.fix=TRUE,method='curl'){
   require(xml2)
-  dl=try(download.file(urlIn,destfile=paste0("WFS",agency),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
-  if('try-error'%in%attr(dl,'class')|
-     'try-error'%in%attr(try(xmlParse(file = paste0("WFS",agency)),silent=T),'class')){
-    method=ifelse(method=='curl',yes = 'wininet',no = 'curl')
-    dl=try(download.file(urlIn,destfile=paste0("WFS",agency),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
+  if(!grepl('ericg',urlIn)){
+    dl=try(download.file(urlIn,destfile=paste0(agency,"WFS.xml"),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
+    if((exists('dl')&&'try-error'%in%attr(dl,'class'))|
+       'try-error'%in%attr(try(xmlParse(file = paste0(agency,"WFS.xml")),silent=T),'class')){
+      method=ifelse(method=='curl',yes = 'wininet',no = 'curl')
+      dl=try(download.file(urlIn,destfile=paste0(agency,"WFS.xml"),method=method,quiet=T),silent=T)  #curl worked for um for nrc, wininet worked for others
+    }
+    if(exists('dl')&&'try-error'%in%attr(dl,'class')){
+      return(NULL)
+    }
+  }else{#Probably a file on the h drive. :-|
+    if(dataLocation=="file"){
+      message("trying file",urlIn,"\nContent type  'text/xml'\n")
+      if(grepl("xml$",urlIn)){
+        WFSList <- as_list(read_xml(urlIn))[[1]]
+        WFSList <- sapply(WFSList,`[`,'MonitoringSiteReferenceData')
+        return(WFSList)
+      } else {
+        return(NULL)
+      }
+    }
   }
-  if('try-error'%in%attr(dl,'class')){
-    return(NULL)
-  }
-  if(case.fix)  cc(paste0("WFS",agency))
-  WFSList <- as_list(read_xml(paste0("WFS",agency)))[[1]]
+  
+  if(case.fix)  cc(paste0(agency,"WFS.xml"))
+  WFSList <- as_list(read_xml(paste0(agency,"WFS.xml")))[[1]]
   WFSList <- sapply(WFSList,`[`,'MonitoringSiteReferenceData')
   return(WFSList)
 }
@@ -429,8 +428,10 @@ checkCSVageRiver <- function(agency,maxHistory=100){
                          format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
       if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
-        cat(agency,"CSV from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        return(stepBack)
+        cat(agency,"CSV from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\t")
+        suppressWarnings({cat(format(file.info(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
+                             format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))$mtime),'\n')})
+        invisible(return(stepBack))
       }
     }
     stepBack=stepBack+1
@@ -834,8 +835,16 @@ loadLatestCSVRiver <- function(agency,maxHistory=365,silent=F){
     if(dir.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/"))){
       if(file.exists(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"))){
         if(!silent)cat("loading",agency,"from",stepBack,"days ago,",format(Sys.Date()-stepBack,'%Y-%m-%d'),"\n")
-        return(read.csv(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
-                               format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"),stringsAsFactors = F))
+        return(read_csv(paste0("h:/ericg/16666LAWA/LAWA2021/WaterQuality/Data/",
+                               format(Sys.Date()-stepBack,'%Y-%m-%d'),"/",agency,".csv"),
+                        col_types=readr::cols(CouncilSiteID = col_character(),
+                                              Date = col_character(),
+                                              Value = col_double(),
+                                              Measurement = col_character(),
+                                              Units = col_character(),
+                                              Censored = col_logical(),
+                                              CenType = col_character(),
+                                              QC = col_integer())))
       }
     }
     stepBack=stepBack+1
@@ -845,13 +854,34 @@ loadLatestCSVRiver <- function(agency,maxHistory=365,silent=F){
 }
 
 loadLatestDataRiver <- function(){
+  require(readr)
   wqdataFileName=tail(dir(path = "H:/ericg/16666LAWA/LAWA2021/WaterQuality/Data",
                           pattern = "AllCouncils.csv",
                           recursive = T,
                           full.names = T,
                           ignore.case = T),1)
-  cat(wqdataFileName)
-  wqdata=readr::read_csv(wqdataFileName,guess_max=150000)%>%as.data.frame
+  cat(wqdataFileName,'\n')
+  cat(file.info(wqdataFileName)$mtime)
+  wqdata=readr::read_csv(wqdataFileName,
+                         col_types = readr::cols(CouncilSiteID = col_character(),
+                                          Date = col_character(),
+                                          Value = col_double(),
+                                          Measurement = col_character(),
+                                          Units = col_character(),
+                                          Censored = col_logical(),
+                                          CenType = col_character(),
+                                          QC = col_double(),
+                                          SiteID = col_character(),
+                                          LawaSiteID = col_character(),
+                                          Agency = col_character(),
+                                          Region = col_character(),
+                                          SWQAltitude = col_character(),
+                                          SWQLanduse = col_character(),
+                                          Altitude = col_double(),
+                                          Landcover = col_character(),
+                                          Symbol = col_character(),
+                                          RawValue = col_character()
+                         ))%>%as.data.frame
   rm(wqdataFileName)
   return(wqdata)
 }
@@ -1236,8 +1266,16 @@ xml2csvLake <- function(agency,quiet=F,maxHistory=100){
             cenR=rep(FALSE,length(vv))            
             if(length(i2)>0){
               #if censoring is coded on tag I2
-              cenL = grepl(x=i2,pattern="&lt|<",ignore.case = T)
-              cenR = grepl(x=i2,pattern="&gt|>",ignore.case = T)
+              cenL = grepl(x=i2,pattern="&lt",ignore.case = T)
+              cenR = grepl(x=i2,pattern="&gt",ignore.case = T)  
+              if(any(grepl(x=i2,pattern="[^value\t]<[^not|\t|10mm]",ignore.case=T))){
+                browser()} 
+                     #grep(x=i2,pattern="[^value\t]<[^not|\t|10mm]",ignore.case=T,value=T)
+              if(any(grepl(x=i2,pattern="[^assigned|\t|GL|HCOL-]>[^ *24 *hou|5 cm|3 degrees|3.6m]",ignore.case=T))){
+                browser()} 
+                    #grep(x=i2,pattern="[^assigned|\t|GL|HCOl-]>[^ *24 *hou|5 cm|3 degrees|3.6m]",ignore.case=T,value=T)
+              cenL = cenL|grepl(x=i2,pattern="<[^not|]",ignore.case=T)       #the ecxeptios here were affecting ORC
+              cenR = cenR|grepl(x=i2,pattern="[^assigned]>",ignore.case=T) #They had tags saying <not assigned>
             }
             #If censoring is coded on the value
             cenL = cenL|grepl(x=vv,pattern="&lt|<",ignore.case = T)

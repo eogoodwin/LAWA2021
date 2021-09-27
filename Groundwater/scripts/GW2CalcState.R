@@ -20,7 +20,7 @@ GWmedians <- GWdataRelevantVariables%>%
   ungroup%>%
   mutate(censoredPropn = censoredCount/count)
 Sys.time()-startTime #1.7s
-#5328 of 13
+#5451 of 13
 
 GWmedians$CenType = as.character(GWmedians$CenType)
 GWmedians$CenType[GWmedians$CenType==1] <- '<'
@@ -33,18 +33,6 @@ GWmedians$censMedian[GWmedians$censoredPropn>=0.5 & GWmedians$CenType=='>'] <-
 
 #E coli detection ####
 #1 is detect, 2 is non-detect
-# GWmedians$EcoliDetect=NA
-# GWmedians$EcoliDetect[which(GWmedians$Measurement=="E.coli")] <- "1"  #Detect
-# GWmedians$EcoliDetect[which(GWmedians$Measurement=="E.coli"&
-#                               (GWmedians$censoredPropn>0.5|
-#                                  GWmedians$median==0|
-#                                  is.na(GWmedians$median)))] <- "2"  #Non-detect
-# table(GWmedians$EcoliDetect)   
-#Changing the 'censoredCount' above.  
-#When it's based on censoredCount = sum(!is.na(CenType)), I get 88 detects, 688 non detects
-#When it's based on censoredCount = sum(Value<=(0.5*LcenLim) | Value>=(1.1*RcenLim)) I get 89 detects, 687 non detects
-
-
 GWmedians$EcoliDetectAtAll=NA
 GWmedians$EcoliDetectAtAll[which(GWmedians$Measurement=="E.coli")] <- "1"  #Detect
 GWmedians$EcoliDetectAtAll[which(GWmedians$Measurement=="E.coli"&
@@ -52,14 +40,6 @@ GWmedians$EcoliDetectAtAll[which(GWmedians$Measurement=="E.coli"&
                                       GWmedians$median==0|
                                       is.na(GWmedians$median)))] <- "2"  #Non-detect
 table(GWmedians$EcoliDetectAtAll)
-#Changing the 'censoredCount' above.
-#When it's based on censoredCount = sum(!is.na(CenType)), I get 391 detects, 385 non detects
-#When it's based on censoredCount = sum(Value<=(0.5*LcenLim) | Value>=(1.1*RcenLim)) I get 394 detects, 382 non detects
-
-
-
-# table(GWmedians$EcoliDetect,GWmedians$EcoliDetectAtAll)
-
 
 #3845 of 11 11-7
 #3756 of 11 11-14
@@ -82,6 +62,7 @@ table(GWmedians$EcoliDetectAtAll)
 #5354   13/8/21
 #5321  27/8/21
 #5328  3/9/21
+#5451 17/9/21
 
 GWmedians$meas = factor(GWmedians$Measurement,
                         levels=c("Ammoniacal nitrogen","Chloride","Dissolved reactive phosphorus",

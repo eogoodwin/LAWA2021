@@ -205,15 +205,19 @@ readXMLFile <- function(regionName,siteName,propertyName,property){
 ssm = readxl::read_xlsx(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/CanISwimHere/MetaData/',
                                  pattern='SwimSiteMonitoringResults.*.xlsx',
                                  recursive = T,full.names = T),1),
-                        sheet=1)
+                        sheet=1)%>%as.data.frame%>%unique
+ssm$TimeseriesUrl[ssm$Region=="Bay of Plenty region"] <- gsub(pattern = '@',
+                                                              replacement = '&featureOfInterest=',
+                                                              x =ssm$TimeseriesUrl[ssm$Region=="Bay of Plenty region"])
 ssm$callID =  NA
-ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm%>%select(TimeseriesUrl),
-                                                         FUN = function(x)unlist(strsplit(x,split='&')))))%>%
+ssm$callID[!is.na(ssm$TimeseriesUrl)] <- c(unlist(sapply(X = ssm[!is.na(ssm$TimeseriesUrl),]%>%
+                                                           select(TimeseriesUrl),
+                                                         FUN = function(x){
+                                                           unlist(strsplit(x,split='&'))
+                                                         })))%>%
   grep('featureofinterest',x = .,ignore.case=T,value=T)%>%
   gsub('featureofinterest=','',x=.,ignore.case = T)%>%
   sapply(.,URLdecode)%>%trimws
-
-ssm$LawaSiteID=tolower(ssm$LawaId)
 
 
 

@@ -38,7 +38,7 @@ if(!exists('macroData')){
   macroData$LawaSiteID=tolower(macroData$LawaSiteID)
 }
 
-macroData$NZReach = macroSiteTable$NZReach[match(gsub('_niwa','',x = tolower(macroData$LawaSiteID)),
+macroData$NZReach = macroSiteTable$NZReach[match(tolower(macroData$LawaSiteID),
                                                  tolower(macroSiteTable$LawaSiteID))]
 
 
@@ -47,7 +47,7 @@ macroData$NZReach = macroSiteTable$NZReach[match(gsub('_niwa','',x = tolower(mac
 
 write.csv(macroData%>%
             filter(Measurement%in%c("MCI","TaxaRichness","PercentageEPTTaxa","QMCI","ASPM"))%>%
-            transmute(LAWAID=gsub('_NIWA','',LawaSiteID,ignore.case = T),
+            transmute(LAWAID=LawaSiteID,
                       SiteName = CouncilSiteID,
                       Agency=Agency,
                       CollectionDate=format(lubridate::dmy(Date),"%Y-%m-%d"),
@@ -57,6 +57,8 @@ write.csv(macroData%>%
             dplyr::summarise(.groups='keep',Value=median(Value,na.rm=T,type=5))%>%ungroup,
           file = paste0("h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
                         "/ITEMacroHistoricData",format(Sys.time(),'%d%b%Y'),".csv"),row.names=F)
+iteMHD=read_csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/",
+                         pattern = "ITEMacroHistoricData",recursive = T,full.names = T,ignore.case = T),1))
 
 
 macroData$month=lubridate::month(lubridate::dmy(macroData$Date))
@@ -68,7 +70,8 @@ macroData=macroData[which(macroData$sYear>=firstYear & macroData$sYear<=EndYear)
 macroData$Date=lubridate::dmy(macroData$Date)
 
 lawaMacroData = macroData%>%
-  group_by(LawaSiteID,#=gsub('_niwa','',LawaSiteID),
+  group_by(LawaSiteID,
+           Agency, #Intro 20/9/2021 after effect delivery, before download data prep
            sYear,
            Measurement)%>%
   dplyr::summarise(.groups='keep',
@@ -100,11 +103,11 @@ cumsum(rev(table(lawaMacroState5yr$n)))
 sum(lawaMacroState5yr$n>=4)
 sum(lawaMacroState5yr$n>=4)/dim(lawaMacroState5yr)[1]
 #0.89  4050 out of 4541
-#Drop the ones that are based on fewer than 3 years
+#Drop the ones that are based on fewer than 4 years  (changed, 2021)
 lawaMacroState5yr <- lawaMacroState5yr%>%filter(n>=4)
 #4541 to 4050
 
-write.csv(lawaMacroState5yr%>%transmute(LAWAID=gsub('_NIWA','',LawaSiteID,ignore.case = T),
+write.csv(lawaMacroState5yr%>%transmute(LAWAID=LawaSiteID,
                                         Parameter=Measurement,
                                         Median=Median),
           file=paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/',
@@ -113,9 +116,17 @@ write.csv(lawaMacroState5yr%>%transmute(LAWAID=gsub('_NIWA','',LawaSiteID,ignore
 # lawaMacroState5yr = read.csv(tail(dir(path='h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Analysis/',pattern='MACRO_STATE_ForITE|MacroState',recursive = T,full.names = T),1),stringsAsFactors = F)
 
 
+#Drop values for NIWA versiosn of duplicated sites
+lmdsiten = lawaMacroData%>%group_by(LawaSiteID)%>%summarise(nAge = length(unique(Agency)))%>%ungroup
+lawaMacroData$nAge = lmdsiten$nAge[match(lawaMacroData$LawaSiteID,lmdsiten$LawaSiteID)]
+toCut = which(lawaMacroData$nAge==2 & lawaMacroData$Agency=='niwa')
+
+lawaMacroData=lawaMacroData[-toCut,]
+
+rm(toCut)
 
 # rolling 5 year median for MCI ####
-rollingMCI <- lawaMacroData%>%filter(Measurement=='MCI')%>%select(LawaSiteID,sYear,Value,date)
+rollingMCI <- lawaMacroData%>%filter(Measurement=='MCI')%>%select(LawaSiteID,sYear,Value,date)%>%unique
 setDT(rollingMCI)     
 setkey(rollingMCI,LawaSiteID,sYear)
 rollingMCI[,rollMCI:=rollMed(Value,5),by=LawaSiteID]
@@ -127,7 +138,7 @@ write.csv(rollingMCI,paste0('h:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Anal
                             '/MacroRollingMCI',format(Sys.time(),'%d%b%Y'),'.csv'),row.names = F)
 
 # rolling 5 year median for QMCI
-rollingQMCI <- lawaMacroData%>%filter(Measurement=='QMCI')%>%select(LawaSiteID,sYear,Value,date)
+rollingQMCI <- lawaMacroData%>%filter(Measurement=='QMCI')%>%select(LawaSiteID,sYear,Value,date)%>%unique
 setDT(rollingQMCI)     
 setkey(rollingQMCI,LawaSiteID,sYear)
 rollingQMCI[,rollQMCI:=rollMed(Value,5),by=LawaSiteID]

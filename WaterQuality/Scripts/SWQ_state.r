@@ -12,7 +12,6 @@ dir.create(paste0("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/", format(S
 
 riverSiteTable=loadLatestSiteTableRiver()
 
-if(!exists('wqdata')){
   wqdata=loadLatestDataRiver()
   
   #Write out for ITEffect
@@ -21,7 +20,7 @@ if(!exists('wqdata')){
   wqdata$DetectionLimit[wqdata$Symbol==">"] <- 2
   storeSci=options('scipen')
   options(scipen=5)
-  write.csv(wqdata%>%transmute(LAWAID=gsub('_NIWA','',LawaSiteID,ignore.case = T),
+  write.csv(wqdata%>%transmute(LAWAID=LawaSiteID,
                                Region=Region,
                                Site=CouncilSiteID,
                                Date=format(lubridate::dmy(Date),'%Y-%m-%d'),
@@ -32,13 +31,12 @@ if(!exists('wqdata')){
                         "/ITERiversRawData",format(Sys.time(),"%d%b%Y"),".csv"),row.names=F,na="NULL")
   options(scipen=storeSci);rm(storeSci)
 
-# delved=read_csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",
-#                          pattern="ITERiversRawData",full.names = T,recursive = T),1),guess_max=350000)
-}
+# delved=read_csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/",pattern="ITERiversRawData",full.names = T,recursive = T),1),guess_max=350000)
+
   wqdYear=lubridate::year(dmy(wqdata$Date))
   wqdata <- wqdata[which((wqdYear>=(StartYear5) & wqdYear<=EndYear)),]
   rm(wqdYear)
-  #576344
+  #572214
 
 wqparam <- c("BDISC","DIN","DRP","ECOLI","NH4","NO3N","PH","TN","TON","TP","TURB","TURBFNU") 
 
@@ -77,9 +75,14 @@ foreach(i = 1:length(wqparam),.combine = rbind,.errorhandling = "stop")%dopar%{
   wqdata_A$Frequency=freqs[wqdata_A$LawaSiteID]  
   rm(freqs)
   
+# Frequency)=="monthly"     dfs$Count<(0.5*12*5)]       #30 out of 5*12 = 60
+# Frequency)=="bimonthly"   dfs$Count<(0.8*6*5)]        #80% of 6 bimonthlys per year * 5 years
+# Frequency)=="quarterly"   dfs$Count<(0.8*4*5)]        #require 16 out of 20
+  
+  
   state <- c("Site","Catchment","Region","NZ")
   level <- c("LandcoverAltitude","Landcover","Altitude","None")
-  sa11 <- StateAnalysis(wqdata_A,state[1],level[1])
+  sa11 <- StateAnalysis(df = wqdata_A,type = state[1],level = level[1])
   sa41 <- StateAnalysis(wqdata_A,state[4],level[1])
   sa42 <- StateAnalysis(wqdata_A,state[4],level[2])
   sa43 <- StateAnalysis(wqdata_A,state[4],level[3])

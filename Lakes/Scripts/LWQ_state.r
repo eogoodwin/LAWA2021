@@ -193,12 +193,23 @@ stopCluster(workers)
 rm(workers)
 Sys.time()-startTime  
 #13/8/21 5 s 75590
+# Saving the lakeMonthlyMedian table  USED in NOF calculations
+write.csv(lakeMonthlyMedian,file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
+                                        "/lakeMonthlyMedian",StartYear10,"-",EndYear,format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
+# lakeMonthlyMedian=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",pattern = "lakeMonthlyMedian.*",recursive = T,full.names = T,ignore.case=T),1),stringsAsFactors = F)
 
 
 
 #5Year medians
+lake3YearMedian <- lakeMonthlyMedian%>%
+  dplyr::filter(!is.na(LawaSiteID),Measurement%in%c("CYANOTOT","CYANOTOX"))%>%
+  dplyr::filter(Year>=(StartYear5+2))%>%
+  dplyr::group_by(LawaSiteID,Measurement)%>%
+  dplyr::summarise(.groups='keep',
+                   Median=quantile(Value,prob=0.5,type=5,na.rm=T),
+                   n=n())%>%ungroup
 lake5YearMedian <- lakeMonthlyMedian%>%
-  dplyr::filter(!is.na(LawaSiteID))%>%
+  dplyr::filter(!is.na(LawaSiteID),!Measurement%in%c("CYANOTOT","CYANOTOX"))%>%
   dplyr::filter(Year>=StartYear5)%>%
   dplyr::group_by(LawaSiteID,Measurement)%>%
   dplyr::summarise(.groups='keep',
@@ -211,16 +222,23 @@ TLI5Year = TLI%>%
   dplyr::summarise(.groups='keep',
                    Median = quantile(Value,prob=0.5,type=5,na.rm=T),
                    n=n())%>%ungroup
-lake5YearMedian <- rbind(lake5YearMedian,TLI5Year)%>%arrange(LawaSiteID,Measurement)
-rm(TLI5Year)
+lake5YearMedian <- rbind(lake3YearMedian,lake5YearMedian,TLI5Year)%>%arrange(LawaSiteID,Measurement)
+rm(TLI5Year,lake3YearMedian)
 sum(lake5YearMedian$n>=30)/dim(lake5YearMedian)[1]
 #519 out of 928  0.46
-lake5YearMedian <- lake5YearMedian%>%filter(n>=30|Measurement=="TLI") #Require 30 monthly values to calculate 5-year state median
-#683 from 1131
+lake5YearMedian <- lake5YearMedian%>%filter(n>=30|Measurement=="TLI"|(Measurement%in%c("CYANOTOX","CYANOTOT")&n>=12)) #Require 30 monthly values to calculate 5-year state median
+#713 from 1158
 
+lake3yearMedianBYFENZ <- lakeMonthlyMedian%>%
+  drop_na(LFENZID)%>%
+  dplyr::filter(Year>=(StartYear5+2),Measurement%in%c("CYANOTOT","CYANOTOX"))%>%
+  dplyr::group_by(LFENZID,Measurement)%>%
+  dplyr::summarise(.groups='keep',
+                   Median = quantile(Value,prob=0.5,type=5,na.rm=T),
+                   n=n())%>%ungroup
 lake5yearMedianBYFENZ <- lakeMonthlyMedian%>%
   drop_na(LFENZID)%>%
-  dplyr::filter(Year>=StartYear5)%>%
+  dplyr::filter(Year>=StartYear5,!Measurement%in%c("CYANOTOT","CYANOTOX"))%>%
   dplyr::group_by(LFENZID,Measurement)%>%
   dplyr::summarise(.groups='keep',
                    Median = quantile(Value,prob=0.5,type=5,na.rm=T),
@@ -232,20 +250,15 @@ TLI5YearByFENZ <- TLIbyFENZ%>%
   dplyr::summarise(.groups='keep',
                    Median = quantile(Value,prob=0.5,type=5,na.rm=T),
                    n=n())%>%ungroup
-lake5yearMedianBYFENZ <- rbind(lake5yearMedianBYFENZ,TLI5YearByFENZ)%>%arrange(LFENZID,Measurement)
-rm(TLI5YearByFENZ)
+lake5yearMedianBYFENZ <- rbind(lake5yearMedianBYFENZ,lake3yearMedianBYFENZ,TLI5YearByFENZ)%>%arrange(LFENZID,Measurement)
+rm(TLI5YearByFENZ,lake3yearMedianBYFENZ)
 sum(lake5yearMedianBYFENZ$n>=30)/dim(lake5yearMedianBYFENZ)[1]
-lake5yearMedianBYFENZ <- lake5yearMedianBYFENZ%>%filter(n>=30|Measurement=="TLI") #Require 30 monthly values to calculate 5-year state median
-
+lake5yearMedianBYFENZ <- lake5yearMedianBYFENZ%>%filter(n>=30|Measurement=="TLI"|(n>=12&Measurement%in%c("CYANOTOX","CYANOTOT"))) #Require 30 monthly values to calculate 5-year state median
+#515 from 909
 
 
 
 #Save outputs ####
-
-# Saving the lakeMonthlyMedian table  USED in NOF calculations
-write.csv(lakeMonthlyMedian,file=paste0("h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/",format(Sys.Date(),'%Y-%m-%d'),
-                                            "/lakeMonthlyMedian",StartYear10,"-",EndYear,format(Sys.time(),"%d%b%Y"),".csv"),row.names=F)
-# lakeMonthlyMedian=read.csv(tail(dir(path="h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis",pattern = "lakeMonthlyMedian.*",recursive = T,full.names = T,ignore.case=T),1),stringsAsFactors = F)
 
 #LakeSiteState for ITE
 write.csv(lake5YearMedian%>%
@@ -253,7 +266,7 @@ write.csv(lake5YearMedian%>%
             drop_na(Median)%>%
             dplyr::transmute(LAWAID=LawaSiteID,
                       Parameter=Measurement,
-                      Year=EndYear, #of 5
+                      Year=EndYear, #of 5 or 3
                       Median=Median), #fiveyear median
           file=paste0('h:/ericg/16666LAWA/LAWA2021/Lakes/Analysis/',format(Sys.Date(),'%Y-%m-%d'),
                       '/ITELakeSiteState',format(Sys.time(),"%d%b%Y"),'.csv'),row.names = F)

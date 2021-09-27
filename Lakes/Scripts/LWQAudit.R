@@ -66,7 +66,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
   forcsv=loadLatestCSVLake(agency,maxHistory = 100)
   if(!is.null(forcsv)){
     newRows=data.frame(agency=rep(agency,length(unique(forcsv$Measurement))),
-                       xmlAge=checkXMLageLakes(agency = agency,maxHistory = 30),
+                       xmlAge=checkXMLageLakes(agency = agency,maxHistory = 60),
                        var=sort(unique(forcsv$Measurement)),
                        earliest=rep("",length(unique(forcsv$Measurement))),
                        latest=rep("",length(unique(forcsv$Measurement))),
@@ -116,7 +116,7 @@ for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","
 
 #Per agency audit site/measurement start, stop, n and range ####
 for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","nrc","orc","tdc","trc","wcrc","wrc")){
-  forcsv=loadLatestCSVLake(agency,maxHistory = 20)
+  forcsv=loadLatestCSVLake(agency,maxHistory = 60)
   if(!is.null(forcsv)){
     nvar=length(uvars <- unique(forcsv$Measurement))
     nsite=length(usites <- unique(forcsv$CouncilSiteID))

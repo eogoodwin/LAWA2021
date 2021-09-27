@@ -55,6 +55,7 @@ rm(these)
 #208293 20/8/21
 #213592 27/8/21 
 #212767 03/09/21
+#219692 17/9/21
 
 GWdata%>%split(f=.$Source)%>%purrr::map(.f = function(x)any(apply(x,2,FUN=function(y)any(grepl('<|>',y,ignore.case=T)))))
 #ECAN GDC HBRC HRC MDC ORC ES TRC TDC GWRC WCRC do
@@ -228,6 +229,7 @@ GWdata <- GWdata%>%dplyr::filter(!Qualifier%in%c(42,151))  #42 means poor qualit
 #208268 20/8/21
 #213567 27/8/21
 #212742 3/9/21
+#219667 17/9/21
 
 
 noActualData = which(is.na(GWdata$Site_ID)&is.na(GWdata$`Result-raw`)&is.na(GWdata$Date))
@@ -256,6 +258,7 @@ GWdata <- GWdata%>%distinct
 #208174 20/8/21
 #213480 27/8/21
 #212655 03/09/21
+#219582
 
 GWdata$Value[which(GWdata$`Result-prefix`=='<')] <- GWdata$`Result-edited`[which(GWdata$`Result-prefix`=='<')]*0.5
 GWdata$Value[which(GWdata$`Result-prefix`=='>')] <- GWdata$`Result-edited`[which(GWdata$`Result-prefix`=='>')]*1.1
@@ -320,7 +323,7 @@ write.csv(GWdata,paste0('h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/',
 
 
 
-#STATE ####
+#Prep state dataset ####
 #Carl Hanson 11/9/2019:  We only need state and trend for five parameters: 
 #    nitrate nitrogen, chloride, DRP, electrical conductivity and E. coli.
 startTime=Sys.time()
@@ -354,6 +357,7 @@ Sys.time()-startTime
 #62173 20/8/21
 #64958 27/8/21
 #64979
+#66278 17/9/21 21 secs
 
 GWdataRelevantVariables$CenBin = 0
 GWdataRelevantVariables$CenBin[GWdataRelevantVariables$CenType=='lt'] = 1
@@ -384,6 +388,7 @@ table(freqs)
 #        32       74        5004    20-8-21
 #        32       75        5214    27/8/21
 #        32       75        5221    3/9/21
+#        35       77        5339   17/9/21
 GWdataRelevantVariables$Frequency=freqs[GWdataRelevantVariables$siteMeas]  
 rm(freqs)
 

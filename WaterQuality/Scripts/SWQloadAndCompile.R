@@ -14,8 +14,9 @@ siteTable=loadLatestSiteTableRiver()
 agencies= c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")
 lawaset=c("NH4", "TURB","TURBFNU", "BDISC",  "DRP",  "ECOLI",  "TN",  "TP",  "TON",  "PH","DIN","NO3N")
 
+
+
 if(0){
-  
 startTime=Sys.time()                                                                    #seconds / site
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadAC_list.R")})      #40 / 35
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadBOP_list.R")})     #169 / 49
@@ -36,14 +37,16 @@ system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWCRC_l
 system.time({source("H:/ericg/16666LAWA/LAWA2021/WaterQuality/Scripts/loadWRC_list.R")}) #
 cat("Done load\n")
 Sys.time()-startTime #23 minutes
-
 doneload=T
-
 }
+
+
 
 for(agency in agencies){
   checkCSVageRiver(agency = agency)
 }
+
+
 
 
 ##############################################################################
@@ -63,7 +66,7 @@ clusterCall(workers,function(){
 })
 startTime=Sys.time()
 foreach(agencyi =1:length(agencies),.combine = bind_rows,.errorhandling = 'stop')%dopar%{
-  mfl=loadLatestCSVRiver(agencies[agencyi],maxHistory = 30)
+  mfl=loadLatestCSVRiver(agencies[agencyi],maxHistory = 60)
     #BACKFILL except canterbury, hbrc, hrc
     if(backfill & agencies[agencyi]%in%c('trc','niwa')){
       targetSites=tolower(siteTable$CouncilSiteID[siteTable$Agency==agencies[agencyi]])
@@ -165,6 +168,11 @@ Sys.time()-startTime
 #31/8/21     1491106       bindrows 29
 #02/9/21     1498978
 #03/9/21     1498772 with backfill TRC and NIWA 18s
+#8/9/21      1502789
+#9/9/21      1503809 with GDC clarity
+#14/9/21     1503809 GDC clarity to m (oops)
+#15/9/21     1503809
+#20/9/21     1507115 GWRC pH data
 donecombine=T
 
 wqdata$CouncilSiteID=trimws(tolower(wqdata$CouncilSiteID))
@@ -183,6 +191,12 @@ siteTable$Region=tolower(siteTable$Region)
 siteTable$Agency=tolower(siteTable$Agency)
 table(unique(wqdata$CouncilSiteID)%in%siteTable$CouncilSiteID)
 
+unique(wqdata$CouncilSiteID)[!unique(wqdata$CouncilSiteID)%in%siteTable$CouncilSiteID]
+
+#Drop NIWA data that has no lawaSiteIDs
+wqdata <- wqdata%>%filter(CouncilSiteID%in%siteTable$CouncilSiteID)
+#1472238
+
 wqdata <- merge(wqdata,
                 siteTable%>%select(CouncilSiteID,SiteID,LawaSiteID,Agency,Region,
                                    SWQAltitude,SWQLanduse,Altitude,Landcover))
@@ -191,6 +205,9 @@ table(wqdata$Agency,is.na(wqdata$QC),useNA='a')  #QC data in AC, ECAN, ES, GDC, 
 table(wqdata$Region,useNA='a')
 table(wqdata$Agency,useNA='a')
 #    ac  boprc   ecan     es    gdc   gwrc   hbrc    hrc    mdc    ncc   niwa    nrc    orc    tdc    trc  wcrc    wrc
+# 70588  54768 222636 106371  45303  93190 108118 211987  40894  25251  97227  62186  76846  19394  29233 29501 182051 
+# 70588  54768 222636 106371  45303  89884 108118 211987  40894  25251  97227  62186  76846  19394  29233 29501 182051
+# 70588  54768 222636 106371  44283  89884 108118 211987  40894  25251  97227  62186  76846  19394  29233 29501 182051
 # 70588  54768 222636 106371  39886  89884 108118 211987  40894  25251 129178  62186  76846  19394  29233 29501 182051
 # 70588  54768 222636 106371  39886  89884 108118 211987  40894  25251 129178  62186  76825  19394  29233 29501 182051 
 # 70588  54768 222636 106371  39886  89884 108118 211987  40894  25251 129178  62186  77052  19394  29233 29501 182051 
@@ -218,6 +235,8 @@ table(wqdata$Agency,useNA='a')
 table(wqdata$SWQLanduse,wqdata$SWQAltitude)
 table(wqdata$Agency,wqdata$Measurement)
 
+write.csv(table(wqdata$Units,wqdata$Agency),paste0('h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',format(Sys.Date(),"%Y-%m-%d"),'/unitsagency.csv'))
+write.csv(table(wqdata$Units,wqdata$Measurement),paste0('h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',format(Sys.Date(),"%Y-%m-%d"),'/unitsmeasurement.csv'))
 
 unique(wqdata$Units)
 wqdata$Units = gsub(pattern = " units|_units| Units",replacement = "",x = wqdata$Units)
@@ -240,8 +259,6 @@ table(wqdata$Agency,wqdata$Units)
 wqdata$Measurement[which(wqdata$Units=='fnu')] <- "TURBFNU"
 wqdata%>%filter(Measurement=="TURBFNU")%>%select(Agency,Units)%>%table
 
-write.csv(table(wqdata$Units,wqdata$Agency),paste0('h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',format(Sys.Date(),"%Y-%m-%d"),'/unitsagency.csv'),row.names = F)
-write.csv(table(wqdata$Units,wqdata$Measurement),paste0('h:/ericg/16666LAWA/LAWA2021/WaterQuality/Analysis/',format(Sys.Date(),"%Y-%m-%d"),'/unitsmeasurement.csv'),row.names = F)
 
 
 
@@ -287,6 +304,8 @@ write.csv(table(wqdata$Units,wqdata$Measurement),paste0('h:/ericg/16666LAWA/LAWA
 #1491106 31/8/21
 #1498978 2/9/21
 #1498772 3/9/21
+#1471218 8/9/21
+#1475544 20/9/21
 
 
 wqdata$Symbol=""
@@ -307,7 +326,7 @@ table(wqdata$Agency,wqdata$Measurement)/table(wqdata$Agency,wqdata$Measurement)
 # hbrc      1   1   1     1   1    1   1   1   1   1    1       1
 # hrc       1   1   1     1   1    1   1   1   1   1    1       1
 # mdc           1   1     1   1    1   1   1   1   1    1        
-# ncc       1   1   1     1   1    1   1   1       1    1        
+# ncc       1   1   1     1   1    1   1   1   1   1    1        
 # niwa      1       1     1   1        1   1   1   1    1        
 # nrc       1   1   1     1   1    1   1   1   1   1    1        
 # orc       1   1   1     1   1    1   1   1   1   1    1        

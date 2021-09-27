@@ -115,6 +115,7 @@ siteTable$LawaSiteID=as.character(siteTable$LawaSiteID)
 siteTable$Region=tolower(as.character(siteTable$Region))
 siteTable$Agency=tolower(as.character(siteTable$Agency))
 
+
 #Once the NIWA load script has run, we can add teh NIWAsiteTable tot eh SiteTable
 #The NIWA load script made some stuff up about site locations.
 NIWAMacroSites = read.csv('H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Metadata/NIWASiteTable.csv',stringsAsFactors = F)
@@ -389,3 +390,21 @@ write.csv(AgencyRep,'h:/ericg/16666LAWA/LAWA2021/Metadata/AgencyRepMacroWFS.csv'
 #wcrc     34      34      34      34      34      34      34      34      34      34      34      35      35      35
 #wrc      75      75      75      75      75      75      75      75      75      75      75      75      75      75
 
+#agency 20Aug21   08Sep21
+#ac         62        62
+#boprc     132       132
+#ecan      163       163
+#es         87        87
+#gdc        80        80
+#gwrc       53        55
+#hbrc       85        85
+#hrc        87        87
+#mdc        31        31
+#ncc        26        26
+#niwa       77        57
+#nrc        33        33
+#orc        31        31
+#tdc        24        24
+#trc        60        58
+#wcrc       35        35
+#wrc        75        75

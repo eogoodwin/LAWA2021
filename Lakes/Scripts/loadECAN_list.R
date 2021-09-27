@@ -102,6 +102,8 @@ if(length(mtRows)>0){
 rm(mtRows)
    
   save(ecanLWQ,file = 'ecanLWQraw.rData')
+  
+  # load('ecanLWQraw.rData')
 
 ecanLWQ=data.frame(CouncilSiteID=ecanLWQ$CouncilSiteID,
                  Date=format(lubridate::ymd_hms(ecanLWQ$T),'%d-%b-%y'),

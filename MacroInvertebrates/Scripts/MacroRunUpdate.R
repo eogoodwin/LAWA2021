@@ -1,0 +1,5 @@
+source("./scripts/Macro_PrepWFS.R")
+source("./Scripts/Macro_loadAndCompile.R")
+source("./scripts/Macro_stateROLLING.r")
+source("./scripts/Macro_trend.R")
+source("./scripts/Macro_Audit.r")

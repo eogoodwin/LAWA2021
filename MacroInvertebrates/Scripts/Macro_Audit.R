@@ -67,7 +67,7 @@ table(unique(tolower(macroData$CouncilSiteID))%in%tolower(c(macroSiteTable$SiteI
 
 #Per agency audit site/measurement start, stop, n and range ####
 for(agency in c("ac","boprc","ecan","es","gdc","gwrc","hbrc","hrc","mdc","ncc","niwa","nrc","orc","tdc","trc","wcrc","wrc")){
-  forcsv=loadLatestCSVmacro(agency,maxHistory = 20)
+  forcsv=loadLatestCSVmacro(agency,maxHistory = 040)
   if(!is.null(forcsv)){
     if('parameter'%in%names(forcsv)){
       names(forcsv)[which(names(forcsv)=='parameter')] <- 'Measurement'
@@ -134,28 +134,21 @@ for(up in seq_along(upara)){
 
 startTime=Sys.time()
 urls          <- read.csv("H:/ericg/16666LAWA/LAWA2021/Metadata/CouncilWFS.csv",stringsAsFactors=FALSE)
-# workers <- makeCluster(7)
-# registerDoParallel(workers)
-# foreach(agency = c("ac", "boprc", "ecan", "es", "gdc", "gwrc", "hbrc", "hrc", 
-                   # "mdc", "ncc", "nrc", "orc", "tdc", "trc", "wcrc", "wrc"),
-        # .combine=rbind,.errorhandling="stop")%dopar%{
-for(agency in c("ac", "boprc", "ecan", "es", "gdc", "gwrc", "hbrc", "hrc", 
-                "mdc", "ncc",'niwa', "nrc", "orc", "tdc", "trc", "wcrc", "wrc")){
-          if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
-                        pattern = paste0('^',agency,".*audit\\.csv"),
-                        recursive = T,full.names = T,ignore.case = T))>0){
+for(agency in c("ac",  "boprc", "ecan", "es", "gdc", "gwrc", "hbrc", "hrc", 
+                 "mdc", "ncc",'niwa', "nrc", "orc", "tdc", "trc", "wcrc", "wrc")){
+          # if(length(dir(path = paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
+          #               pattern = paste0('^',agency,".*audit\\.csv"),
+          #               recursive = T,full.names = T,ignore.case = T))>0){
             rmarkdown::render('H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Scripts/AuditDocument.Rmd',
                               params=list(agency=agency,
                                           sos=urls$SOSwq[which(tolower(urls$Agency)==agency)]),
                               output_dir = paste0("H:/ericg/16666LAWA/LAWA2021/MacroInvertebrates/Audit/",format(Sys.Date(),"%Y-%m-%d")),
                               output_file = paste0(toupper(agency),"Audit",format(Sys.Date(),'%d%b%y'),".html"),
                               envir = new.env())
-          }
-          # return(NULL)
+          # }
         }
-# stopCluster(workers)
-# remove(workers)
-Sys.time()-startTime
+
+ Sys.time()-startTime
 
 
 # macroTrend%>%dplyr::filter(period==10)%>%select(frequency,Agency)%>%table

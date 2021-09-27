@@ -361,8 +361,8 @@ StateAnalysis <- function(df,type,level){
   # Filter data.frame to remove rows meeting exclusion criteria
   # Identifying rows meeting exclusion criteria
   dfs$Exclude<-FALSE
-  dfs$Exclude[tolower(dfs$Frequency)=="monthly" & dfs$Count<(0.5*12*5)] <- TRUE            #30 out of 5*12 = 60
-  dfs$Exclude[tolower(dfs$Frequency)=="bimonthly" & dfs$Count<(0.8*6*5)] <- TRUE   #80% of 6 bimonthlys per year * 5 years
+  dfs$Exclude[tolower(dfs$Frequency)=="monthly" & dfs$Count<(0.5*12*5)] <- TRUE  #30 out of 5*12 = 60
+  dfs$Exclude[tolower(dfs$Frequency)=="bimonthly" & dfs$Count<(0.8*6*5)] <- TRUE #80% of 6 bimonthlys per year * 5 years
   dfs$Exclude[tolower(dfs$Frequency)=="quarterly" & dfs$Count<(0.8*4*5)] <- TRUE    #require 16 out of 20
 
   dfs<-dfs[dfs$Exclude==FALSE,1:9]
