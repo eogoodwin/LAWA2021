@@ -340,6 +340,7 @@ GWdataRelevantVariables <- GWdata%>%
   dplyr::summarise(.groups='keep',
                    LawaSiteID=unique(LawaSiteID),
                    Measurement=unique(Measurement),
+                   Units = unique(Variable_units),
                    Year=unique(Year),
                    Qtr=unique(Qtr),
                    Month=unique(Month),
@@ -358,6 +359,7 @@ Sys.time()-startTime
 #64958 27/8/21
 #64979
 #66278 17/9/21 21 secs
+#66278 18/11   1.1 mins
 
 GWdataRelevantVariables$CenBin = 0
 GWdataRelevantVariables$CenBin[GWdataRelevantVariables$CenType=='lt'] = 1
@@ -393,3 +395,5 @@ GWdataRelevantVariables$Frequency=freqs[GWdataRelevantVariables$siteMeas]
 rm(freqs)
 
 
+write.csv(GWdataRelevantVariables,paste0('h:/ericg/16666LAWA/LAWA2021/Groundwater/Data/',
+                                         format(Sys.Date(),'%Y-%m-%d'),'/GWdataRV.csv'),row.names=F)
