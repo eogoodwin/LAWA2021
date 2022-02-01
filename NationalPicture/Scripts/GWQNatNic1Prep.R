@@ -103,7 +103,7 @@ GWNationalPicture <- GWdata%>%
                    RcenLim = suppressWarnings({min(`Result-edited`[`Result-prefix`=='>'],na.rm=T)}),
                    CenType = ifelse(Value<LcenLim,'lt',ifelse(Value>RcenLim,'gt',NA)))%>%
   ungroup%>%distinct
-Sys.time()-startTime #36 seconds
+Sys.time()-startTime #36 seconds  3 minutes feb2022
 GWNationalPicture$CenBin = 0
 GWNationalPicture$CenBin[GWNationalPicture$CenType=='lt'] = 1
 GWNationalPicture$CenBin[GWNationalPicture$CenType=='gt'] = 2
@@ -162,7 +162,7 @@ for(gwnpm in gwnpm:dim(GWNatPicMedians)[1]){
   }
 }
 GWNatPicMedians$censoredPropn = GWNatPicMedians$censoredCount/GWNatPicMedians$count
-Sys.time()-startTime #1.7s
+Sys.time()-startTime #1.7s  52s feb2022
 #
 
 GWNatPicMedians$CenType = as.character(GWNatPicMedians$CenType)
@@ -220,7 +220,7 @@ dir.create(paste0("h:/ericg/16666LAWA/LAWA2021/NationalPicture/GWQ/",format(Sys.
 
 siteTab = read_csv("h:/ericg/16666LAWA/LAWA2021/Groundwater/Metadata/SiteTable.csv")
 
-length(unique(c(tolower(siteTab$LAWA_ID)))) #956
+length(unique(c(tolower(siteTab$LAWA_ID)))) #960
 
 
 # GWNatPicMedians=read.csv(tail(dir(path = "h:/ericg/16666LAWA/LAWA2021/Groundwater/Analysis/",
@@ -258,7 +258,7 @@ GWBands$NaClBand = factor(Hmisc::cut2(GWBands$NaCl,cuts = c(-Inf,500,1000,Inf)),
 GWBands$NO3Band = factor(Hmisc::cut2(GWBands$NO3,cuts = c(-Inf,1,5.65,11.3,Inf)),
                         levels=c("[ -Inf, 1.00)", "[ 1.00, 5.65)", "[ 5.65,11.30)", "[11.30,  Inf]"),
                         labels=c("A","B","C","D"))
-GWBands <- merge(GWBands,GWNatPicMedians%>%select(LawaSiteID,p5y,EcoliDetectAtAll)%>%drop_na(EcoliDetectAtAll))
+GWBands <- merge(x=GWBands,y=GWNatPicMedians%>%select(LawaSiteID,p5y,EcoliDetectAtAll)%>%drop_na(EcoliDetectAtAll),all.x=T)
 GWBands <- GWBands%>%rename(EcoliBand = EcoliDetectAtAll)
 GWBands$EcoliBand <- factor(GWBands$EcoliBand,levels=c(1,2),labels=c("B","A")) #2 is nondetect
 GWBands$DRPBand = factor(Hmisc::cut2(GWBands$DRP,cuts = c(-Inf,0.01,0.025,Inf)),
